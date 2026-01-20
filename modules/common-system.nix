@@ -44,10 +44,10 @@
 
   # --- PAQUETES DEL SISTEMA --- 
   environment.systemPackages = with pkgs; [
-    git wget curl btop htop fastfetch vim pciutils lshw netbird-ui
+    git wget curl btop htop fastfetch vim pciutils lshw
   ];
 
-     services.netbird.enable = true;
+  services.netbird.enable = true;
   
   system.stateVersion = "25.11";
 }

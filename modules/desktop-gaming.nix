@@ -40,9 +40,9 @@
     onlyoffice-desktopeditors
     kdePackages.kate gedit
     distrobox vscode    
+    netbird-ui
   ];
   
-   environment.systemPackages = [ pkgs.netbird-ui ]; # for GUI
 
   # --- VIRTUALIZACION ---
   virtualisation.podman = {
