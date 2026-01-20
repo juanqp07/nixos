@@ -8,7 +8,7 @@
   outputs = { self, nixpkgs, ... }@inputs: {
     nixosConfigurations = {
       
-      # 1. TU PORTÁTIL
+      # 1. PORTÁTIL
       portatil = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
@@ -18,7 +18,7 @@
         ];
       };
 
-      # 2. TU PC TORRE
+      # 2. ORDENADOR
       torre = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
@@ -28,7 +28,7 @@
         ];
       };
 
-      # 3. TU SERVIDOR (Mini PC)
+      # 3. SERVIDOR
       servidor = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [

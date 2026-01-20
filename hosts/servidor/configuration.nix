@@ -12,17 +12,13 @@
   # Añadir usuario al grupo docker para no usar sudo siempre
   users.users.juan.extraGroups = [ "docker" ];
 
-  # --- SIN ENTORNO GRÁFICO ---
-  # Al no importar desktop-gaming.nix, NixOS arranca en modo texto (TTY)
-  # que es lo correcto para un servidor.
 
   # --- ACCESO REMOTO (SSH) ---
-  # Vital para un servidor sin pantalla
   services.openssh = {
     enable = true;
     settings = {
       PermitRootLogin = "no";
-      PasswordAuthentication = true; # O false si usas llaves SSH (recomendado)
+      PasswordAuthentication = true;
     };
   };
   
