@@ -6,46 +6,59 @@ Este repositorio contiene mi configuración centralizada para 3 máquinas, gesti
 
 * **flake.nix**: Punto de entrada que define los hosts y las versiones de los paquetes.
 * **hosts/**: Configuraciones específicas de hardware.
-    * \`portatil/\`: Laptop i5 9th Gen + NVIDIA (Híbrido/Optimus).
-    * \`torre/\`: PC Ryzen 5600X + RX 6700 XT (AMD nativo).
-    * \`servidor/\`: i5 1250p (Docker, Sin entorno gráfico).
+    * `portatil/`: Laptop i5 9th Gen + NVIDIA (Híbrido/Optimus).
+    * `torre/`: PC Ryzen 5600X + RX 6700 XT (AMD nativo).
+    * `servidor/`: i5 1250p (Docker, Sin entorno gráfico).
 * **modules/**: Módulos compartidos.
-    * \`common-system.nix\`: Configuración base (Usuario, Idioma, Herramientas CLI).
-    * \`desktop-gaming.nix\`: Entorno Plasma 6, Steam, Audio y Apps de escritorio.
+    * `common-system.nix`: Configuración base (Usuario, Idioma, Herramientas CLI).
+    * `desktop-gaming.nix`: Entorno Plasma 6, Steam, Audio y Apps de escritorio.
 
 ---
 
 ## 🚀 Cómo aplicar cambios
 
-Desde la carpeta \`~/nixos-config\`, ejecuta el comando según la máquina en la que estés:
+Desde la carpeta `~/nixos-config`, ejecuta el comando según la máquina en la que estés:
 
 ### 💻 Portátil
-\`\`\`bash
+```bash
 sudo nixos-rebuild switch --flake .#portatil
-\`\`\`
+```
 
 ### 🖥️ PC Torre
-\`\`\`bash
+```bash
 sudo nixos-rebuild switch --flake .#torre
-\`\`\`
+```
 
 ### ☁️ Servidor
-\`\`\`bash
+```bash
 sudo nixos-rebuild switch --flake .#servidor
-\`\`\`
+```
 
 ---
 
 ## 🛠️ Instalación en una máquina nueva
 
 1.  Instala NixOS con la ISO (Plasma o Mínima).
-2.  Clona este repositorio: \`git clone <URL_DEL_REPO> ~/nixos-config\`.
+2.  Clona este repositorio: `git clone <URL_DEL_REPO> ~/nixos-config`.
 3.  **Importante**: Copia el hardware generado por el instalador:
-    \`cp /etc/nixos/hardware-configuration.nix ~/nixos-config/hosts/<nombre-maquina>/\`
+    `cp /etc/nixos/hardware-configuration.nix ~/nixos-config/hosts/<nombre-maquina>/`
 4.  Si los Flakes no están activos:
-    \`export NIX_CONFIG="experimental-features = nix-command flakes"\`
+    `export NIX_CONFIG="experimental-features = nix-command flakes"`
 5.  Aplica la configuración con el comando de "rebuild" correspondiente.
 
+---
+
+## 🔄 Actualización y Mantenimiento
+
+### Actualizar el Sistema (Software)
+1. **Actualizar el catálogo de paquetes** (modifica el flake.lock):
+   ```bash
+   nix flake update
+   ```
+    Aplicar la actualización:
+   ```bash
+   sudo nixos-rebuild switch --flake .#nombre-maquina
+   ```
 ---
 
 ## 🧹 Mantenimiento y Limpieza
@@ -53,13 +66,13 @@ sudo nixos-rebuild switch --flake .#servidor
 Para evitar que el disco se llene con versiones antiguas del sistema:
 
 * **Eliminar versiones de más de 7 días**:
-    \`sudo nix-collect-garbage -d\`
+    `sudo nix-collect-garbage -d`
 * **Optimizar el almacenamiento (eliminar duplicados)**:
-    \`nix-store --optimise\`
+    `nix-store --optimise`
 
 ---
 
 ## ⚠️ Notas de Configuración
-* **Git**: Antes de aplicar un cambio con el comando \`switch\`, debes añadir los archivos nuevos a git (\`git add .\`), de lo contrario Nix los ignorará.
+* **Git**: Antes de aplicar un cambio con el comando `switch`, debes añadir los archivos nuevos a git (`git add .`), de lo contrario Nix los ignorará.
 * **NVIDIA**: El portátil usa el driver propietario estable.
-* **Docker**: Solo está habilitado en el host \`servidor\`. El resto usa **Podman**.
+* **Docker**: Solo está habilitado en el host `servidor`. El resto usa **Podman**.

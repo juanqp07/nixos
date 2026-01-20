@@ -6,6 +6,28 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # --- MANTENIMIENTO AUTOMÁTICO ---
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 7d";
+  };
+
+  # Optimiza el espacio automáticamente en cada reconstrucción
+  nix.settings.auto-optimise-store = true;
+
+  # Actualización automática del sistema (Opcional)
+  # system.autoUpgrade = {
+  #   enable = true;
+  #   flake = inputs.self.outPath;
+  #   flags = [
+  #     "--update-input" "nixpkgs"
+  #     "-L" # print build logs
+  #   ];
+  #   dates = "04:00";
+  #   randomizedDelaySec = "45min";
+  # };
+
   # --- RED Y LOCALE ---
   networking.networkmanager.enable = true;
   time.timeZone = "Europe/Madrid";
