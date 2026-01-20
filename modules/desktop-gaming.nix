@@ -23,6 +23,7 @@
   virtualisation.virtualbox.host.enableExtensionPack = true;  
   virtualisation.virtualbox.guest.enable = true;
   virtualisation.virtualbox.guest.dragAndDrop = true;
+  
 
   # --- GAMING & APPS ---
   programs.steam = {
@@ -42,6 +43,10 @@
     distrobox vscode    
     netbird-ui stremio
     vlc mpv
+  ];
+
+  nixpkgs.config.permittedInsecurePackages = [
+    "qtwebengine-5.15.19"
   ];
   
 
