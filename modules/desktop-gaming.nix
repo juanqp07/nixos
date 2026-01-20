@@ -41,12 +41,8 @@
     onlyoffice-desktopeditors
     kdePackages.kate gedit
     distrobox vscode    
-    netbird-ui stremio
+    netbird-ui
     vlc mpv
-  ];
-
-  nixpkgs.config.permittedInsecurePackages = [
-    "qtwebengine-5.15.19"
   ];
   
 
