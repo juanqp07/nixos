@@ -40,7 +40,8 @@
     onlyoffice-desktopeditors
     kdePackages.kate gedit
     distrobox vscode    
-    netbird-ui
+    netbird-ui stremio
+    vlc mpv
   ];
   
 

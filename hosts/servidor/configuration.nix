@@ -35,5 +35,5 @@
   };
   
   # Gestión de energía servidor
-  services.tlp.enable = true; 
+  services.tlp.enable = true;
 }
