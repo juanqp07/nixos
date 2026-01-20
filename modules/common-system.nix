@@ -6,16 +6,6 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # --- MANTENIMIENTO AUTOMÁTICO ---
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 7d";
-  };
-
-  # Optimiza el espacio automáticamente en cada reconstrucción
-  nix.settings.auto-optimise-store = true;
-
   # Actualización automática del sistema (Opcional)
   # system.autoUpgrade = {
   #   enable = true;
@@ -50,7 +40,9 @@
     dates = "weekly";
     options = "--delete-older-than 7d";
   };
-  
+  nix.settings.auto-optimise-store = true;
+
+
   environment.systemPackages = with pkgs; [
     git wget curl btop htop fastfetch vim pciutils lshw
   ];
