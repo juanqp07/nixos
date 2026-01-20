@@ -35,11 +35,11 @@
   programs.firefox.enable = true;
 
   environment.systemPackages = with pkgs; [
-    vesktop discord gamescope heroic
+    firefox discord vesktop heroic
     supersonic-wayland boxbuddy
     onlyoffice-desktopeditors
     kdePackages.kate gedit
-    distrobox
+    distrobox vscode    
   ];
   
   # --- VIRTUALIZACION ---

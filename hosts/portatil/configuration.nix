@@ -32,4 +32,9 @@
       nvidiaBusId = "PCI:1:0:0";
     };
   };
+  
+  environment.systemPackages = with pkgs; [
+  powertop         # Para ver qué gasta batería
+  libinput-gestures # Gestos en el touchpad
+];
 }
