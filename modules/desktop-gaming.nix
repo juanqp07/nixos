@@ -42,6 +42,8 @@
     distrobox vscode    
   ];
   
+   environment.systemPackages = [ pkgs.netbird-ui ]; # for GUI
+
   # --- VIRTUALIZACION ---
   virtualisation.podman = {
     enable = true;

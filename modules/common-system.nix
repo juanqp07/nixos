@@ -42,10 +42,12 @@
   };
   nix.settings.auto-optimise-store = true;
 
-
+  # --- PAQUETES DEL SISTEMA --- 
   environment.systemPackages = with pkgs; [
-    git wget curl btop htop fastfetch vim pciutils lshw
+    git wget curl btop htop fastfetch vim pciutils lshw netbird-ui
   ];
+
+     services.netbird.enable = true;
   
   system.stateVersion = "25.11";
 }
