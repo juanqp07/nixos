@@ -43,7 +43,7 @@
     distrobox vscode    
     netbird-ui
     vlc mpv
-    windsurf gnome-boxes
+    windsurf
   ];
   
 
