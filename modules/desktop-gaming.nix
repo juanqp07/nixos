@@ -54,5 +54,12 @@
   };
   boot.blacklistedKernelModules = [ "kvm-intel" "kvm-amd" ];
   
-  users.users.juan.extraGroups = [ "video" "vboxusers" ];
+  # --- USUARIO ---
+  users.users.juan = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "podman" "vboxusers" "video" ];
+  # Esto es lo más importante:
+    subUidRanges = [{ startUid = 100000; count = 65536; }];
+    subGidRanges = [{ startGid = 100000; count = 65536; }];
+};
 }
