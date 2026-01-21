@@ -36,6 +36,6 @@
   environment.systemPackages = with pkgs; [
   powertop         # Para ver qué gasta batería
   libinput-gestures # Gestos en el touchpad
-  go antigravity
+  go antigravity gcc cmake
 ];
 }
