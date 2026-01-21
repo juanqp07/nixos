@@ -44,6 +44,7 @@
     netbird-ui
     vlc mpv
     windsurf podman-compose
+    gearlever
   ];
   
 
