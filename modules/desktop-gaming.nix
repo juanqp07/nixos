@@ -52,6 +52,7 @@
     enable = true;
     dockerCompat = true;
   };
+  boot.blacklistedKernelModules = [ "kvm-intel" "kvm-amd" ];
   
   users.users.juan.extraGroups = [ "video" "vboxusers" ];
 }
