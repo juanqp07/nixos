@@ -42,7 +42,7 @@
     netbird-ui
     vlc mpv
     windsurf podman-compose
-    gearlever
+    gearlever cloudflare-warp
   ];
   
 
