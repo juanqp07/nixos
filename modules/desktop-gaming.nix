@@ -7,7 +7,8 @@
   services.desktopManager.plasma6.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
   console.keyMap = "es";
-
+  # --- Cloudflare WARP ---
+  services.cloudflare-warp.enable = true;
   # --- SONIDO (Pipewire) ---
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
