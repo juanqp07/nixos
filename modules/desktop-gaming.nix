@@ -44,6 +44,7 @@
     vlc mpv
     windsurf podman-compose
     gearlever cloudflare-warp
+    rustdesk
   ];
   
 
