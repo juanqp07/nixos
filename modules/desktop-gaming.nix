@@ -3,7 +3,7 @@
 {
   # --- KERNEL ---
   # Esto activará el kernel Zen
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = linuxPackages_zen;
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
