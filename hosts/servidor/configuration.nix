@@ -48,7 +48,7 @@
   };
 
   # Protección contra ataques al SSH (muy recomendado si abres puertos)
-  services.fail2ban.enable = true;
+  services.fail2ban.enable = false;
 
   services.openssh = {
     enable = true;
@@ -90,7 +90,7 @@
  
   # --- 7. MONTAJE DE DISCOS ADICIONALES ---
   fileSystems."/mnt/datos" = {
-    device = "/dev/disk/by-uuid/TU-UUID-AQUÍ"; # <--- Pega aquí tu UUID
+    device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7"; # <--- Pega aquí tu UUID
     fsType = "ext4";
     options = [ "defaults" "nofail" ]; # "nofail" evita que el PC no arranque si el disco está desconectado
   };
