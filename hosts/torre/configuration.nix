@@ -14,6 +14,6 @@
   };
   
   environment.systemPackages = with pkgs; [
-    prismlauncher lunar-client
+    prismlauncher
   ];
 }
