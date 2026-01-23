@@ -36,8 +36,8 @@
   networking.networkmanager.enable = true;
 
   networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 80 443 ];
+    enable = false;
+    allowedTCPPorts = [22 80 443 ];
     trustedInterfaces = [ "wt0" ];
 
     # Usamos -I (Insert) en lugar de -A (Append)
