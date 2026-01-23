@@ -48,7 +48,7 @@
     windsurf podman-compose
     gearlever cloudflare-warp
     rustdesk-flutter
-    go antigravity gcc cmake
+    go antigravity gcc cmake hypnotix
   ];
   
 
