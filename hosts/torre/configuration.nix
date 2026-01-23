@@ -2,7 +2,7 @@
 
 {
   imports = [ ./hardware-configuration.nix ];
-
+  
   networking.hostName = "ordenador";
 
   boot.initrd.kernelModules = [ "amdgpu" ];

@@ -4,7 +4,7 @@
   imports = [ ./hardware-configuration.nix ];
 
   # --- 1. KERNEL Y RENDIMIENTO ---
-  boot.kernelPackages = pkgs.linuxPackages_lts;
+  boot.kernelPackages = pkgs.linuxPackages;
   
   boot.kernel.sysctl = {
     # BBR sigue siendo el rey para el streaming de video
