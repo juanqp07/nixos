@@ -48,6 +48,7 @@
     windsurf podman-compose
     gearlever cloudflare-warp
     rustdesk-flutter
+    go antigravity gcc cmake
   ];
   
 
