@@ -37,7 +37,7 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 80 443 ];
+    allowedTCPPorts = [ 80 443 22];
     trustedInterfaces = [ "wt0" ];
 
     # LAN local
@@ -86,7 +86,13 @@
     options = "--delete-older-than 14d";
   };
   nix.settings.auto-optimise-store = true;
+ 
+  # --- 7. MONTAJE DE DISCOS ADICIONALES ---
+  fileSystems."/mnt/datos" = {
+    device = "/dev/disk/by-uuid/TU-UUID-AQUÍ"; # <--- Pega aquí tu UUID
+    fsType = "ext4";
+    options = [ "defaults" "nofail" ]; # "nofail" evita que el PC no arranque si el disco está desconectado
+  };
 
-  # Cambia esto a 25.11 si es una instalación nueva
   system.stateVersion = "25.11"; 
 }
