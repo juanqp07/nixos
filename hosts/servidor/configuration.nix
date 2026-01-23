@@ -37,12 +37,12 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 80 443 22];
+    allowedTCPPorts = [ 80 443 ];
     trustedInterfaces = [ "wt0" ];
-
-    # LAN local
-    extraCommands = ''
-      iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
+  
+    # Esta es la forma moderna de permitir una subred completa
+    extraInputRule = ''
+      ip saddr 192.168.1.0/24 accept
     '';
   };
 
