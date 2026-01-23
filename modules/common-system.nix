@@ -34,10 +34,11 @@
   # --- NIX SETTINGS ---
   nixpkgs.config.allowUnfree = true;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.gc = {
+nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 7d";
+    # Usamos mkDefault para que sea un "si nadie dice lo contrario, usa 7d"
+    options = lib.mkDefault "--delete-older-than 7d"; 
   };
   nix.settings.auto-optimise-store = true;
 
