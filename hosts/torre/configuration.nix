@@ -13,5 +13,7 @@
     enable32Bit = true;
   };
   
-  environment.systemPackages = with pkgs; [];
+  environment.systemPackages = with pkgs; [
+    prismlauncher
+  ];
 }
