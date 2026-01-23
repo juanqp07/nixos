@@ -4,7 +4,6 @@
   # --- BOOT Y KERNEL ---
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Actualización automática del sistema (Opcional)
   # system.autoUpgrade = {
