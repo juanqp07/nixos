@@ -39,10 +39,11 @@
     enable = true;
     allowedTCPPorts = [ 80 443 ];
     trustedInterfaces = [ "wt0" ];
-  
-    # Esta es la forma moderna de permitir una subred completa
-    extraInputRule = ''
-      ip saddr 192.168.1.0/24 accept
+
+    # Usamos -I (Insert) en lugar de -A (Append)
+    # Esto coloca la regla al principio de la lista, saltándose cualquier bloqueo posterior
+    extraCommands = ''
+      iptables -I INPUT -s 192.168.1.0/24 -j ACCEPT
     '';
   };
 
