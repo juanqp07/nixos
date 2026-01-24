@@ -51,7 +51,7 @@
   networking.firewall = {
     enable = true; 
     # Puertos del Host (Zoraxy maneja 80/443, SSH es 22)
-    allowedTCPPorts = [ 22 80 443 ];
+    allowedTCPPorts = [ 22 8008 8443 ];
     # Puertos UDP si usas Wireguard/Gluetun o mDNS
     allowedUDPPorts = [ ]; 
     
