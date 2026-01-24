@@ -17,9 +17,6 @@
       rocmPackages.clr
       rocmPackages.clr.icd
     ];
-    extraPackages32 = with pkgs; [
-      driversi686Linux.amdvlk
-    ];
   };
   
   environment.systemPackages = with pkgs; [
