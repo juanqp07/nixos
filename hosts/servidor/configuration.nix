@@ -1,23 +1,35 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # --- 1. KERNEL Y RENDIMIENTO ---
-  boot.kernelPackages = pkgs.linuxPackages;
+  # --- 1. KERNEL Y RENDIMIENTO (Optimizado para i5 12th Gen) ---
+  # Usamos el kernel más reciente para mejor soporte de iGPU y E-cores/P-cores
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   
   boot.kernel.sysctl = {
-    # BBR sigue siendo el rey para el streaming de video
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";
+    # Reducimos uso de swap en disco drásticamente
     "vm.swappiness" = 10;
+    # Aumentamos límite de archivos abiertos (necesario para muchos contenedores/Plex/Navidrome)
+    "fs.file-max" = 100000;
   };
 
-  # Mantén estos parámetros para que la iGPU (Intel 12ª Gen) rinda al máximo
-  boot.kernelParams = [ "i915.enable_guc=3" ];
+  # Habilitar Swap en RAM (ZRAM). Muy recomendado para servidores con mucha carga.
+  zramSwap.enable = true;
+
+  # Parámetros para Intel QuickSync (Guc/Huc)
+  boot.kernelParams = [ 
+    "i915.enable_guc=3" 
+    # Opcional: Ayuda si tienes tearing o problemas de energía
+    "i915.enable_psr=0" 
+  ];
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  # Limita las entradas de boot guardadas para no llenar la partición EFI
+  boot.loader.systemd-boot.configurationLimit = 10;
 
   # --- 2. GRÁFICOS E INTEL QUICK SYNC (QSV) ---
   hardware.graphics = {
@@ -26,61 +38,80 @@
       intel-media-driver
       vpl-gpu-rt
       intel-compute-runtime 
+      # Drivers para transcodificación VAAPI (legacy pero útiles)
+      intel-vaapi-driver
     ];
   };
 
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "servidor-nix";
-  # IMPORTANTE: En 25.11, si usas VPNs a través de NetworkManager, 
-  # ahora debes declarar los plugins explícitamente.
   networking.networkmanager.enable = true;
 
+  # ¡IMPORTANTE! Reactivamos el Firewall por seguridad
   networking.firewall = {
-    enable = false;
-    allowedTCPPorts = [22 80 443 ];
-    trustedInterfaces = [ "wt0" ];
-
-    # Usamos -I (Insert) en lugar de -A (Append)
-    # Esto coloca la regla al principio de la lista, saltándose cualquier bloqueo posterior
+    enable = true; 
+    # Puertos del Host (Zoraxy maneja 80/443, SSH es 22)
+    allowedTCPPorts = [ 22 80 443 ];
+    # Puertos UDP si usas Wireguard/Gluetun o mDNS
+    allowedUDPPorts = [ ]; 
+    
+    trustedInterfaces = [ "wt0" "docker0" ]; # Confiar en Netbird y Docker interno
+    
+    # Tu regla personalizada para permitir toda la LAN (más limpio así)
     extraCommands = ''
-      iptables -I INPUT -s 192.168.1.0/24 -j ACCEPT
+      iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
     '';
   };
 
-  # Protección contra ataques al SSH (muy recomendado si abres puertos)
-  services.fail2ban.enable = false;
+  # Fail2Ban: Esencial si tienes el puerto 22 abierto, aunque sea solo en LAN
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    bantime = "1h";
+  };
 
   services.openssh = {
     enable = true;
     settings = {
-      PasswordAuthentication = true;
+      # RECOMENDACIÓN: Cambia a "no" y usa llaves SSH en cuanto puedas
+      PasswordAuthentication = true; 
       PermitRootLogin = "no";
     };
   };
 
-  # --- 4. DOCKER Y VIRTUALIZACIÓN ---
+  # Si AdGuard Home necesita el puerto 53 del host, descomenta esto:
+  # services.resolved.enable = false;
+
+  # --- 4. DOCKER ---
   virtualisation.docker = {
     enable = true;
-    # Limpieza semanal de imágenes y contenedores parados (Mantenimiento 25.11)
     autoPrune = {
       enable = true;
       dates = "weekly";
     };
+    # Configuración global del demonio para rotación de logs (evita discos llenos)
+    logDriver = "json-file";
+    extraOptions = "--log-opt max-size=50m --log-opt max-file=3";
   };
 
-  # --- 5. USUARIO Y HERRAMIENTAS ---
+  # --- 5. USUARIO ---
   users.users.juan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "docker" "video" "render" ];
+    # Añadido "dialout" por si usas dispositivos Zigbee/USB en el futuro
+    extraGroups = [ "wheel" "docker" "video" "render" "dialout" ];
   };
 
+  # --- 6. PAQUETES DE DIAGNÓSTICO ---
   environment.systemPackages = with pkgs; [
     vim git htop btop
-    intel-gpu-tools # Úsalo para ver si el proxy usa la GPU ('intel_gpu_top')
+    intel-gpu-tools 
     pciutils
+    nvtopPackages.intel # Visor visual de uso de GPU (alternativa a intel_gpu_top)
+    ctop # Como htop pero para contenedores Docker
+    lm_sensors # Para ver temperaturas de la CPU
   ];
 
-  # --- 6. MANTENIMIENTO DEL SISTEMA ---
+  # --- 7. MANTENIMIENTO ---
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -88,11 +119,11 @@
   };
   nix.settings.auto-optimise-store = true;
  
-  # --- 7. MONTAJE DE DISCOS ADICIONALES ---
+  # --- 8. ALMACENAMIENTO ---
   fileSystems."/mnt/datos" = {
-    device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7"; # <--- Pega aquí tu UUID
+    device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7";
     fsType = "ext4";
-    options = [ "defaults" "nofail" ]; # "nofail" evita que el PC no arranque si el disco está desconectado
+    options = [ "defaults" "nofail" "noatime" ]; # "noatime" mejora rendimiento en discos mecánicos/SSDs
   };
 
   system.stateVersion = "25.11"; 
