@@ -118,6 +118,22 @@
     options = "--delete-older-than 14d";
   };
   nix.settings.auto-optimise-store = true;
+
+  # ACTUALIZACIONES AUTOMÁTICAS (Flakes)
+  system.autoUpgrade = {
+    enable = true;
+    dates = "04:00";
+    randomizedDelaySec = "120min"; # Ventana entre 4:00 AM y 6:00 AM
+    allowReboot = true;            # Reinicia para aplicar Kernel y parches críticos
+    
+    # Ajusta esta ruta a donde tengas tu flake.nix
+    flake = "~/nixos";
+    
+    flags = [
+      "--update-input" "nixpkgs"   # Actualiza las referencias de paquetes
+      "--commit-lock-file"         # Crea un commit en tu repo con el cambio de versión
+    ];
+  };
  
   # --- 8. ALMACENAMIENTO ---
   fileSystems."/mnt/datos" = {
