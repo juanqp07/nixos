@@ -52,7 +52,6 @@
     gearlever cloudflare-warp
     rustdesk-flutter
     go antigravity gcc cmake ffmpeg yt-dlp
-    brave
   ];
   
 
