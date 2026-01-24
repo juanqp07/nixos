@@ -16,7 +16,6 @@
     extraPackages = with pkgs; [
       rocmPackages.clr
       rocmPackages.clr.icd
-      amdvlk # A veces útil tenerlo como alternativo, aunque Mesa (RADV) es el default y mejor
     ];
     extraPackages32 = with pkgs; [
       driversi686Linux.amdvlk
