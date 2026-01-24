@@ -14,7 +14,7 @@
   };
   
   environment.systemPackages = with pkgs; [
-    prismlauncher headsetcontrol
+    prismlauncher headsetcontrol lunar-client
   ];
   services.udev.packages = [ pkgs.headsetcontrol ];
 
