@@ -19,7 +19,7 @@
     "net.ipv4.tcp_rmem" = "4096 87380 1073741824";
     "net.ipv4.tcp_wmem" = "4096 87380 1073741824";
   };
-
+  networking.enableIPv6 = false;
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
