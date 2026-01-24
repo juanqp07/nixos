@@ -2,16 +2,19 @@
 
 {
   # --- KERNEL ---
-  # Esto activará el kernel Zen
   boot.kernelPackages = pkgs.linuxPackages_zen;
+
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
   console.keyMap = "es";
+  
+
   # --- Cloudflare WARP ---
   services.cloudflare-warp.enable = true;
+
   # --- SONIDO (Pipewire) ---
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
@@ -49,6 +52,7 @@
     gearlever cloudflare-warp
     rustdesk-flutter
     go antigravity gcc cmake ffmpeg yt-dlp
+    brave
   ];
   
 
