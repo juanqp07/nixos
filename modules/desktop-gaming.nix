@@ -58,7 +58,7 @@ fonts.packages = with pkgs; [
     
     # Productividad
     onlyoffice-desktopeditors kdePackages.kate vscode
-    
+    syncthing
     # Multimedia
     vlc mpv yt-dlp ffmpeg
     
