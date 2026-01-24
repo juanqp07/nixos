@@ -19,20 +19,24 @@
   services.udev.packages = [ pkgs.headsetcontrol ];
 
   # Servicio para ejecutar headsetcontrol automáticamente al arrancar
-  systemd.services.headset_lights_off = {
-    description = "Apagar luces del headset cada 30 segundos";
-    after = [ "multi-user.target" ];
+  systemd.services.headset-led-off = {
+    description = "Apagar LEDs del Headset cíclicamente";
     wantedBy = [ "multi-user.target" ];
+    
+    # Esto asegura que el comando se reinicie si falla
     serviceConfig = {
-      # Usamos la ruta directa a los binarios en la Nix Store
-      ExecStart = "${pkgs.writeShellScript "headset-script" ''
-        while true; do
-          ${pkgs.headsetcontrol}/bin/headsetcontrol -l 0 -s 0
-          sleep 30
-        done
-      ''}";
       Restart = "always";
-      User = "juan";
+      RestartSec = "5s";
     };
+
+    # Aquí definimos el script.
+    # Usamos ${pkgs.headsetcontrol} para referenciar la ruta exacta del binario
+    # sin necesidad de instalarlo globalmente si no quieres.
+    script = ''
+      while true; do
+        ${pkgs.headsetcontrol}/bin/headsetcontrol -l 0 -s 0
+        ${pkgs.coreutils}/bin/sleep 30
+      done
+    '';
   };
 }
