@@ -14,6 +14,7 @@
   };
   
   environment.systemPackages = with pkgs; [
-    prismlauncher
+    prismlauncher headsetcontrol
   ];
+  services.udev.packages = [ pkgs.headsetcontrol ];
 }
