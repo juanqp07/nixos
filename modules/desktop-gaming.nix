@@ -51,7 +51,7 @@
     vlc mpv yt-dlp ffmpeg
     distrobox
     kdePackages.xdg-desktop-portal-kde wl-clipboard
-    protonplus
+    protonplus supersonic-wayland
   ];
 
   # --- FLATPAK ---
