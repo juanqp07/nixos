@@ -7,7 +7,7 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
-  outputs = { self, nixpkgs, ... }@inputs: {
+  outputs = { self, nixpkgs, nix-flatpak, ... }@inputs: {
     nixosConfigurations = {
       
       # 1. PORTÁTIL
