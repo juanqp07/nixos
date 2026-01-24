@@ -40,14 +40,15 @@
   programs.gamemode.enable = true;
 
   # --- FUENTES (Vital para OnlyOffice/VSCode) ---
-  fonts.packages = with pkgs; [
+fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
-    noto-fonts-emoji
+    noto-fonts-color-emoji  # El nombre corregido
     liberation_ttf
-    fira-code
-    fira-code-symbols
-    (nerdfonts.override { fonts = [ "FiraCode" "DroidSansMono" ]; })
+    # Nueva sintaxis para Nerd Fonts en 25.11:
+    nerd-fonts.fira-code
+    nerd-fonts.droid-sans-mono
+    nerd-fonts.jetbrains-mono
   ];
 
   # --- PAQUETES ---
