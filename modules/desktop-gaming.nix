@@ -55,7 +55,7 @@ fonts.packages = with pkgs; [
   environment.systemPackages = with pkgs; [
     # Navegación y Comunicación
     firefox vesktop # Vesktop es mejor que Discord oficial en Wayland
-    
+    floorp-bin
     # Productividad
     onlyoffice-desktopeditors kdePackages.kate vscode
     syncthing
