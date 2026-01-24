@@ -84,4 +84,35 @@ fonts.packages = with pkgs; [
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "video" "podman" ];
   };
+
+  services.flatpak = {
+    enable = true;
+
+    # Opcional: Agregar repositorios (Remotes)
+    # Por defecto no hay remotes, así que casi siempre querrás Flathub.
+    remotes = [
+      {
+        name = "flathub";
+        location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+      }
+    ];
+
+    # Lista de paquetes a instalar
+    packages = [
+      "com.stremio.Stremio"
+      "dev.fredol.open-tv"
+    ];
+
+    # Gestión de actualizaciones
+    update = {
+      onActivation = true; # Actualizar flatpaks al hacer 'nixos-rebuild switch'
+      auto = {
+        enable = true;
+        onCalendar = "weekly"; # Opcional: Actualizaciones automáticas periódicas
+      };
+    };
+    
+    # Opcional: Eliminar paquetes que no estén en la lista (limpieza)
+    uninstallUnmanaged = true; 
+  };
 }

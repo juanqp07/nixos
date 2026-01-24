@@ -3,6 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
   outputs = { self, nixpkgs, ... }@inputs: {
@@ -15,7 +17,9 @@
           ./hosts/portatil/configuration.nix
           ./modules/common-system.nix
           ./modules/desktop-gaming.nix
+          nix-flatpak.nixosModules.nix-flatpak
         ];
+        
       };
 
       # 2. ORDENADOR
@@ -25,6 +29,7 @@
           ./hosts/torre/configuration.nix
           ./modules/common-system.nix
           ./modules/desktop-gaming.nix
+          nix-flatpak.nixosModules.nix-flatpak
         ];
       };
 
