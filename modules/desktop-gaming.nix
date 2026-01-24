@@ -19,8 +19,7 @@
   
 
   # --- Cloudflare WARP ---
-  # TE RECOMIENDO COMENTAR ESTO HASTA QUE TENGAS RED
-  # services.cloudflare-warp.enable = true; 
+  services.cloudflare-warp.enable = true; 
 
   # --- SONIDO (Pipewire) ---
   services.pulseaudio.enable = false;
