@@ -7,8 +7,18 @@
   # --- RED (CORRECCIÓN PRINCIPAL) ---
   networking.networkmanager.enable = true;  # <--- ESTO ES VITAL PARA PLASMA
   
-  # Opcional: Si usas WiFi y tienes problemas, a veces ayuda desactivar el backend de wpa_supplicant antiguo, 
-  # pero con la línea de arriba suele bastar.
+  # Optimización de red para bajar latencia
+  boot.kernel.sysctl = {
+    # Usar el algoritmo de congestión BBR (mucho mejor para evitar lag spikes)
+    "net.core.default_qdisc" = "cake";
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    
+    # Aumentar buffers de red para evitar cuellos de botella
+    "net.core.wmem_max" = 1073741824;
+    "net.core.rmem_max" = 1073741824;
+    "net.ipv4.tcp_rmem" = "4096 87380 1073741824";
+    "net.ipv4.tcp_wmem" = "4096 87380 1073741824";
+  };
 
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
