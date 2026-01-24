@@ -101,6 +101,7 @@ fonts.packages = with pkgs; [
     packages = [
       "com.stremio.Stremio"
       "dev.fredol.open-tv"
+      "io.github.appoutlet.GameOutlet"
     ];
 
     # Gestión de actualizaciones
