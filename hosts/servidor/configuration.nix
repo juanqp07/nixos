@@ -51,9 +51,9 @@
   networking.firewall = {
     enable = true; 
     # Puertos del Host (Zoraxy maneja 80/443, SSH es 22)
-    allowedTCPPorts = [ 22 8008 8443 ];
+    allowedTCPPorts = [ 22 8008 8443 22000 8621 ];
     # Puertos UDP si usas Wireguard/Gluetun o mDNS
-    allowedUDPPorts = [ ]; 
+    allowedUDPPorts = [ 21027 22000 8621];
     
     trustedInterfaces = [ "wt0" "docker0" ]; # Confiar en Netbird y Docker interno
     
