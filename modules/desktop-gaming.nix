@@ -1,95 +1,86 @@
 { config, pkgs, ... }:
 
 {
+  # --- SISTEMA Y NIX ---
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nixpkgs.config.allowUnfree = true;
+
   # --- KERNEL ---
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
-  # --- RED (CORRECCIÓN PRINCIPAL) ---
-  networking.networkmanager.enable = true;  # <--- ESTO ES VITAL PARA PLASMA
+  # --- RED ---
+  networking.networkmanager.enable = true;
+  networking.enableIPv6 = false; 
   
-  # Optimización de red para bajar latencia
   boot.kernel.sysctl = {
-    # Usar el algoritmo de congestión BBR (mucho mejor para evitar lag spikes)
     "net.core.default_qdisc" = "cake";
     "net.ipv4.tcp_congestion_control" = "bbr";
-    
-    # Aumentar buffers de red para evitar cuellos de botella
-    "net.core.wmem_max" = 1073741824;
-    "net.core.rmem_max" = 1073741824;
-    "net.ipv4.tcp_rmem" = "4096 87380 1073741824";
-    "net.ipv4.tcp_wmem" = "4096 87380 1073741824";
   };
-  networking.enableIPv6 = false;
+
   # --- ENTORNO GRÁFICO (Plasma 6) ---
-  services.xserver.enable = true;
+  services.xserver.enable = true; # Necesario para compatibilidad XWayland
   services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true; # Login en Wayland
   services.desktopManager.plasma6.enable = true;
+  
   services.xserver.xkb = { layout = "es"; variant = ""; };
   console.keyMap = "es";
-  
-
-  # --- Cloudflare WARP ---
-  services.cloudflare-warp.enable = true; 
 
   # --- SONIDO (Pipewire) ---
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
+    jack.enable = true;
   };
 
-  # --- VIRTUALBOX ---
-  # COMENTA ESTO SI ES UNA TORRE FÍSICA (REAL)
-  # virtualisation.virtualbox.guest.enable = true;
-  # virtualisation.virtualbox.guest.dragAndDrop = true;
-  
-  # Si quieres USAR VirtualBox para crear VMs, usa esto en su lugar:
-  virtualisation.virtualbox.host.enable = true; 
-
-  # --- GAMING & APPS ---
-  programs.steam = {
-    enable = true;
-    remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
-  };
+  # --- GAMING ---
+  programs.steam.enable = true;
   programs.gamemode.enable = true;
-  services.flatpak.enable = true;
-  programs.firefox.enable = true;
 
-  environment.systemPackages = with pkgs; [
-    firefox discord vesktop heroic
-    supersonic-wayland boxbuddy
-    onlyoffice-desktopeditors
-    kdePackages.kate gedit
-    distrobox vscode    
-    netbird-ui
-    vlc mpv
-    windsurf podman-compose
-    gearlever cloudflare-warp
-    rustdesk-flutter
-    go antigravity gcc cmake ffmpeg yt-dlp
+  # --- FUENTES (Vital para OnlyOffice/VSCode) ---
+  fonts.packages = with pkgs; [
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-emoji
+    liberation_ttf
+    fira-code
+    fira-code-symbols
+    (nerdfonts.override { fonts = [ "FiraCode" "DroidSansMono" ]; })
   ];
-  
 
-  # --- VIRTUALIZACION ---
+  # --- PAQUETES ---
+  environment.systemPackages = with pkgs; [
+    # Navegación y Comunicación
+    firefox vesktop # Vesktop es mejor que Discord oficial en Wayland
+    
+    # Productividad
+    onlyoffice-desktopeditors kdePackages.kate vscode
+    
+    # Multimedia
+    vlc mpv yt-dlp ffmpeg
+    
+    # Desarrollo y Herramientas
+    git gcc cmake gnumake podman-compose
+    distrobox rustdesk-flutter
+    
+    # Wayland Utilities
+    kdePackages.xdg-desktop-portal-kde
+    wl-clipboard # Para copiar/pegar en terminal Wayland
+  ];
+
+  # --- VIRTUALIZACIÓN ---
   virtualisation.podman = {
     enable = true;
     dockerCompat = true;
   };
-  
-  # --- IMPORTANTE: BORRA O COMENTA ESTO ---
-  # Estás bloqueando la virtualización por hardware, lo que hará Podman/VMs lentos.
-  # boot.blacklistedKernelModules = [ "kvm-intel" "kvm-amd" ]; 
-  
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "juan" ];
+
   # --- USUARIO ---
   users.users.juan = {
     isNormalUser = true;
-    # AÑADE "networkmanager" AL GRUPO
-    extraGroups = [ "wheel" "podman" "vboxusers" "video" "networkmanager" ]; 
-    subUidRanges = [{ startUid = 100000; count = 65536; }];
-    subGidRanges = [{ startGid = 100000; count = 65536; }];
+    extraGroups = [ "wheel" "networkmanager" "video" "podman" ];
   };
 }
