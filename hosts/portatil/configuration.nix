@@ -1,40 +1,72 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports = [ ./hardware-configuration.nix ];
 
   networking.hostName = "portatil";
 
-  # Configuración WiFi
+  # --- RED ---
   networking.networkmanager.wifi.backend = "iwd";
   networking.wireless.iwd.enable = true;
   
-  # Bluetooth
+  # --- BLUETOOTH ---
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
 
-  # DRIVERS NVIDIA (Híbrido)
+  # --- GESTIÓN DE ENERGÍA (Vital para portátiles) ---
+  # Evita que el PC se caliente demasiado (Intel CPU)
+  services.thermald.enable = true;
+  
+  # TLP para gestión avanzada de batería
+  services.tlp = {
+    enable = true;
+    settings = {
+      CPU_SCALING_GOVERNOR_ON_AC = "performance";
+      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+      
+      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
+      
+      # Ayuda a que la batería dure más limitando el turbo en batería
+      CPU_BOOST_ON_AC = 1;
+      CPU_BOOST_ON_BAT = 0;
+    };
+  };
+
+  # --- GRÁFICOS NVIDIA (Híbrido) ---
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.graphics.enable = true;
 
   hardware.nvidia = {
     modesetting.enable = true;
-    open = false;
+    
+    # La 1050 Ti usa drivers propietarios estables sin problemas.
+    # Open = false es obligatorio para Pascal (serie 10).
+    open = false; 
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
+    
     prime = {
+      # Modo Offload: La Nvidia duerme hasta que la llamas.
+      # Para juegos: click derecho -> "Ejecutar con tarjeta gráfica dedicada"
+      # O por comando: "nvidia-offload %command%"
       offload = {
         enable = true;
         enableOffloadCmd = true;
       };
+      
+      # VERIFICA ESTAS ID CON "sudo lshw -c display"
+      # Si están mal, no arrancará el entorno gráfico.
       intelBusId = "PCI:0:2:0";
       nvidiaBusId = "PCI:1:0:0";
     };
   };
   
   environment.systemPackages = with pkgs; [
-  powertop         # Para ver qué gasta batería
-  libinput-gestures # Gestos en el touchpad  
-];
+    powertop 
+    libinput-gestures
+    nvtopPackages.nvidia # Para ver si la GPU Nvidia está trabajando o durmiendo
+    brightnessctl # Útil si las teclas de brillo fallan en Plasma
+  ];
 }

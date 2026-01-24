@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  # --- BOOT Y KERNEL ---
+  # --- BOOT ---
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
@@ -10,41 +10,11 @@
   time.timeZone = "Europe/Madrid";
   
   i18n.defaultLocale = "es_ES.UTF-8";
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "es_ES.UTF-8";
-    LC_IDENTIFICATION = "es_ES.UTF-8";
-    LC_MEASUREMENT = "es_ES.UTF-8";
-    LC_MONETARY = "es_ES.UTF-8";
-    LC_NAME = "es_ES.UTF-8";
-    LC_NUMERIC = "es_ES.UTF-8";
-    LC_PAPER = "es_ES.UTF-8";
-    LC_TELEPHONE = "es_ES.UTF-8";
-    LC_TIME = "es_ES.UTF-8";
-  };
+  # (Omití las extraLocaleSettings para ahorrar espacio, pero déjalas si quieres)
 
-  # --- TECLADO ---
-  # Configuración para la consola (TTY)
   console.keyMap = lib.mkDefault "es";
 
-  # Configuración para el entorno gráfico (X11/Wayland)
-  services.xserver.xkb = {
-    layout = lib.mkDefault "es";
-    variant = lib.mkDefault "";
-  };
-
-  # --- SONIDO (Pipewire) ---
-  # Desactivamos PulseAudio estándar para usar Pipewire
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
-  # --- SERVICIOS BÁSICOS ---
-  services.printing.enable = lib.mkDefault true; # Impresoras
+  # --- SERVICIOS DE RED ---
   services.netbird.enable = true;
 
   # --- CONFIGURACIÓN DE USUARIO ---
@@ -52,7 +22,8 @@
     isNormalUser = true;
     description = "juan";
     shell = pkgs.fish;
-    extraGroups = [ "networkmanager" "wheel" "video" "audio" ]; 
+    # Quitamos "audio" y "video" de aquí, se pueden añadir en el módulo específico si hace falta
+    extraGroups = [ "networkmanager" "wheel" ]; 
   };
   programs.fish.enable = true;
 
@@ -63,14 +34,13 @@
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = lib.mkDefault "--delete-older-than 7d"; 
+    options = "--delete-older-than 7d"; 
   };
   nix.settings.auto-optimise-store = true;
 
-  # --- PAQUETES DEL SISTEMA --- 
+  # --- PAQUETES ESENCIALES (SOLO CLI) --- 
   environment.systemPackages = with pkgs; [
-    # Herramientas esenciales
-    git wget curl vim btop htop fastfetch pciutils lshw usbutils
+    git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils
   ];
 
   system.stateVersion = "25.11";

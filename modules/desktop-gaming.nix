@@ -1,32 +1,24 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
-  # --- SISTEMA Y NIX ---
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nixpkgs.config.allowUnfree = true;
-
   # --- KERNEL ---
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
-  # --- RED ---
-  networking.networkmanager.enable = true;
-  networking.enableIPv6 = false; 
-  
   boot.kernel.sysctl = {
     "net.core.default_qdisc" = "cake";
     "net.ipv4.tcp_congestion_control" = "bbr";
   };
 
   # --- ENTORNO GRÁFICO (Plasma 6) ---
-  services.xserver.enable = true; # Necesario para compatibilidad XWayland
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true; # Login en Wayland
-  services.desktopManager.plasma6.enable = true;
-  
+  services.xserver.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
-  console.keyMap = "es";
+  
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
+  services.desktopManager.plasma6.enable = true;
 
-  # --- SONIDO (Pipewire) ---
+  # --- SONIDO (Solo necesario en Desktop) ---
+  security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
@@ -34,86 +26,43 @@
     pulse.enable = true;
     jack.enable = true;
   };
+  
+  # --- IMPRESIÓN ---
+  services.printing.enable = true;
+
+  # --- PERMISOS DE USUARIO ---
+  users.users.juan.extraGroups = [ "video" "audio" "lp" "scanner" ];
 
   # --- GAMING ---
   programs.steam.enable = true;
   programs.gamemode.enable = true;
 
-  # --- FUENTES (Vital para OnlyOffice/VSCode) ---
-fonts.packages = with pkgs; [
-    noto-fonts
-    noto-fonts-cjk-sans
-    noto-fonts-color-emoji  # El nombre corregido
-    liberation_ttf
-    # Nueva sintaxis para Nerd Fonts en 25.11:
+  # --- FUENTES ---
+  fonts.packages = with pkgs; [
+    noto-fonts noto-fonts-cjk-sans noto-fonts-color-emoji liberation_ttf
     nerd-fonts.fira-code
-    nerd-fonts.droid-sans-mono
     nerd-fonts.jetbrains-mono
   ];
 
-  # --- PAQUETES ---
+  # --- PAQUETES DE ESCRITORIO ---
   environment.systemPackages = with pkgs; [
-    # Navegación y Comunicación
-    floorp-bin vesktop # Vesktop es mejor que Discord oficial en Wayland
-    
-    # Productividad
+    floorp-bin vesktop 
     onlyoffice-desktopeditors kdePackages.kate vscode
-    syncthing
-
-    # Multimedia
     vlc mpv yt-dlp ffmpeg
-    
-    # Desarrollo y Herramientas
-    git gcc cmake gnumake podman-compose
-    distrobox rustdesk-flutter
-    
-    # Wayland Utilities
-    kdePackages.xdg-desktop-portal-kde
-    wl-clipboard
-
-    # Juegos
+    distrobox
+    kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus
   ];
 
-  # --- VIRTUALIZACIÓN ---
-  virtualisation.podman = {
-    enable = true;
-    dockerCompat = true;
-  };
-  virtualisation.virtualbox.host.enable = true;
-  users.extraGroups.vboxusers.members = [ "juan" ];
-
-  # --- USUARIO ---
-  users.users.juan = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "video" "podman" ];
-  };
-  
   # --- FLATPAK ---
   services.flatpak = {
     enable = true;
-    remotes = [
-      {
-        name = "flathub";
-        location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-      }
-    ];
-
-    # Lista de paquetes a instalar
-    packages = [
-      "com.stremio.Stremio"
-      "dev.fredol.open-tv"
-    ];
-
-    # Gestión de actualizaciones
-    update = {
-      onActivation = true;
-      auto = {
-        enable = true;
-        onCalendar = "weekly";
-      };
-    };
-    
+    remotes = [{
+      name = "flathub";
+      location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+    }];
+    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" ];
+    update.onActivation = true;
     uninstallUnmanaged = true; 
   };
 }
