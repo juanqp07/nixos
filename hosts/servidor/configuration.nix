@@ -112,10 +112,12 @@
   ];
 
   # --- 7. MANTENIMIENTO ---
+# --- 7. MANTENIMIENTO ---
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 14d";
+    # Usamos lib.mkForce para que esta configuración gane a la de common-system.nix
+    options = lib.mkForce "--delete-older-than 14d";
   };
   nix.settings.auto-optimise-store = true;
 
