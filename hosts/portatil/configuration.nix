@@ -18,21 +18,6 @@
   # Evita que el PC se caliente demasiado (Intel CPU)
   services.thermald.enable = true;
   
-  # TLP para gestión avanzada de batería
-  services.tlp = {
-    enable = true;
-    settings = {
-      CPU_SCALING_GOVERNOR_ON_AC = "performance";
-      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-      
-      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-      
-      # Ayuda a que la batería dure más limitando el turbo en batería
-      CPU_BOOST_ON_AC = 1;
-      CPU_BOOST_ON_BAT = 0;
-    };
-  };
 
   # --- GRÁFICOS NVIDIA (Híbrido) ---
   services.xserver.videoDrivers = [ "nvidia" ];
