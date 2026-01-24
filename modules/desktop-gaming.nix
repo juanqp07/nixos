@@ -59,6 +59,7 @@ fonts.packages = with pkgs; [
     # Productividad
     onlyoffice-desktopeditors kdePackages.kate vscode
     syncthing
+
     # Multimedia
     vlc mpv yt-dlp ffmpeg
     
@@ -68,7 +69,10 @@ fonts.packages = with pkgs; [
     
     # Wayland Utilities
     kdePackages.xdg-desktop-portal-kde
-    wl-clipboard # Para copiar/pegar en terminal Wayland
+    wl-clipboard
+
+    # Juegos
+    protonplus
   ];
 
   # --- VIRTUALIZACIÓN ---
@@ -84,7 +88,8 @@ fonts.packages = with pkgs; [
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "video" "podman" ];
   };
-
+  
+  # --- FLATPAK ---
   services.flatpak = {
     enable = true;
     remotes = [
