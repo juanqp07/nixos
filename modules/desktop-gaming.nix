@@ -44,7 +44,7 @@
     kdePackages.kate gedit
     distrobox vscode    
     netbird-ui
-    vlc mpv stremio
+    vlc mpv
     windsurf podman-compose
     gearlever cloudflare-warp
     rustdesk-flutter
