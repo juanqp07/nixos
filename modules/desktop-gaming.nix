@@ -87,9 +87,6 @@ fonts.packages = with pkgs; [
 
   services.flatpak = {
     enable = true;
-
-    # Opcional: Agregar repositorios (Remotes)
-    # Por defecto no hay remotes, así que casi siempre querrás Flathub.
     remotes = [
       {
         name = "flathub";
@@ -101,19 +98,17 @@ fonts.packages = with pkgs; [
     packages = [
       "com.stremio.Stremio"
       "dev.fredol.open-tv"
-      "io.github.appoutlet.GameOutlet"
     ];
 
     # Gestión de actualizaciones
     update = {
-      onActivation = true; # Actualizar flatpaks al hacer 'nixos-rebuild switch'
+      onActivation = true;
       auto = {
         enable = true;
-        onCalendar = "weekly"; # Opcional: Actualizaciones automáticas periódicas
+        onCalendar = "weekly";
       };
     };
     
-    # Opcional: Eliminar paquetes que no estén en la lista (limpieza)
     uninstallUnmanaged = true; 
   };
 }
