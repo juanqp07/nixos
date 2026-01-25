@@ -18,7 +18,7 @@
       rocmPackages.clr.icd
     ];
   };
-  
+  services.openssh.enable = true;
   environment.systemPackages = with pkgs; [
     prismlauncher headsetcontrol lunar-client
     lact # Herramienta gráfica para controlar ventiladores/OC de AMD Radeon en Linux
