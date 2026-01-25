@@ -22,7 +22,6 @@
     isNormalUser = true;
     description = "juan";
     shell = pkgs.fish;
-    # Quitamos "audio" y "video" de aquí, se pueden añadir en el módulo específico si hace falta
     extraGroups = [ "networkmanager" "wheel" ]; 
   };
   programs.fish.enable = true;

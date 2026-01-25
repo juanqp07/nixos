@@ -8,7 +8,7 @@
     "net.core.default_qdisc" = "cake";
     "net.ipv4.tcp_congestion_control" = "bbr";
   };
-
+  services.cloudflare-warp.enable = true;
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
