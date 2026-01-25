@@ -52,7 +52,7 @@
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic-wayland
     antigravity python315 kdePackages.kcalc
-    heroic 
+    heroic rustdesk-flutter
   ];
 
   # --- FLATPAK ---
