@@ -51,7 +51,7 @@
     distrobox
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic-wayland
-    antigravity python315
+    antigravity python315 kdePackages.kcalc
   ];
 
   # --- FLATPAK ---
