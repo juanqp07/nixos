@@ -21,7 +21,7 @@
   services.openssh.enable = true;
   environment.systemPackages = with pkgs; [
     prismlauncher headsetcontrol lunar-client
-    lact # Herramienta gráfica para controlar ventiladores/OC de AMD Radeon en Linux
+    lact
   ];
   
   services.udev.packages = [ pkgs.headsetcontrol ];
@@ -47,4 +47,7 @@
       done
     '';
   };
+
+  systemd.packages = [ pkgs.lact ];
+  systemd.services.lactd.wantedBy = [ "multi-user.target" ];
 }
