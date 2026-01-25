@@ -2,7 +2,7 @@
 
 {
   # --- KERNEL ---
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   boot.kernel.sysctl = {
     "net.core.default_qdisc" = "cake";
