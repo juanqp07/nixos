@@ -39,7 +39,7 @@
 
   # --- PAQUETES ESENCIALES (SOLO CLI) --- 
   environment.systemPackages = with pkgs; [
-    git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils
+    git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils openssl
   ];
 
   system.stateVersion = "25.11";
