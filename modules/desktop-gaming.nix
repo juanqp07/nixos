@@ -63,7 +63,7 @@
     floorp-bin vesktop 
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
-    distrobox # Ya lo tenías, pero ahora tiene podman detrás
+    distrobox podman-compose
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic-wayland
     antigravity python315 kdePackages.kcalc
