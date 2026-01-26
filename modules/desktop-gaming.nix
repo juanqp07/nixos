@@ -68,6 +68,7 @@
     protonplus supersonic-wayland
     antigravity python315 kdePackages.kcalc
     heroic rustdesk-flutter
+    go 
   ];
 
   # --- FLATPAK ---
