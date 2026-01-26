@@ -9,6 +9,7 @@
     "net.ipv4.tcp_congestion_control" = "bbr";
   };
   services.cloudflare-warp.enable = true;
+
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
@@ -16,7 +17,7 @@
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
 
-  # --- SONIDO (Solo necesario en Desktop) ---
+  # --- SONIDO ---
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -29,8 +30,22 @@
   # --- IMPRESIÓN ---
   services.printing.enable = true;
 
+  # --- VIRTUALIZACIÓN (Podman & Distrobox) ---
+  virtualisation.containers.enable = true;
+  virtualisation.podman = {
+    enable = true;
+    # Crea un alias de 'docker' para podman
+    dockerCompat = true;
+    # Necesario para que los contenedores se comuniquen entre sí
+    defaultNetwork.settings.dns_enabled = true;
+  };
+
   # --- PERMISOS DE USUARIO ---
-  users.users.juan.extraGroups = [ "video" "audio" "lp" "scanner" ];
+  # Añadido "podman" a los grupos para gestión rootless
+  users.users.juan = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "podman" ];
+  };
 
   # --- GAMING ---
   programs.steam.enable = true;
@@ -48,7 +63,7 @@
     floorp-bin vesktop 
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
-    distrobox
+    distrobox # Ya lo tenías, pero ahora tiene podman detrás
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic-wayland
     antigravity python315 kdePackages.kcalc
