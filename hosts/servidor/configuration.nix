@@ -3,145 +3,134 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # --- 1. KERNEL Y RENDIMIENTO (Optimizado para i5 12th Gen) ---
-  # Usamos el kernel más reciente para mejor soporte de iGPU y E-cores/P-cores
+  # --- 1. KERNEL Y RENDIMIENTO (Intel 12th Gen Headless) ---
   boot.kernelPackages = pkgs.linuxPackages_latest;
   
   boot.kernel.sysctl = {
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";
-    # Reducimos uso de swap en disco drásticamente
     "vm.swappiness" = 10;
-    # Aumentamos límite de archivos abiertos (necesario para muchos contenedores/Plex/Navidrome)
     "fs.file-max" = 100000;
+    "net.core.rmem_max" = 4194304;
+    "net.core.wmem_max" = 4194304;
   };
 
-  # Habilitar Swap en RAM (ZRAM). Muy recomendado para servidores con mucha carga.
   zramSwap.enable = true;
 
-  # Parámetros para Intel QuickSync (Guc/Huc)
+  # Habilitar soporte para la iGPU (QuickSync)
   boot.kernelParams = [ 
     "i915.enable_guc=3" 
-    # Opcional: Ayuda si tienes tearing o problemas de energía
     "i915.enable_psr=0" 
   ];
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  # Limita las entradas de boot guardadas para no llenar la partición EFI
+  # Limpieza de boot
   boot.loader.systemd-boot.configurationLimit = 10;
 
-  # --- 2. GRÁFICOS E INTEL QUICK SYNC (QSV) ---
+  # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Hardware Acceleration) ---
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
       intel-media-driver
       vpl-gpu-rt
       intel-compute-runtime 
-      # Drivers para transcodificación VAAPI (legacy pero útiles)
       intel-vaapi-driver
     ];
   };
 
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "servidor-nix";
-  networking.networkmanager.enable = true;
 
-  # ¡IMPORTANTE! Reactivamos el Firewall por seguridad
   networking.firewall = {
     enable = true; 
-    # Puertos del Host (Zoraxy maneja 80/443, SSH es 22)
     allowedTCPPorts = [ 22 8008 8443 22000 8621 ];
-    # Puertos UDP si usas Wireguard/Gluetun o mDNS
-    allowedUDPPorts = [ 21027 22000 8621];
+    allowedUDPPorts = [ 21027 22000 8621 ];
     
-    trustedInterfaces = [ "wt0" "docker0" ]; # Confiar en Netbird y Docker interno
+    trustedInterfaces = [ "wt0" "docker0" ];
     
-    # Tu regla personalizada para permitir toda la LAN (más limpio así)
+    # Permitir todo el tráfico de la red local
     extraCommands = ''
       iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
     '';
   };
 
-  # Fail2Ban: Esencial si tienes el puerto 22 abierto, aunque sea solo en LAN
-  services.fail2ban = {
-    enable = true;
-    maxretry = 5;
-    bantime = "1h";
-  };
-
+  services.fail2ban.enable = true;
   services.openssh = {
     enable = true;
-    settings = {
-      # RECOMENDACIÓN: Cambia a "no" y usa llaves SSH en cuanto puedas
-      PasswordAuthentication = true; 
-      PermitRootLogin = "no";
-    };
+    settings.PermitRootLogin = "no";
+    settings.PasswordAuthentication = true; # Cambiar a false tras subir llaves SSH
   };
 
-  # Si AdGuard Home necesita el puerto 53 del host, descomenta esto:
-  # services.resolved.enable = false;
-
-  # --- 4. DOCKER ---
+  # --- 4. DOCKER Y DOCKGE (Declarativo) ---
   virtualisation.docker = {
     enable = true;
     autoPrune = {
       enable = true;
       dates = "weekly";
     };
-    # Configuración global del demonio para rotación de logs (evita discos llenos)
+    # Rotación de logs para que los servidores de juegos no llenen el disco
     logDriver = "json-file";
     extraOptions = "--log-opt max-size=50m --log-opt max-file=3";
   };
 
-  # --- 5. USUARIO ---
-  users.users.juan = {
-    isNormalUser = true;
-    # Añadido "dialout" por si usas dispositivos Zigbee/USB en el futuro
-    extraGroups = [ "wheel" "docker" "video" "render" "dialout" ];
+  # Este bloque sustituye tu "docker-compose up" manual para Dockge
+  virtualisation.oci-containers.backend = "docker";
+  virtualisation.oci-containers.containers.dockge = {
+    image = "louislam/dockge:latest";
+    autoStart = true;
+    ports = [ "5001:5001" ];
+    volumes = [
+      "/var/run/docker.sock:/var/run/docker.sock"
+      "/mnt/datos/AppData/dockge/data:/app/data"
+      "/mnt/datos/AppData/dockge/stacks:/mnt/datos/AppData/dockge/stacks"
+    ];
+    environment = {
+      DOCKGE_STACKS_DIR = "/mnt/datos/AppData/dockge/stacks";
+    };
   };
 
-  # --- 6. PAQUETES DE DIAGNÓSTICO ---
-  environment.systemPackages = with pkgs; [
-    vim git htop btop
-    intel-gpu-tools 
-    pciutils
-    nvtopPackages.intel # Visor visual de uso de GPU (alternativa a intel_gpu_top)
-    ctop # Como htop pero para contenedores Docker
-    lm_sensors # Para ver temperaturas de la CPU
+  # Crear las rutas automáticamente con los permisos correctos
+  systemd.tmpfiles.rules = [
+    "d /mnt/datos/AppData/dockge/data 0755 juan users -"
+    "d /mnt/datos/AppData/dockge/stacks 0755 juan users -"
   ];
 
-  # --- 7. MANTENIMIENTO ---
-# --- 7. MANTENIMIENTO ---
+  # --- 5. MANTENIMIENTO Y MONITORIZACIÓN ---
+  services.thermald.enable = true; # Vital para Alder Lake Headless
+  services.smartd.enable = true;   # Vigilancia de discos
+
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    # Usamos lib.mkForce para que esta configuración gane a la de common-system.nix
     options = lib.mkForce "--delete-older-than 14d";
   };
-  nix.settings.auto-optimise-store = true;
 
-  # ACTUALIZACIONES AUTOMÁTICAS (Flakes)
   system.autoUpgrade = {
     enable = true;
     dates = "04:00";
-    randomizedDelaySec = "120min"; # Ventana entre 4:00 AM y 6:00 AM
-    allowReboot = true;            # Reinicia para aplicar Kernel y parches críticos
-    
-    # Ajusta esta ruta a donde tengas tu flake.nix
-    flake = "~/nixos";
-    
-    flags = [
-      "--update-input" "nixpkgs"   # Actualiza las referencias de paquetes
-      "--commit-lock-file"         # Crea un commit en tu repo con el cambio de versión
-    ];
+    flake = "/home/juan/nixos"; # Asegúrate de que esta es la ruta a tu repo
+    flags = [ "--update-input" "nixpkgs" "--commit-lock-file" ];
+    allowReboot = true;
   };
- 
-  # --- 8. ALMACENAMIENTO ---
+
+  # --- 6. PAQUETES DE GESTIÓN (Headless) ---
+  environment.systemPackages = with pkgs; [
+    intel-gpu-tools 
+    nvtopPackages.intel 
+    ctop 
+    lm_sensors
+    ncdu
+    tmux
+    lazydocker
+    smartmontools
+  ];
+
+  # --- 7. USUARIO Y ALMACENAMIENTO ---
+  users.users.juan.extraGroups = [ "docker" "video" "render" "dialout" ];
+
   fileSystems."/mnt/datos" = {
     device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7";
     fsType = "ext4";
-    options = [ "defaults" "nofail" "noatime" ]; # "noatime" mejora rendimiento en discos mecánicos/SSDs
+    options = [ "defaults" "nofail" "noatime" ];
   };
 
   system.stateVersion = "25.11"; 
