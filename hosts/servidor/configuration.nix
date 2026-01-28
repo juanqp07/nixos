@@ -41,7 +41,7 @@
   networking.hostName = "servidor-nix";
 
   networking.firewall = {
-    enable = true; 
+    enable = false; 
     allowedTCPPorts = [ 22 8008 8443 22000 8621 ];
     allowedUDPPorts = [ 21027 22000 8621 ];
     
