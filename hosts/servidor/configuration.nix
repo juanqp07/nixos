@@ -46,7 +46,7 @@
     allowedUDPPorts = [ 21027 22000 8621 ];
     
     trustedInterfaces = [ "wt0" "docker0" ];
-    
+    checkReversePath = false;
     # Permitir todo el tráfico de la red local
     extraCommands = ''
       iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
