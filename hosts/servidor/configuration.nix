@@ -79,10 +79,10 @@
     volumes = [
       "/var/run/docker.sock:/var/run/docker.sock"
       "/mnt/datos/AppData/dockge/data:/app/data"
-      "/mnt/datos/AppData/dockge/stacks:/mnt/datos/AppData/dockge/stacks"
+      "/mnt/datos/AppData/dockge/stacks:/opt/stacks"
     ];
     environment = {
-      DOCKGE_STACKS_DIR = "/mnt/datos/AppData/dockge/stacks";
+      DOCKGE_STACKS_DIR = "/opt/stacks";
     };
   };
 
