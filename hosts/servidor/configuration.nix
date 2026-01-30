@@ -73,7 +73,7 @@
   # Este bloque sustituye tu "docker-compose up" manual para Dockge
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.dockge = {
-    image = "louislam/dockge:latest";
+    image = "cmcooper1980/dockge:latest";
     autoStart = true;
     ports = [ "5001:5001" ];
     volumes = [
