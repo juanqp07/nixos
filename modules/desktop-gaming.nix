@@ -66,7 +66,8 @@
     distrobox podman-compose
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic-wayland
-    antigravity python315 kdePackages.kcalc
+    antigravity
+    python3 kdePackages.kcalc
     heroic rustdesk-flutter
     go lm_sensors obs-studio
   ];
