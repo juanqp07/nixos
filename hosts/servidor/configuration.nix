@@ -42,8 +42,8 @@
 
   networking.firewall = {
     enable = true; 
-    allowedTCPPorts = [ 22 80 443 8008 8443 22000 8621 ];
-    allowedUDPPorts = [ 21027 22000 8621 ];
+    allowedTCPPorts = [ 22 53 8008 8443 22000 8621 ];
+    allowedUDPPorts = [ 21027 22000 8621 53 ];
     
     trustedInterfaces = [ "wt0" "docker0" ];
     extraCommands = ''
