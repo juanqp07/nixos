@@ -12,7 +12,7 @@
       # 1. PORTÁTIL
       portatil = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = { inherit inputs; }; # <--- ESTO ES IMPORTANTE
+        specialArgs = { inherit inputs; };
         modules = [
           ./hosts/portatil/configuration.nix
           ./modules/common-system.nix
