@@ -38,7 +38,7 @@
     };
 
     # Añadimos el PATH para asegurar que encuentre sleep y headsetcontrol
-    path = with pkgs; [ headsetcontrol coreutils ];
+    path = with pkgs; [ headsetcontrol coreutils feishin ];
     
     script = ''
       while true; do
