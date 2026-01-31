@@ -69,7 +69,7 @@
     antigravity
     python3 kdePackages.kcalc
     heroic rustdesk-flutter
-    go lm_sensors obs-studio
+    go lm_sensors obs-studio gcc
   ];
 
   # --- FLATPAK ---
