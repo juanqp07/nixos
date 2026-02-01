@@ -54,4 +54,5 @@
     nvtopPackages.nvidia # Para ver si la GPU Nvidia está trabajando o durmiendo
     brightnessctl # Útil si las teclas de brillo fallan en Plasma
   ];
+  system.stateVersion = "25.11";
 }

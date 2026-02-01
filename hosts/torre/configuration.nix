@@ -50,4 +50,5 @@
 
   systemd.packages = [ pkgs.lact ];
   systemd.services.lactd.wantedBy = [ "multi-user.target" ];
+  system.stateVersion = "25.11";
 }

@@ -40,7 +40,5 @@
   environment.systemPackages = with pkgs; [
     git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils openssl zip unzip fish
     ripgrep fd jq bat tree direnv lynis
-  ];
-
-  system.stateVersion = "25.11";
+  ];  
 }
