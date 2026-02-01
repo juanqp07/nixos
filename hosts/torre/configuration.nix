@@ -38,7 +38,7 @@
     };
 
     # Añadimos el PATH para asegurar que encuentre sleep y headsetcontrol
-    path = with pkgs; [ headsetcontrol coreutils kdePackages.kdenlive mkvtoolnix];
+    path = with pkgs; [ headsetcontrol coreutils mkvtoolnix];
     
     script = ''
       while true; do
