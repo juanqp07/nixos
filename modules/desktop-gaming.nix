@@ -58,6 +58,16 @@
     nerd-fonts.jetbrains-mono
   ];
 
+  services.syncthing = {
+    enable = true;
+    user = "juan";
+    dataDir = "/home/juan";    # Directorio base para las carpetas sincronizadas
+    configDir = "/home/juan/.config/syncthing"; # Donde se guardan las llaves y config
+    
+    # Esto abre los puertos necesarios en el firewall automáticamente
+    openDefaultPorts = true;
+    extraFlags = [ "--no-browser" ];
+  };
   # --- PAQUETES DE ESCRITORIO ---
   environment.systemPackages = with pkgs; [
     floorp-bin vesktop 
