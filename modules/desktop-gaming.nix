@@ -81,6 +81,21 @@
     syncthing jetbrains.idea openjdk25
   ];
 
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    stdenv.cc.cc # Librerías base de C++
+    zlib         # Muy común para compresión
+    fuse3        # Útil para sistemas de archivos
+    icu          # Soporte de internacionalización
+    nss          # Seguridad de red
+    openssl      # Cifrado (necesario para casi todo lo que use red)
+    curl         # Para descargar cosas desde el binario
+    expat        # Parseo de XML
+    libxml2      # Más XML
+    glibc
+    libz
+  ];
+
   # --- FLATPAK ---
   services.flatpak = {
     enable = true;
