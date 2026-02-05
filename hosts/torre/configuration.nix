@@ -3,7 +3,7 @@
 {
   imports = [ ./hardware-configuration.nix ];
   
-  networking.hostName = "ordenador";
+  networking.hostName = "torre";
 
   # Carga drivers AMD antes de arrancar el entorno gráfico para evitar parpadeos
   boot.initrd.kernelModules = [ "amdgpu" ];
