@@ -80,6 +80,7 @@
     heroic rustdesk-flutter
     go lm_sensors obs-studio gcc
     syncthing jetbrains.idea openjdk25
+    freecad
   ];
 
   programs.nix-ld.enable = true;
