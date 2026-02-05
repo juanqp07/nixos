@@ -52,6 +52,20 @@
 
     # Limpieza profunda de archivos viejos
     nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
+
+    # Sincronización Pro: Pull, Actualizar Flake, Rebuild, Git Commit/Push y Limpieza
+    nix-sync = ''
+      pushd ~/nixos && \
+      git pull && \
+      nix flake update && \
+      sudo nixos-rebuild switch --flake .#$(hostname) && \
+      git add flake.lock && \
+      git commit -m "chore: update flake.lock ($(date +%Y-%m-%d))" && \
+      git push && \
+      sudo nix-collect-garbage -d && \
+      nix-store --optimize && \
+      popd
+    '';
   };
 
 }
