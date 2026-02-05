@@ -41,4 +41,17 @@
     git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils openssl zip unzip fish
     ripgrep fd jq bat tree direnv lynis
   ];  
+
+  # --- MANTENIMIENTO ---
+  environment.shellAliases = {
+    # Mantenimiento total: Actualiza flake, aplica cambios, limpia basura y optimiza
+    nix-full-maintenance = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && sudo nix-collect-garbage -d && nix-store --optimize && popd";
+
+    # Actualización rápida (solo sistema, sin borrar historial)
+    nix-up = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && popd";
+
+    # Limpieza profunda de archivos viejos
+    nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
+  };
+
 }
