@@ -26,15 +26,22 @@
   # Limpieza de boot
   boot.loader.systemd-boot.configurationLimit = 10;
 
-  # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Hardware Acceleration) ---
+  # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver # Driver moderno para i5-1250P
-      vpl-gpu-rt         # Necesario para QuickSync moderno (VPL)
-      intel-compute-runtime # OpenCL para tareas de cómputo
+      intel-media-driver   # El principal para i5-1250P (iHD)
+      vpl-gpu-rt           # Necesario para QuickSync moderno (Sustituye a Media SDK)
+      intel-compute-runtime # Para OpenCL (Tone mapping en Jellyfin/Plex)
+      libvdpau-va-gl       # Compatibilidad con apps antiguas
     ];
   };
+
+  # Forzar el driver moderno para evitar conflictos
+  environment.variables = { 
+    LIBVA_DRIVER_NAME = "iHD"; 
+  };
+
 
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "servidor";
