@@ -33,9 +33,6 @@
     ];
   };
 
-  # TRUCO IMPORTANTE PARA LA 6700 XT (RDNA 2)
-  # La 6700 XT usa la arquitectura 'gfx1031'. ROCm a veces solo busca 'gfx1030' (6800/6900).
-  # Forzamos la versión para que Blender/PyTorch funcionen sin errores.
   environment.variables = {
     "HSA_OVERRIDE_GFX_VERSION" = "10.3.0";
   };
@@ -44,10 +41,6 @@
   # 3. SERVICIOS Y PAQUETES
   # ---------------------------------------------------------
   services.openssh.enable = true;
-  
-  # Si ya tienes gamemode activado en otro lugar, genial. 
-  # Si no, descomenta la siguiente línea para asegurarlo aquí:
-  # programs.gamemode.enable = true;
 
   environment.systemPackages = with pkgs; [
     prismlauncher 

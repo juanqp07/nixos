@@ -23,21 +23,19 @@
     "i915.enable_psr=0" 
   ];
 
-  # Limpieza de boot
   boot.loader.systemd-boot.configurationLimit = 10;
 
   # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # El principal para i5-1250P (iHD)
-      vpl-gpu-rt           # Necesario para QuickSync moderno (Sustituye a Media SDK)
-      intel-compute-runtime # Para OpenCL (Tone mapping en Jellyfin/Plex)
-      libvdpau-va-gl       # Compatibilidad con apps antiguas
+      intel-media-driver
+      vpl-gpu-rt
+      intel-compute-runtime
+      libvdpau-va-gl
     ];
   };
 
-  # Forzar el driver moderno para evitar conflictos
   environment.variables = { 
     LIBVA_DRIVER_NAME = "iHD"; 
   };
@@ -61,7 +59,7 @@
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
-    settings.PasswordAuthentication = true; # Cambiar a false tras subir llaves SSH
+    settings.PasswordAuthentication = true;
   };
 
   # --- 4. DOCKER Y DOCKGE (Declarativo) ---
@@ -71,7 +69,6 @@
       enable = true;
       dates = "weekly";
     };
-    # Rotación de logs para que los servidores de juegos no llenen el disco
     logDriver = "json-file";
     extraOptions = "--log-opt max-size=50m --log-opt max-file=3";
   };
@@ -92,7 +89,6 @@
     };
   };
 
-  # Crear las rutas automáticamente con los permisos correctos
   systemd.tmpfiles.rules = [
     "d /mnt/datos/AppData/dockge/data 0755 juan users -"
     "d /mnt/datos/AppData/dockge/stacks 0755 juan users -"

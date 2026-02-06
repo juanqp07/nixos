@@ -48,14 +48,10 @@
 
   hardware.nvidia = {
     modesetting.enable = true;
-    open = false; # Obligatorio en serie 10 (Pascal)
+    open = false;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
-
-    # Gestión de energía de la GPU dedicada
     powerManagement.enable = true;
-    # Nota: finegrained solo funciona bien de la serie 16xx/20xx en adelante.
-    # En la 1050 Ti lo dejamos desactivado para evitar inestabilidad.
     powerManagement.finegrained = false;
 
     prime = {
@@ -88,28 +84,12 @@
     powertop 
     nvtopPackages.nvidia
     brightnessctl
-    vdpauinfo  # Para verificar la aceleración de video
-    libva-utils # Comando 'vainfo' para ver si Intel acelera video
+    vdpauinfo
+    libva-utils
   ];
 
-  # Gestos táctiles si usas touchpad
   services.libinput.enable = true;
-  # services.libinput-gestures.enable = true; # Requiere configuración de usuario
 
   system.stateVersion = "25.11";
 }
-do lshw -c display"
-      # Si están mal, no arrancará el entorno gráfico.
-      intelBusId = "PCI:0:2:0";
-      nvidiaBusId = "PCI:1:0:0";
-    };
-  };
-  
-  environment.systemPackages = with pkgs; [
-    powertop 
-    libinput-gestures
-    nvtopPackages.nvidia # Para ver si la GPU Nvidia está trabajando o durmiendo
-    brightnessctl # Útil si las teclas de brillo fallan en Plasma
-  ];
-  system.stateVersion = "25.11";
 }
