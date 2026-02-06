@@ -30,10 +30,9 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver
-      vpl-gpu-rt
-      intel-compute-runtime 
-      intel-vaapi-driver
+      intel-media-driver # Driver moderno para i5-1250P
+      vpl-gpu-rt         # Necesario para QuickSync moderno (VPL)
+      intel-compute-runtime # OpenCL para tareas de cómputo
     ];
   };
 
