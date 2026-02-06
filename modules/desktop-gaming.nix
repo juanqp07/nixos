@@ -106,7 +106,7 @@
       name = "flathub";
       location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
     }];
-    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "org.shotcut.Shotcut" "org.kde.kdenlive" ];
+    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" ];
     update.onActivation = true;
     uninstallUnmanaged = true; 
   };
