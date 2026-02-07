@@ -46,7 +46,7 @@
     allowedTCPPorts = [ 22 53 5001 ]; # Added 5001 for Dockge
     allowedUDPPorts = [ 53 ];
     
-    trustedInterfaces = [ "docker0" ];
+    trustedInterfaces = [ "wt0" "docker0" ];
   };
 
   services.fail2ban.enable = true;
