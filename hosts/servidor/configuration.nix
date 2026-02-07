@@ -26,16 +26,19 @@
   # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
   hardware.graphics = {
     enable = true;
+    enable32Bit = true;
     extraPackages = with pkgs; [
       intel-media-driver
       vpl-gpu-rt
       intel-compute-runtime
-      vpl-gpu-rt
+      mesa
+      linux-firmware
     ];
   };
 
-  environment.sessionVariables = {
-    LIBVA_DRIVER_NAME = "iHD";
+environment.variables = { 
+    LIBVA_DRIVER_NAME = "iHD"; 
+    MESA_LOADER_DRIVER_OVERRIDE = "anv";
   };
 
 
