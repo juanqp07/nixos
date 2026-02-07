@@ -81,7 +81,7 @@
     go lm_sensors obs-studio gcc
     syncthing jetbrains.idea openjdk25
     freecad feishin protonplus
-    bottles
+    bottles cloudflare-warp
   ];
 
   programs.nix-ld.enable = true;
