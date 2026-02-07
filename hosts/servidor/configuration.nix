@@ -143,7 +143,17 @@ hardware.graphics = {
     enable = true;
     package = pkgs.ollama-vulkan;
   };
-
+  
+  systemd.services.ollama.environment = {
+    # IMPORTANTE: Flash Attention causa corrupción en Intel iGPU actualmente
+    "OLLAMA_FLASH_ATTENTION" = "0"; 
+    
+    # Asegura que Vulkan elija el dispositivo correcto
+    "OLLAMA_VULKAN" = "1";
+    
+    # Opcional: Si sigue fallando, descomenta esto para ver qué pasa
+    # "OLLAMA_DEBUG" = "1";
+  };
 
   system.stateVersion = "25.11"; 
 }
