@@ -91,7 +91,7 @@
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
   services.thermald.enable = true; 
-  services.smartd.enable = true;
+  services.smartd.enable = false;
 
   nix.gc = {
     automatic = true;
