@@ -35,7 +35,7 @@ hardware.graphics = {
       vpl-gpu-rt
       libvdpau-va-gl
       # LOS QUE FALTABAN:
-      mesa.drivers 
+      mesa 
       linux-firmware # A veces necesario para cargar microcódigo de GPU
     ];
   };
@@ -143,7 +143,7 @@ hardware.graphics = {
     enable = true;
     package = pkgs.ollama-vulkan;
   };
-  
+
   systemd.services.ollama.environment = {
     # IMPORTANTE: Flash Attention causa corrupción en Intel iGPU actualmente
     "OLLAMA_FLASH_ATTENTION" = "0"; 
