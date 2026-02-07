@@ -40,6 +40,15 @@
         ];
       };
 
+      # 4. ZIMABLADE
+      zimablade = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          ./hosts/zimablade/configuration.nix
+          ./modules/common-system.nix
+        ];
+      };
+
     };
     
     formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;
