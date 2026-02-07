@@ -3,7 +3,9 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # --- 1. KERNEL AND PERFORMANCE (Intel N3450 Apollo Lake) ---
+  # --- 1. KERNEL Y RENDIMIENTO (Intel Apollo Lake) ---
+  # En NixOS 25.11 el kernel suele ser muy moderno (6.12+), 
+  # el soporte para Apollo Lake está maduro.
   boot.kernelPackages = pkgs.linuxPackages_latest;
   
   boot.kernel.sysctl = {
@@ -15,19 +17,19 @@
 
   zramSwap.enable = true;
 
-  # Enable GPU support
-  # Apollo Lake supports GuC/HuC.
+  # Habilitar soporte GPU (GuC/HuC firmware)
+  # Necesario para transcodificación eficiente en Jellyfin/Plex/Tdarr
   boot.kernelParams = [ 
     "i915.enable_guc=2" 
   ];
 
   boot.loader.systemd-boot.configurationLimit = 10;
 
-  # --- 2. GRAPHICS (Intel QuickSync) ---
+  # --- 2. GRÁFICOS (Intel QuickSync) ---
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # For Gen9+ (Apollo Lake is Gen9)
+      intel-media-driver   # Gen9+ (Apollo Lake)
       intel-compute-runtime # OpenCL
       libvdpau-va-gl
     ];
@@ -37,15 +39,14 @@
     LIBVA_DRIVER_NAME = "iHD"; 
   };
 
-
-  # --- 3. NETWORK AND SECURITY ---
+  # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "zimablade";
 
   networking.firewall = {
     enable = true; 
-    allowedTCPPorts = [ 22 53 5001 ]; # Added 5001 for Dockge
-    allowedUDPPorts = [ 53 ];
-    
+    # Solo puertos esenciales. 53 eliminado (a menos que sea servidor DNS).
+    allowedTCPPorts = [ 22 5001 ]; 
+    allowedUDPPorts = [ ]; 
     trustedInterfaces = [ "wt0" "docker0" ];
   };
 
@@ -53,10 +54,10 @@
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
-    settings.PasswordAuthentication = true;
+    settings.PasswordAuthentication = true; 
   };
 
-  # --- 4. DOCKER AND DOCKGE ---
+  # --- 4. DOCKER Y DOCKGE ---
   virtualisation.docker = {
     enable = true;
     autoPrune = {
@@ -69,13 +70,14 @@
   # Dockge container
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.dockge = {
-    image = "cmcooper1980/dockge:latest";
+    # Usamos la imagen oficial
+    image = "cmcooper1980/dockge:latest"; 
     autoStart = true;
     ports = [ "5001:5001" ];
     volumes = [
       "/var/run/docker.sock:/var/run/docker.sock"
-      "/var/lib/dockge/data:/app/data"
-      "/var/lib/dockge/stacks:/opt/stacks"
+      "/opt/dockge/data:/app/data"
+      "/opt/dockge/stacks:/opt/stacks"
     ];
     environment = {
       DOCKGE_STACKS_DIR = "/opt/stacks";
@@ -87,14 +89,14 @@
     "d /var/lib/dockge/stacks 0755 juan users -"
   ];
 
-  # --- 5. SYSTEM MAINTENANCE ---
+  # --- 5. MANTENIMIENTO DEL SISTEMA ---
   services.thermald.enable = true; 
   services.smartd.enable = true;
 
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = lib.mkForce "--delete-older-than 14d";
+    options = "--delete-older-than 14d";
   };
 
   system.autoUpgrade = {
@@ -105,7 +107,7 @@
     allowReboot = true;
   };
 
-  # --- 6. PACKAGES ---
+  # --- 6. PAQUETES ---
   environment.systemPackages = with pkgs; [
     intel-gpu-tools 
     lm_sensors
@@ -113,10 +115,12 @@
     tmux
     lazydocker
     smartmontools
+    git
+    htop
   ];
 
-  # --- 7. USER ---
+  # --- 7. USUARIO ---
   users.users.juan.extraGroups = [ "docker" "video" "render" ];
 
-  system.stateVersion = "24.05"; 
+  system.stateVersion = "25.11"; 
 }
