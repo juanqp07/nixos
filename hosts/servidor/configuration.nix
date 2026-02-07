@@ -30,6 +30,7 @@
       intel-media-driver
       vpl-gpu-rt
       intel-compute-runtime
+      intel-media-sdk
     ];
   };
 
