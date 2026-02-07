@@ -122,6 +122,7 @@
     tmux
     lazydocker
     smartmontools
+    ollama
   ];
 
   # --- 7. USUARIO Y ALMACENAMIENTO ---
@@ -132,6 +133,13 @@
     fsType = "ext4";
     options = [ "defaults" "nofail" "noatime" ];
   };
+
+  # --- 8. Ollama ---
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-vulkan;
+  };
+
 
   system.stateVersion = "25.11"; 
 }
