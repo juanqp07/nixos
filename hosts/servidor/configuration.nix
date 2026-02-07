@@ -33,11 +33,15 @@
       intel-compute-runtime
       mesa
       linux-firmware
+      vulkan-loader
+      vulkan-tools
     ];
   };
 
-environment.variables = { 
-    LIBVA_DRIVER_NAME = "iHD"; 
+  environment.variables = {
+    LANG = "es_ES.UTF-8";           # <- asegurar UTF-8
+    LC_ALL = "es_ES.UTF-8";
+    LIBVA_DRIVER_NAME = "iHD";
     MESA_LOADER_DRIVER_OVERRIDE = "anv";
   };
 
@@ -140,10 +144,6 @@ environment.variables = {
     enable = true;
     package = pkgs.ollama-vulkan;
   };
-  
-  systemd.services.ollama.environment = { 
-    # Desactiva la optimización que rompe los cálculos en Intel Xe
-    "OLLAMA_FLASH_ATTENTION" = "0"; 
-  };
+
   system.stateVersion = "25.11"; 
 }
