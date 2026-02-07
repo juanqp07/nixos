@@ -76,8 +76,8 @@
     ports = [ "5001:5001" ];
     volumes = [
       "/var/run/docker.sock:/var/run/docker.sock"
-      "/opt/dockge/data:/app/data"
-      "/opt/dockge/stacks:/opt/stacks"
+      "/var/lib/dockge//data:/app/data"
+      "/var/lib/dockge/stacks:/opt/stacks"
     ];
     environment = {
       DOCKGE_STACKS_DIR = "/opt/stacks";
