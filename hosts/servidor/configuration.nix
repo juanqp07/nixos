@@ -18,30 +18,24 @@
   zramSwap.enable = true;
 
   # Habilitar soporte para la iGPU (QuickSync)
-  boot.kernelParams = [ 
-    "i915.enable_guc=3" 
-    "i915.enable_psr=0" 
-  ];
+  hardware.enableRedistributableFirmware = true;
+  boot.kernelParams = [ "i915.enable_guc=3" ];
 
   boot.loader.systemd-boot.configurationLimit = 10;
 
   # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
-hardware.graphics = {
+  hardware.graphics = {
     enable = true;
-    enable32Bit = true; # Recomendado para compatibilidad
+    enable32Bit = true;
     extraPackages = with pkgs; [
       intel-media-driver
-      intel-compute-runtime
       vpl-gpu-rt
-      libvdpau-va-gl
-      # LOS QUE FALTABAN:
-      mesa 
-      linux-firmware # A veces necesario para cargar microcódigo de GPU
+      intel-compute-runtime
     ];
   };
 
-  environment.variables = { 
-    LIBVA_DRIVER_NAME = "iHD"; 
+  environment.sessionVariables = {
+    LIBVA_DRIVER_NAME = "iHD";
   };
 
 
@@ -142,17 +136,6 @@ hardware.graphics = {
   services.ollama = {
     enable = true;
     package = pkgs.ollama-vulkan;
-  };
-
-  systemd.services.ollama.environment = {
-    # IMPORTANTE: Flash Attention causa corrupción en Intel iGPU actualmente
-    "OLLAMA_FLASH_ATTENTION" = "0"; 
-    
-    # Asegura que Vulkan elija el dispositivo correcto
-    "OLLAMA_VULKAN" = "1";
-    
-    # Opcional: Si sigue fallando, descomenta esto para ver qué pasa
-    # "OLLAMA_DEBUG" = "1";
   };
 
   system.stateVersion = "25.11"; 
