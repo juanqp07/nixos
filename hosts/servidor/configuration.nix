@@ -19,14 +19,13 @@
 
   # Habilitar soporte para la iGPU (QuickSync)
   hardware.enableRedistributableFirmware = true;
-  boot.kernelParams = [ "i915.enable_guc=3" ];
+  boot.kernelParams = [ "i915.force_probe=46a6" ];
 
   boot.loader.systemd-boot.configurationLimit = 10;
 
   # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
   hardware.graphics = {
     enable = true;
-    enable32Bit = true;
     extraPackages = with pkgs; [
       intel-media-driver
       vpl-gpu-rt
