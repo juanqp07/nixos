@@ -137,6 +137,10 @@
     enable = true;
     package = pkgs.ollama-vulkan;
   };
-
+  
+  systemd.services.ollama.environment = { 
+    # Desactiva la optimización que rompe los cálculos en Intel Xe
+    "OLLAMA_FLASH_ATTENTION" = "0"; 
+  };
   system.stateVersion = "25.11"; 
 }
