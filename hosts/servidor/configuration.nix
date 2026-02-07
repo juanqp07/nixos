@@ -26,13 +26,17 @@
   boot.loader.systemd-boot.configurationLimit = 10;
 
   # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
-  hardware.graphics = {
+hardware.graphics = {
     enable = true;
+    enable32Bit = true; # Recomendado para compatibilidad
     extraPackages = with pkgs; [
       intel-media-driver
-      vpl-gpu-rt
       intel-compute-runtime
+      vpl-gpu-rt
       libvdpau-va-gl
+      # LOS QUE FALTABAN:
+      mesa.drivers 
+      linux-firmware # A veces necesario para cargar microcódigo de GPU
     ];
   };
 
