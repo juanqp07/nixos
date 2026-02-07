@@ -19,7 +19,7 @@
 
   # Habilitar soporte para la iGPU (QuickSync)
   hardware.enableRedistributableFirmware = true;
-  boot.kernelParams = [ "i915.force_probe=46a6" ];
+  boot.kernelParams = [ "i915.enable_guc=3" ];
 
   boot.loader.systemd-boot.configurationLimit = 10;
 
@@ -39,7 +39,7 @@
   };
 
   environment.variables = {
-    LANG = "es_ES.UTF-8";           # <- asegurar UTF-8
+    LANG = "es_ES.UTF-8";
     LC_ALL = "es_ES.UTF-8";
     LIBVA_DRIVER_NAME = "iHD";
     MESA_LOADER_DRIVER_OVERRIDE = "anv";
@@ -127,7 +127,6 @@
     tmux
     lazydocker
     smartmontools
-    ollama
   ];
 
   # --- 7. USUARIO Y ALMACENAMIENTO ---
@@ -137,12 +136,6 @@
     device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7";
     fsType = "ext4";
     options = [ "defaults" "nofail" "noatime" ];
-  };
-
-  # --- 8. Ollama ---
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-vulkan;
   };
 
   system.stateVersion = "25.11"; 

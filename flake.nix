@@ -13,8 +13,8 @@
       portatil = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          ./hosts/portatil/configuration.nix
           ./modules/common-system.nix
+          ./hosts/portatil/configuration.nix
           ./modules/desktop-gaming.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
@@ -24,8 +24,8 @@
       torre = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          ./hosts/torre/configuration.nix
           ./modules/common-system.nix
+          ./hosts/torre/configuration.nix
           ./modules/desktop-gaming.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
@@ -35,8 +35,8 @@
       servidor = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          ./hosts/servidor/configuration.nix
           ./modules/common-system.nix
+          ./hosts/servidor/configuration.nix
         ];
       };
 
@@ -44,8 +44,8 @@
       zimablade = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
-          ./hosts/zimablade/configuration.nix
           ./modules/common-system.nix
+          ./hosts/zimablade/configuration.nix
         ];
       };
 
