@@ -17,7 +17,7 @@ Este repositorio contiene mi configuración centralizada para 3 máquinas, gesti
 
 ## 🚀 Cómo aplicar cambios
 
-Desde la carpeta `~/nixos-config`, ejecuta el comando según la máquina en la que estés:
+Desde la carpeta `~/nixos`, ejecuta el comando según la máquina en la que estés:
 
 ### 💻 Portátil
 ```bash
@@ -39,9 +39,9 @@ sudo nixos-rebuild switch --flake .#servidor
 ## 🛠️ Instalación en una máquina nueva
 
 1.  Instala NixOS con la ISO (Plasma o Mínima).
-2.  Clona este repositorio: `git clone <URL_DEL_REPO> ~/nixos-config`.
+2.  Clona este repositorio: `git clone <URL_DEL_REPO> ~/nixos`.
 3.  **Importante**: Copia el hardware generado por el instalador:
-    `cp /etc/nixos/hardware-configuration.nix ~/nixos-config/hosts/<nombre-maquina>/`
+    `cp /etc/nixos/hardware-configuration.nix ~/nixos/hosts/<nombre-maquina>/`
 4.  Si los Flakes no están activos:
     `export NIX_CONFIG="experimental-features = nix-command flakes"`
 5.  Aplica la configuración con el comando de "rebuild" correspondiente.
