@@ -47,7 +47,7 @@
 
 
   # --- 3. RED Y SEGURIDAD ---
-  networking.hostName = "servidor";
+  networking.hostName = "atlas";
 
   networking.firewall = {
     enable = true; 
