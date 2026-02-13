@@ -40,7 +40,7 @@
   };
 
   # --- 3. RED Y SEGURIDAD ---
-  networking.hostName = "zimablade";
+  networking.hostName = "pico";
 
   networking.firewall = {
     enable = true; 
