@@ -10,7 +10,7 @@
     nixosConfigurations = {
       
       # 1. PORTÁTIL
-      portatil = nixpkgs.lib.nixosSystem {
+      elytra = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./modules/common-system.nix
@@ -21,7 +21,7 @@
       };
 
       # 2. ORDENADOR
-      torre = nixpkgs.lib.nixosSystem {
+      titan = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./modules/common-system.nix
@@ -32,7 +32,7 @@
       };
 
       # 3. SERVIDOR
-      servidor = nixpkgs.lib.nixosSystem {
+      atlas = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./modules/common-system.nix
@@ -41,7 +41,7 @@
       };
 
       # 4. ZIMABLADE
-      zimablade = nixpkgs.lib.nixosSystem {
+      pico = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./modules/common-system.nix
