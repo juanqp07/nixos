@@ -3,7 +3,7 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  networking.hostName = "portatil";
+  networking.hostName = "elytra";
 
   # --- RED ---
   networking.networkmanager.wifi.backend = "iwd";
