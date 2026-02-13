@@ -3,7 +3,7 @@
 {
 
   imports = [ ./hardware-configuration.nix ];
-  networking.hostName = "torre";
+  networking.hostName = "titan";
 
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
