@@ -82,7 +82,7 @@
     syncthing jetbrains.idea openjdk25
     freecad feishin protonplus
     bottles cloudflare-warp
-    gelly google-chrome
+    gelly google-chrome    
   ];
 
   programs.nix-ld.enable = true;
@@ -107,7 +107,7 @@
       name = "flathub";
       location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
     }];
-    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" ];
+    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" "com.github.iwalton3.jellyfin-media-player"];
     update.onActivation = true;
     uninstallUnmanaged = true; 
   };
