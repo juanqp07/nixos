@@ -44,7 +44,7 @@
     vulkan-tools 
     amdgpu_top   
     lmstudio
-    jellyfin
+    jellyfin-desktop
   ];
 
   # ---------------------------------------------------------
