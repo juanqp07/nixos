@@ -82,7 +82,7 @@
     syncthing jetbrains.idea openjdk25
     freecad feishin protonplus
     bottles cloudflare-warp
-    gelly
+    gelly google-chrome
   ];
 
   programs.nix-ld.enable = true;
