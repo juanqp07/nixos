@@ -35,7 +35,7 @@
     options = "--delete-older-than 7d"; 
   };
   nix.settings.auto-optimise-store = true;
-
+  services.fwupd.enable = true;
   # --- PAQUETES ESENCIALES (SOLO CLI) --- 
   environment.systemPackages = with pkgs; [
     git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils openssl zip unzip fish
