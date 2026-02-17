@@ -12,15 +12,38 @@
     "i915.enable_guc=3"
   ];
   boot.kernel.sysctl = {
+    # --- Rendimiento de Red ---
     "net.core.default_qdisc" = "cake";
     "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.core.rmem_max" = 16777216;
+    "net.core.wmem_max" = 16777216;
+    "net.ipv4.tcp_rmem" = "4096 87380 16777216";
+    "net.ipv4.tcp_wmem" = "4096 65536 16777216";
+    "net.ipv4.tcp_tw_reuse" = 1;
 
-    "vm.swappiness" = 10;         # evitar swap agresivo
-    "fs.file-max" = 200000;      # aumentar límite de ficheros abiertos
+    # --- Seguridad de Red ---
+    "net.ipv4.ip_forward" = 0;
+    "net.ipv6.conf.all.forwarding" = 0;
+    "net.ipv4.icmp_echo_ignore_all" = 1;
+    "net.ipv4.conf.all.rp_filter" = 1;
+    "net.ipv4.conf.default.rp_filter" = 1;
+    "net.ipv4.conf.all.accept_redirects" = 0;
+    "net.ipv6.conf.all.accept_redirects" = 0;
+    "net.ipv4.conf.default.accept_redirects" = 0;
+    "net.ipv6.conf.default.accept_redirects" = 0;
+    "net.ipv4.conf.all.accept_source_route" = 0;
+    "net.ipv6.conf.all.accept_source_route" = 0;
+    "net.ipv4.conf.default.accept_source_route" = 0;
+    "net.ipv6.conf.default.accept_source_route" = 0;
 
-    "net.core.rmem_max" = 16777216; # 16MB
-    "net.core.wmem_max" = 16777216; # 16MB
-    "net.core.netdev_max_backlog" = 250000;
+    # --- Memoria y Ficheros ---
+    "fs.file-max" = 2097152;
+    "fs.nr_open" = 1048576;
+    "vm.swappiness" = 10;
+    "vm.max_map_count" = 262144;
+
+    # --- Miscelánea de Seguridad ---
+    "kernel.sysrq" = 0;
   };
 
   # --- RED ---
