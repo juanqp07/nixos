@@ -27,6 +27,23 @@
   networking.networkmanager.enable = true;
   networking.hostName = "atlas";
 
+  networking.firewall = {
+    enable = true; 
+    allowedTCPPorts = [ 22 53 80 443 22000 8621 ];
+    allowedUDPPorts = [ 21027 22000 8621 53 ];
+    
+    trustedInterfaces = [ "wt0" "docker0" ];
+    extraCommands = ''
+      iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
+    '';
+  };
+
+  services.fail2ban.enable = true;
+  services.openssh = {
+    enable = true;
+    settings.PermitRootLogin = "no";
+    settings.PasswordAuthentication = true;
+  };
   # --- DOCKER Y CONTENEDORES ---
   virtualisation.docker = {
     enable = true;
