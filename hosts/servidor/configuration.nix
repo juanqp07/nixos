@@ -3,85 +3,40 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  # --- 1. KERNEL Y RENDIMIENTO (Intel 12th Gen Headless) ---
+  # --- KERNEL, CGROUPS Y RENDIMIENTO ---
   boot.kernelPackages = pkgs.linuxPackages_latest;
-  
+
+   boot.kernelParams = [ "systemd.unified_cgroup_hierarchy=1" "cgroup_no_v1=all" ];
+
   boot.kernel.sysctl = {
-    "net.core.default_qdisc" = "fq";
+    "net.core.default_qdisc" = "cake";
     "net.ipv4.tcp_congestion_control" = "bbr";
-    "vm.swappiness" = 10;
-    "fs.file-max" = 100000;
-    "net.core.rmem_max" = 4194304;
-    "net.core.wmem_max" = 4194304;
+
+    "vm.swappiness" = 10;         # evitar swap agresivo
+    "fs.file-max" = 200000;      # aumentar límite de ficheros abiertos
+
+    "net.core.rmem_max" = 16777216; # 16MB
+    "net.core.wmem_max" = 16777216; # 16MB
+    "net.core.netdev_max_backlog" = 250000;
   };
 
-  zramSwap.enable = true;
-
-  # Habilitar soporte para la iGPU (QuickSync)
-  hardware.enableRedistributableFirmware = true;
-  boot.kernelParams = [ "i915.enable_guc=3" ];
-
-  boot.loader.systemd-boot.configurationLimit = 10;
-
-  # --- 2. GRÁFICOS Y TRANSCODIFICACIÓN (Optimizado para Alder Lake) ---
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-    extraPackages = with pkgs; [
-      intel-media-driver
-      vpl-gpu-rt
-      intel-compute-runtime
-      mesa
-      linux-firmware
-      vulkan-loader
-      vulkan-tools
-    ];
-  };
-
-  environment.variables = {
-    LANG = "es_ES.UTF-8";
-    LC_ALL = "es_ES.UTF-8";
-    LIBVA_DRIVER_NAME = "iHD";
-    MESA_LOADER_DRIVER_OVERRIDE = "anv";
-  };
-
-
-  # --- 3. RED Y SEGURIDAD ---
+  # --- RED ---
+  networking.networkmanager.enable = true;
   networking.hostName = "atlas";
 
-  networking.firewall = {
-    enable = true; 
-    allowedTCPPorts = [ 22 53 80 443 22000 8621 ];
-    allowedUDPPorts = [ 21027 22000 8621 53 ];
-    
-    trustedInterfaces = [ "wt0" "docker0" ];
-    extraCommands = ''
-      iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
-    '';
-  };
-
-  services.fail2ban.enable = true;
-  services.openssh = {
-    enable = true;
-    settings.PermitRootLogin = "no";
-    settings.PasswordAuthentication = true;
-  };
-
-  # --- 4. DOCKER Y DOCKGE (Declarativo) ---
+  # --- DOCKER Y CONTENEDORES ---
   virtualisation.docker = {
     enable = true;
-    autoPrune = {
-      enable = true;
-      dates = "weekly";
-    };
-    logDriver = "json-file";
-    extraOptions = "--log-opt max-size=50m --log-opt max-file=3";
+    daemonSettings = {
+      storage-driver = "overlay2";
+      log-driver = "journald";
+      };
   };
 
-  # Este bloque sustituye tu "docker-compose up" manual para Dockge
+  # --- DOCKGE ---
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.dockge = {
-    image = "cmcooper1980/dockge:latest";
+    image = "cmcooper1980/dockge:latest"; 
     autoStart = true;
     ports = [ "5001:5001" ];
     volumes = [
@@ -98,45 +53,44 @@
     "d /mnt/datos/AppData/dockge/data 0755 juan users -"
     "d /mnt/datos/AppData/dockge/stacks 0755 juan users -"
   ];
-
-  # --- 5. MANTENIMIENTO Y MONITORIZACIÓN ---
-  services.thermald.enable = true; # Vital para Alder Lake Headless
-  services.smartd.enable = true;   # Vigilancia de discos
-
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = lib.mkForce "--delete-older-than 14d";
-  };
-
-  system.autoUpgrade = {
+  # --- ZRAM ---
+  zramSwap = {
     enable = true;
-    dates = "04:00";
-    flake = "/home/juan/nixos"; # Asegúrate de que esta es la ruta a tu repo
-    flags = [ "--update-input" "nixpkgs" "--commit-lock-file" ];
-    allowReboot = true;
+    algorithm = "lz4";
+    memoryPercent = 75;
+    priority = 100;
+   };
+
+
+  # --- ACCESO A GPU / VA-API (Intel iGPU) ---
+  services.xserver.videoDrivers = [ "modesetting" ];
+
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [ intel-media-driver libvaUtils vpl-gpu-rt ];
+  };
+  environment.sessionVariables = {
+    LIBVA_DRIVER_NAME = "iHD";
   };
 
-  # --- 6. PAQUETES DE GESTIÓN (Headless) ---
-  environment.systemPackages = with pkgs; [
-    intel-gpu-tools 
-    nvtopPackages.intel 
-    ctop 
-    lm_sensors
-    ncdu
-    tmux
-    lazydocker
-    smartmontools
-  ];
+  # --- USUARIOS ---
+  users.users.juan = {
+    isNormalUser = true;
+    extraGroups = [ "docker" "video" "render" "dialout" ];
+  };
 
-  # --- 7. USUARIO Y ALMACENAMIENTO ---
-  users.users.juan.extraGroups = [ "docker" "video" "render" "dialout" ];
-
+  # --- ALMACENAMIENTO ---
   fileSystems."/mnt/datos" = {
     device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7";
     fsType = "ext4";
     options = [ "defaults" "nofail" "noatime" ];
   };
 
-  system.stateVersion = "25.11"; 
+  # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
+  environment.systemPackages = with pkgs; [
+    vim htop ncdu iotop ethtool smartmontools zram-generator
+  ];
+
+  services.thermald.enable = true;
+  system.stateVersion = "25.11"; # actualiza sólo si ya estás en esta versión
 }
