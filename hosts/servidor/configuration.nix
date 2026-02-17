@@ -27,10 +27,13 @@
   # --- DOCKER Y CONTENEDORES ---
   virtualisation.docker = {
     enable = true;
-    daemonSettings = {
-      storage-driver = "overlay2";
-      log-driver = "journald";
+    daemon = {
+      settings = {
+        # claves con guiones es más seguro escribirlas como strings
+        "storage-driver" = "overlay2";
+        "log-driver"     = "journald";
       };
+    };
   };
 
   # --- DOCKGE ---
@@ -92,5 +95,5 @@
   ];
 
   services.thermald.enable = true;
-  system.stateVersion = "25.11"; # actualiza sólo si ya estás en esta versión
+  system.stateVersion = "25.11";
 }
