@@ -48,7 +48,7 @@
     nix-full-maintenance = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && sudo nix-collect-garbage -d && nix-store --optimize && popd";
 
     # Actualización rápida (solo sistema, sin borrar historial)
-    nix-up = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && popd";
+    nix-up = "pushd ~/nixos && sudo fwupdmgr update && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && popd";
 
     # Limpieza profunda de archivos viejos
     nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
