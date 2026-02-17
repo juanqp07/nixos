@@ -21,10 +21,12 @@
     "net.ipv4.tcp_wmem" = "4096 65536 16777216";
     "net.ipv4.tcp_tw_reuse" = 1;
 
-    # --- Seguridad de Red ---
-    "net.ipv4.ip_forward" = 0;
+    # --- Seguridad de Red (AJUSTADO PARA DOCKER) ---
     "net.ipv6.conf.all.forwarding" = 0;
     "net.ipv4.icmp_echo_ignore_all" = 1;
+    "net.ipv4.conf.all.rp_filter" = 0;
+    "net.ipv4.conf.default.rp_filter" = 0;
+
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.default.accept_redirects" = 0;
