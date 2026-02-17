@@ -5,7 +5,7 @@
 
   # --- KERNEL, CGROUPS Y RENDIMIENTO ---
   boot.kernelPackages = pkgs.linuxPackages_latest;
-
+  hardware.enableRedistributableFirmware = true;
   boot.kernelParams = [
     "systemd.unified_cgroup_hierarchy=1"
     "cgroup_no_v1=all"
@@ -79,6 +79,17 @@
       vpl-gpu-rt           # oneVPL (QSV runtime) - recomendado para GPUs modernas
       libva-utils          # utilidades (vainfo) -> prueba/diagnóstico (opcional pero útil)
       intel-compute-runtime # opcional: OpenCL / Level Zero si necesitas compute
+    ];
+  };
+
+  hardware.opengl = {
+    enable = true;        # obliga a crear /run/opengl-driver con libs/icd
+    driSupport = true;    # soporte DRI (necesario para /dev/dri)
+    extraPackages = with pkgs; [
+      vulkan-loader       # loader ICD para Vulkan
+      vulkan-tools        # vulkaninfo, vkcube (pruebas)
+      intel-graphics-compiler  # opcional: compilador Intel (ayuda a ecosistema)
+      # intel-compute-runtime   # opcional: si también quieres OpenCL/Level Zero (compute)
     ];
   };
 
