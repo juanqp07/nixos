@@ -25,8 +25,6 @@
     "net.ipv4.ip_forward" = 0;
     "net.ipv6.conf.all.forwarding" = 0;
     "net.ipv4.icmp_echo_ignore_all" = 1;
-    "net.ipv4.conf.all.rp_filter" = 1;
-    "net.ipv4.conf.default.rp_filter" = 1;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.default.accept_redirects" = 0;
