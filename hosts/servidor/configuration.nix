@@ -78,7 +78,7 @@
       intel-media-driver   # VA-API (iHD) userspace - necesario para Quick Sync / VAAPI
       vpl-gpu-rt           # oneVPL (QSV runtime) - recomendado para GPUs modernas
       libva-utils          # utilidades (vainfo) -> prueba/diagnóstico (opcional pero útil)
-      # intel-compute-runtime # opcional: OpenCL / Level Zero si necesitas compute
+      intel-compute-runtime # opcional: OpenCL / Level Zero si necesitas compute
     ];
   };
 
