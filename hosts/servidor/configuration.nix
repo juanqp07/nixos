@@ -71,26 +71,25 @@
   # --- GPU / VA-API (Intel iGPU) ---
   services.xserver.videoDrivers = [ "modesetting" ];
   
-  hardware.graphics = {
+    hardware.graphics = {
     enable = true;
-    # Paquetes recomendados por la wiki + utilidades de comprobación
+    enable32Bit = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # VA-API (iHD) userspace - necesario para Quick Sync / VAAPI
-      vpl-gpu-rt           # oneVPL (QSV runtime) - recomendado para GPUs modernas
-      libva-utils          # utilidades (vainfo) -> prueba/diagnóstico (opcional pero útil)
-      intel-compute-runtime # opcional: OpenCL / Level Zero si necesitas compute
+      intel-media-driver
+      vpl-gpu-rt
+      intel-compute-runtime
+      mesa
+      linux-firmware
+      vulkan-loader
+      vulkan-tools
     ];
   };
 
-  hardware.opengl = {
-    enable = true;        # obliga a crear /run/opengl-driver con libs/icd
-    driSupport = true;    # soporte DRI (necesario para /dev/dri)
-    extraPackages = with pkgs; [
-      vulkan-loader       # loader ICD para Vulkan
-      vulkan-tools        # vulkaninfo, vkcube (pruebas)
-      intel-graphics-compiler  # opcional: compilador Intel (ayuda a ecosistema)
-      # intel-compute-runtime   # opcional: si también quieres OpenCL/Level Zero (compute)
-    ];
+  environment.variables = {
+    LANG = "es_ES.UTF-8";
+    LC_ALL = "es_ES.UTF-8";
+    LIBVA_DRIVER_NAME = "iHD";
+    MESA_LOADER_DRIVER_OVERRIDE = "anv";
   };
 
   # --- USUARIOS ---
