@@ -6,8 +6,11 @@
   # --- KERNEL, CGROUPS Y RENDIMIENTO ---
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-   boot.kernelParams = [ "systemd.unified_cgroup_hierarchy=1" "cgroup_no_v1=all" ];
-
+  boot.kernelParams = [
+    "systemd.unified_cgroup_hierarchy=1"
+    "cgroup_no_v1=all"
+    "i915.enable_guc=3"
+  ];
   boot.kernel.sysctl = {
     "net.core.default_qdisc" = "cake";
     "net.ipv4.tcp_congestion_control" = "bbr";
@@ -65,15 +68,18 @@
    };
 
 
-  # --- ACCESO A GPU / VA-API (Intel iGPU) ---
+  # --- GPU / VA-API (Intel iGPU) ---
   services.xserver.videoDrivers = [ "modesetting" ];
-
+  
   hardware.graphics = {
     enable = true;
-    extraPackages = with pkgs; [ intel-media-driver libvaUtils vpl-gpu-rt ];
-  };
-  environment.sessionVariables = {
-    LIBVA_DRIVER_NAME = "iHD";
+    # Paquetes recomendados por la wiki + utilidades de comprobación
+    extraPackages = with pkgs; [
+      intel-media-driver   # VA-API (iHD) userspace - necesario para Quick Sync / VAAPI
+      vpl-gpu-rt           # oneVPL (QSV runtime) - recomendado para GPUs modernas
+      libva-utils          # utilidades (vainfo) -> prueba/diagnóstico (opcional pero útil)
+      # intel-compute-runtime # opcional: OpenCL / Level Zero si necesitas compute
+    ];
   };
 
   # --- USUARIOS ---
