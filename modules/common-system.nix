@@ -5,6 +5,18 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernel.sysctl = {
+      # Reiniciar automáticamente 10 segundos después de un Kernel Panic
+      "kernel.panic" = 10;
+      
+      # Reiniciar si hay un "Oops" (fallo interno del kernel)
+      "kernel.panic_on_oops" = 1;
+    
+      # Reiniciar si el sistema se queda sin memoria (OOM) en lugar de intentar matar procesos
+      "vm.panic_on_oom" = 1;
+    
+      # Reiniciar si se detecta un bloqueo de software (soft lockup)
+      "kernel.softlockup_panic" = 1;
+
       # --- Rendimiento de Red ---
       "net.core.default_qdisc" = "cake";
       "net.ipv4.tcp_congestion_control" = "bbr";
