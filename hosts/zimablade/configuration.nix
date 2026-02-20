@@ -89,7 +89,7 @@
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = lib.mkForce "--delete-older-than 14d"; 
+    options = lib.mkForce "--delete-older-than 7d"; 
   };
 
   system.autoUpgrade = {
