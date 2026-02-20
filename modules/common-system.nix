@@ -116,7 +116,7 @@
   # --- 7. ALIAS DE MANTENIMIENTO ---
   environment.shellAliases = {
     nix-full-maintenance = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && sudo nix-collect-garbage -d && nix-store --optimize && popd";
-    nix-up = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && sudo fwupdmgr update && popd";
+    nix-up = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && popd";
     nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
   };
 }
