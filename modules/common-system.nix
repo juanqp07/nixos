@@ -48,6 +48,16 @@
     "fs.nr_open" = 1048576;
     "vm.swappiness" = 10;
     "vm.max_map_count" = 262144;
+
+    # Evita el cuello de botella en el "saludo" de la conexión (vital para IPTV/m3u)
+    "net.core.somaxconn" = 8192;
+    "net.ipv4.tcp_max_syn_backlog" = 8192;
+    
+    # Recuperación instantánea tras pausa en streaming
+    "net.ipv4.tcp_slow_start_after_idle" = 0;
+    
+    # Ayuda con la compatibilidad de MTU en redes con Cloudflare
+    "net.ipv4.tcp_mtu_probing" = 1;
   };
 
   # --- 2. SERVICIOS DE ESTABILIDAD ---
@@ -58,6 +68,11 @@
     freeMemThreshold = 5; 
     freeSwapThreshold = 5;
   };
+
+  security.pam.loginLimits = [
+    { domain = "*"; type = "soft"; item = "nofile"; value = "65536"; }
+    { domain = "*"; type = "hard"; item = "nofile"; value = "65536"; }
+  ];
 
   # --- 3. RED Y LOCALIZACIÓN ---
   networking.networkmanager.enable = true;
