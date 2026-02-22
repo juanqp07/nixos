@@ -33,7 +33,7 @@
   # 3. SERVICIOS Y PAQUETES
   # ---------------------------------------------------------
   services.openssh.enable = true;
-
+  networking.firewall.allowedTCPPorts = [ 1234 ];
   environment.systemPackages = with pkgs; [
     prismlauncher 
     headsetcontrol 
