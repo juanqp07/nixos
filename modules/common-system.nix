@@ -107,43 +107,47 @@
     options = "--delete-older-than 7d"; 
   };
 
-  # --- 6. PAQUETES ESENCIALES (SOLO CLI) --- 
+# --- 6. PAQUETES ESENCIALES (SOLO CLI) --- 
   environment.systemPackages = with pkgs; [
-    git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils openssl zip unzip fish
-    ripgrep fd jq bat tree direnv lynis nvd
+    git wget curl vim btop htop fastfetch pciutils lshw usbutils 
+    dnsutils openssl zip unzip fish ripgrep fd jq bat tree direnv lynis nvd
 
-(writeShellScriptBin "nix-up" ''
-    set -e
-    pushd ~/nixos > /dev/null
+    # Script nix-up corregido
+    (writeShellScriptBin "nix-up" ''
+      set -e
+      # Usamos el path absoluto del repo o el home del usuario
+      cd ~/nixos
 
-    echo "--- Actualizando Flake ---"
-    nix flake update
+      echo "--- 🔄 Actualizando Flake Inputs ---"
+      nix flake update
 
-    echo "--- Construyendo nueva generación ---"
-    # Usamos --no-link para no ensuciar, o lo dejamos para nvd
-    sudo nixos-rebuild build --flake .#$(hostname)
+      echo "--- 🏗️ Construyendo nueva generación ---"
+      # Usamos --no-link para no dejar basura si se cancela
+      sudo nixos-rebuild build --flake .#$(hostname)
 
-    echo "--- Diferencias encontradas ---"
-    ${pkgs.nvd}/bin/nvd diff /run/current-system ./result
+      echo "--- 📋 Diferencias encontradas ---"
+      ${pkgs.nvd}/bin/nvd diff /run/current-system ./result
 
-    echo -n "¿Deseas aplicar estos cambios? (y/n): "
-    read confirmation
+      echo -n "👉 ¿Deseas aplicar estos cambios? (y/n): "
+      read -r confirmation
 
-    if [ "$confirmation" = "y" ]; then
-      echo "--- Aplicando cambios ---"
-      sudo nixos-rebuild switch --flake .#$(hostname)
-      echo "¡Sistema actualizado!"
-    else
-      echo "Operación cancelada."
-    fi
-
-    popd > /dev/null
-  '')
+      if [ "$confirmation" = "y" ]; then
+        echo "--- 🚀 Aplicando cambios ---"
+        sudo nixos-rebuild switch --flake .#$(hostname)
+        # Limpiar el enlace de la build exitosa
+        [ -L ./result ] && rm ./result
+        echo "✅ ¡Sistema actualizado!"
+      else
+        echo "❌ Operación cancelada."
+        [ -L ./result ] && rm ./result
+      fi
+    '')
   ];  
 
   # --- 7. ALIAS DE MANTENIMIENTO ---
   environment.shellAliases = {
-    nix-full-maintenance = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && sudo nix-collect-garbage -d && nix-store --optimize && popd";
+    # El alias nix-up ya no es necesario aquí porque el script de arriba crea el comando.
+    nix-full-maintenance = "nix-up && nix-clean"; 
     nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
   };
 }
