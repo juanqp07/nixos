@@ -111,43 +111,12 @@
   environment.systemPackages = with pkgs; [
     git wget curl vim btop htop fastfetch pciutils lshw usbutils 
     dnsutils openssl zip unzip fish ripgrep fd jq bat tree direnv lynis nvd
-
-    # Script nix-up corregido
-    (writeShellScriptBin "nix-up" ''
-      set -e
-      # Usamos el path absoluto del repo o el home del usuario
-      cd ~/nixos
-
-      echo "--- 🔄 Actualizando Flake Inputs ---"
-      nix flake update
-
-      echo "--- 🏗️ Construyendo nueva generación ---"
-      # Usamos --no-link para no dejar basura si se cancela
-      sudo nixos-rebuild build --flake .#$(hostname)
-
-      echo "--- 📋 Diferencias encontradas ---"
-      ${pkgs.nvd}/bin/nvd diff /run/current-system ./result
-
-      echo -n "👉 ¿Deseas aplicar estos cambios? (y/n): "
-      read -r confirmation
-
-      if [ "$confirmation" = "y" ]; then
-        echo "--- 🚀 Aplicando cambios ---"
-        sudo nixos-rebuild switch --flake .#$(hostname)
-        # Limpiar el enlace de la build exitosa
-        [ -L ./result ] && rm ./result
-        echo "✅ ¡Sistema actualizado!"
-      else
-        echo "❌ Operación cancelada."
-        [ -L ./result ] && rm ./result
-      fi
-    '')
   ];  
 
   # --- 7. ALIAS DE MANTENIMIENTO ---
   environment.shellAliases = {
-    # El alias nix-up ya no es necesario aquí porque el script de arriba crea el comando.
+    nix-up = "pushd ~/nixos > /dev/null && echo '--- 🔄 Actualizando ---' && nix flake update && echo '--- 🏗️ Construyendo ---' && sudo nixos-rebuild build --flake .#pico && echo '--- 📋 Diferencias ---' && nvd diff /run/current-system ./result && echo '--- 🚀 Aplicando ---' && sudo nixos-rebuild switch --flake .#pico && rm -f ./result && popd > /dev/null";
     nix-full-maintenance = "nix-up && nix-clean"; 
-    nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
+    nix-clean = "sudo nix-collect-garbage --delete-older-than 7d && nix-store --optimise";
   };
 }
