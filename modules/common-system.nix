@@ -115,7 +115,7 @@
 
   # --- 7. ALIAS DE MANTENIMIENTO ---
   environment.shellAliases = {
-    nix-up = "pushd ~/nixos > /dev/null && echo '--- 🔄 Actualizando ---' && nix flake update && echo '--- 🏗️ Construyendo ---' && sudo nixos-rebuild build --flake .#pico && echo '--- 📋 Diferencias ---' && nvd diff /run/current-system ./result && echo '--- 🚀 Aplicando ---' && sudo nixos-rebuild switch --flake .#pico && rm -f ./result && popd > /dev/null";
+    nix-up = "pushd ~/nixos > /dev/null && echo '--- 🔄 Actualizando ---' && nix flake update && echo '--- 🏗️ Construyendo ---' && sudo nixos-rebuild build --flake .#pico && echo '--- 📋 Diferencias ---' && nvd diff /run/current-system result && echo '--- 🚀 Aplicando ---' && sudo nixos-rebuild switch --flake .#pico && popd > /dev/null";
     nix-full-maintenance = "nix-up && nix-clean"; 
     nix-clean = "sudo nix-collect-garbage --delete-older-than 7d && nix-store --optimise";
   };
