@@ -110,13 +110,41 @@
   # --- 6. PAQUETES ESENCIALES (SOLO CLI) --- 
   environment.systemPackages = with pkgs; [
     git wget curl vim btop htop fastfetch pciutils lshw usbutils dnsutils openssl zip unzip fish
-    ripgrep fd jq bat tree direnv lynis
+    ripgrep fd jq bat tree direnv lynis nvd
   ];  
 
   # --- 7. ALIAS DE MANTENIMIENTO ---
   environment.shellAliases = {
     nix-full-maintenance = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && sudo nix-collect-garbage -d && nix-store --optimize && popd";
-    nix-up = "pushd ~/nixos && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname) && popd";
     nix-clean = "sudo nix-collect-garbage -d && nix-store --optimize";
+    nix-up() {
+  pushd ~/nixos > /dev/null
+
+  # 1. Actualizar el flake
+  echo "--- Actualizando Flake ---"
+  nix flake update
+
+  # 2. Construir la nueva configuración (sin aplicarla todavía)
+  echo "--- Construyendo nueva generación ---"
+  sudo nixos-rebuild build --flake .#$(hostname)
+
+  # 3. Mostrar la diferencia con nvd
+  echo "--- Diferencias encontradas ---"
+  nvd diff /run/current-system ./result
+
+  # 4. Pedir confirmación
+  echo -n "¿Deseas aplicar estos cambios? (y/n): "
+  read confirmation
+
+  if [ "$confirmation" = "y" ]; then
+    echo "--- Aplicando cambios ---"
+    sudo nixos-rebuild switch --flake .#$(hostname)
+    echo "¡Sistema actualizado!"
+  else
+    echo "Operación cancelada. El enlace './result' contiene la build que no aplicaste."
+  fi
+
+  popd > /dev/null
+}
   };
 }
