@@ -87,7 +87,7 @@
     heroic rustdesk-flutter
     go lm_sensors obs-studio gcc
     syncthing jetbrains.idea openjdk25
-    freecad feishin protonplus
+    feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome    
   ];
