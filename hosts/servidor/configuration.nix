@@ -18,9 +18,9 @@
 
   networking.firewall = {
     enable = true; 
-    allowedTCPPorts = [ 22 53 80 443 22000 8621 ];
-    allowedUDPPorts = [ 21027 22000 8621 53 ];
-    
+    allowedTCPPorts = [ 22 53 80 443 21115 21116 21117 21118 21119 22000 8621 ];
+    allowedUDPPorts = [ 53 21027 21116 22000 8621 ];
+  
     trustedInterfaces = [ "wt0" "docker0" ];
     extraCommands = ''
       iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
