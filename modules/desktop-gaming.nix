@@ -48,6 +48,9 @@
     defaultNetwork.settings.dns_enabled = true;
   };
 
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "juan" ];
+
   # --- PERMISOS DE USUARIO ---
   # Añadido "podman" a los grupos para gestión rootless
   users.users.juan = {
