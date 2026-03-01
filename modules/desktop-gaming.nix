@@ -96,8 +96,8 @@
     syncthing jetbrains.idea openjdk25
     feishin protonplus
     bottles cloudflare-warp
-    gelly google-chrome    
-    plasmapkg2
+    gelly google-chrome
+    libsForQt5.plasma-framework
     #libreoffice hunspell
     #hunspellDicts.es_ES
   ];
