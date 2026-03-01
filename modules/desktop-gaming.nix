@@ -97,6 +97,7 @@
     feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome    
+    plasmapkg2
     #libreoffice hunspell
     #hunspellDicts.es_ES
   ];
