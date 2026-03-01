@@ -62,7 +62,8 @@
 
   # --- FUENTES ---
   fonts.packages = with pkgs; [
-    noto-fonts noto-fonts-cjk-sans noto-fonts-color-emoji liberation_ttf
+    # noto-fonts noto-fonts-cjk-sans noto-fonts-color-emoji # Comenta esta línea temporalmente
+    liberation_ttf
     nerd-fonts.fira-code
     nerd-fonts.jetbrains-mono
   ];
