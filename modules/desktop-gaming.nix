@@ -97,8 +97,8 @@
     feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome    
-    libreoffice hunspell
-    hunspellDicts.es_ES
+    #libreoffice hunspell
+    #hunspellDicts.es_ES
   ];
 
   programs.nix-ld.enable = true;
