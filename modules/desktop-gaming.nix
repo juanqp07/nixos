@@ -97,7 +97,6 @@
     feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome
-    libsForQt5.plasma-framework
     #libreoffice hunspell
     #hunspellDicts.es_ES
   ];
