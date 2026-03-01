@@ -97,7 +97,7 @@
     feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome    
-    libreoffice-qt hunspell
+    libreoffice hunspell
     hunspellDicts.es_ES
   ];
 
