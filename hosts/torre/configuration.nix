@@ -42,10 +42,12 @@
   services.sunshine = {
     enable = true;
     autoStart = true;
-    capSysAdmin = true;
-    openFirewall = true;
-    
+    capSysAdmin = true;  
   };
+  users.groups.uinput = {};
+  services.udev.extraRules = ''
+    KERNEL=="uinput", GROUP="uinput", MODE="0660", OPTIONS+="static_node=uinput"
+  '';
 
   environment.systemPackages = with pkgs; [
     prismlauncher 

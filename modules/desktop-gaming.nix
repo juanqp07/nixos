@@ -55,7 +55,7 @@
   # Añadido "podman" a los grupos para gestión rootless
   users.users.juan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "podman" ];
+    extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "podman" "uinput" "render" ];
   };
 
   # --- GAMING ---
