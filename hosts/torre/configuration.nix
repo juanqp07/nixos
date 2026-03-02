@@ -33,21 +33,19 @@
   # 3. SERVICIOS Y PAQUETES
   # ---------------------------------------------------------
   services.openssh.enable = true;
-  networking.firewall.allowedTCPPorts = [ 1234 47984 47989 47990 48010 ];
-  networking.firewall.allowedUDPPortRanges = [
-    { from = 47998; to = 48000; }
-    { from = 8000; to = 8010; }
-  ];
+  networking.firewall.allowedTCPPorts = [ 1234 ];
 
   services.sunshine = {
     enable = true;
     autoStart = true;
-    capSysAdmin = true;  
+    capSysAdmin = true; # OBLIGATORIO para control de ratón/teclado en Wayland/KMS
+    openFirewall = true; # Abre los puertos 47984-48010 automáticamente
   };
   users.groups.uinput = {};
   services.udev.extraRules = ''
     KERNEL=="uinput", GROUP="uinput", MODE="0660", OPTIONS+="static_node=uinput"
   '';
+
 
   environment.systemPackages = with pkgs; [
     prismlauncher 
