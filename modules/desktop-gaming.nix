@@ -59,7 +59,11 @@
   };
 
   # --- GAMING ---
-  programs.steam.enable = true;
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true; # Abre puertos para Steam Remote Play
+    dedicatedServer.openFirewall = true;
+  };
   programs.gamemode.enable = true;
 
   # --- FUENTES ---
