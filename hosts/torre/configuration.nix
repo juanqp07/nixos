@@ -38,14 +38,11 @@
   services.sunshine = {
     enable = true;
     autoStart = true;
-    capSysAdmin = true; # OBLIGATORIO para control de ratón/teclado en Wayland/KMS
-    openFirewall = true; # Abre los puertos 47984-48010 automáticamente
+    capSysAdmin = true;
+    openFirewall = true;
   };
-  users.groups.uinput = {};
-  services.udev.extraRules = ''
-    KERNEL=="uinput", GROUP="uinput", MODE="0660", OPTIONS+="static_node=uinput"
-  '';
-
+  services.avahi.publish.enable = true;
+  services.avahi.publish.userServices = true;
 
   environment.systemPackages = with pkgs; [
     prismlauncher 
