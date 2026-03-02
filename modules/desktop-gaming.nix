@@ -48,6 +48,8 @@
     defaultNetwork.settings.dns_enabled = true;
   };
 
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "juan" ];
 
   # --- PERMISOS DE USUARIO ---
   # Añadido "podman" a los grupos para gestión rootless
@@ -97,8 +99,8 @@
     feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome
-    #libreoffice hunspell
-    #hunspellDicts.es_ES
+    libreoffice hunspell
+    hunspellDicts.es_ES
   ];
 
   programs.nix-ld.enable = true;
