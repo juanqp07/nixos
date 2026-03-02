@@ -34,7 +34,7 @@
   # ---------------------------------------------------------
   services.openssh.enable = true;
   networking.firewall.allowedTCPPorts = [ 1234 47984 47989 47990 48010 ];
-  allowedUDPPortRanges = [
+  networking.firewall.allowedUDPPortRanges = [
     { from = 47998; to = 48000; }
     { from = 8000; to = 8010; }
   ];
