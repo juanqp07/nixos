@@ -2,7 +2,7 @@
 
 {
   # --- KERNEL ---
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = pkgs.linuxPackages;
   boot.kernelParams = [
       "quiet"
       "splash"
@@ -100,6 +100,7 @@
     feishin protonplus
     bottles cloudflare-warp
     gelly google-chrome
+    hydralauncher
     #libreoffice hunspell
     #hunspellDicts.es_ES
   ];

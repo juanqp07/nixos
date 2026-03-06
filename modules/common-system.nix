@@ -110,7 +110,7 @@
 # --- 6. PAQUETES ESENCIALES (SOLO CLI) --- 
   environment.systemPackages = with pkgs; [
     git wget curl vim btop htop fastfetch pciutils lshw usbutils 
-    dnsutils openssl zip unzip fish ripgrep fd jq bat tree direnv lynis nvd
+    dnsutils openssl zip unzip rar unrar fish ripgrep fd jq bat tree direnv lynis nvd
   ];  
 
   # --- 7. ALIAS DE MANTENIMIENTO ---
