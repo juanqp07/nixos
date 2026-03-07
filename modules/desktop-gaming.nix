@@ -20,10 +20,18 @@
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
-  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm = {
+    enable = true;
+    theme = "breeze";
+  };
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   programs.kdeconnect.enable = true;
+
+  # --- FONDO DE PANTALLA ---
+  systemd.tmpfiles.rules = [
+    "L+ /usr/share/sddm/themes/breeze/background.png - - - - ${pkgs.kdePackages.plasma-workspace-wallpapers}/share/wallpapers/ColdRipple/contents/images/1920x1080.jpg"
+  ];
 
   # --- SONIDO ---
   security.rtkit.enable = true;

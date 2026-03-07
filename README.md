@@ -1,14 +1,15 @@
 # ❄️ Configuración NixOS de Juan (Flakes)
 
-Este repositorio contiene mi configuración centralizada para 3 máquinas, gestionada mediante **Nix Flakes**.
+Este repositorio contiene mi configuración centralizada para 4 máquinas, gestionada mediante **Nix Flakes**.
 
 ## 📂 Estructura del Repositorio
 
 * **flake.nix**: Punto de entrada que define los hosts y las versiones de los paquetes.
 * **hosts/**: Configuraciones específicas de hardware.
-    * `portatil/`: Laptop i5 9th Gen + NVIDIA (Híbrido/Optimus).
-    * `torre/`: PC Ryzen 5600X + RX 6700 XT (AMD nativo).
-    * `servidor/`: i5 1250p (Docker, Sin entorno gráfico).
+    * `portatil/` (elytra): Laptop i5 9th Gen + NVIDIA (Híbrido/Optimus).
+    * `torre/` (titan): PC Ryzen 5600X + RX 6700 XT (AMD nativo).
+    * `servidor/` (atlas): i5 1250p (Docker, Sin entorno gráfico).
+    * `zimablade/` (pico): Intel Apollo Lake (ZimaBlade, Docker/Dockge).
 * **modules/**: Módulos compartidos.
     * `common-system.nix`: Configuración base (Usuario, Idioma, Herramientas CLI).
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, Audio y Apps de escritorio.
@@ -19,19 +20,24 @@ Este repositorio contiene mi configuración centralizada para 3 máquinas, gesti
 
 Desde la carpeta `~/nixos`, ejecuta el comando según la máquina en la que estés:
 
-### 💻 Portátil
+### 💻 Portátil (elytra)
 ```bash
-sudo nixos-rebuild switch --flake .#portatil
+sudo nixos-rebuild switch --flake .#elytra
 ```
 
-### 🖥️ PC Torre
+### 🖥️ PC Torre (titan)
 ```bash
-sudo nixos-rebuild switch --flake .#torre
+sudo nixos-rebuild switch --flake .#titan
 ```
 
-### ☁️ Servidor
+### ☁️ Servidor (atlas)
 ```bash
-sudo nixos-rebuild switch --flake .#servidor
+sudo nixos-rebuild switch --flake .#atlas
+```
+
+### 🧊 ZimaBlade (pico)
+```bash
+sudo nixos-rebuild switch --flake .#pico
 ```
 
 ---
@@ -55,7 +61,7 @@ sudo nixos-rebuild switch --flake .#servidor
    ```bash
    nix flake update
    ```
-    Aplicar la actualización:
+2. **Aplicar la actualización**:
    ```bash
    sudo nixos-rebuild switch --flake .#nombre-maquina
    ```
@@ -75,4 +81,6 @@ Para evitar que el disco se llene con versiones antiguas del sistema:
 ## ⚠️ Notas de Configuración
 * **Git**: Antes de aplicar un cambio con el comando `switch`, debes añadir los archivos nuevos a git (`git add .`), de lo contrario Nix los ignorará.
 * **NVIDIA**: El portátil usa el driver propietario estable.
-* **Docker**: Solo está habilitado en el host `servidor`. El resto usa **Podman**.
+* **Docker/Podman**: 
+    * `atlas` y `pico` usan **Docker** y **Dockge** para gestión de contenedores.
+    * El resto usa **Podman** o no tiene entorno de contenedores habilitado por defecto.
