@@ -28,11 +28,6 @@
   services.desktopManager.plasma6.enable = true;
   programs.kdeconnect.enable = true;
 
-  # --- FONDO DE PANTALLA ---
-  systemd.tmpfiles.rules = [
-    "L+ /usr/share/sddm/themes/breeze/background.png - - - - ${pkgs.kdePackages.plasma-workspace-wallpapers}/share/wallpapers/ColdRipple/contents/images/1920x1080.jpg"
-  ];
-
   # --- SONIDO ---
   security.rtkit.enable = true;
   services.pipewire = {
