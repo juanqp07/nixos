@@ -2,7 +2,7 @@
 
 {
   # --- KERNEL ---
-  boot.kernelPackages = pkgs.linuxPackages;
+  boot.kernelPackages = pkgs.linuxPackages_zen;
   boot.kernelParams = [
       "quiet"
       "splash"
@@ -104,10 +104,11 @@
     bottles cloudflare-warp
     gelly google-chrome
     hydralauncher
-    #libreoffice hunspell
-    #hunspellDicts.es_ES
+    libreoffice hunspell
+    hunspellDicts.es_ES
+    openrgb-with-all-plugins
   ];
-
+  services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
     stdenv.cc.cc # Librerías base de C++
