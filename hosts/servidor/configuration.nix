@@ -116,6 +116,17 @@
     vim htop ncdu iotop ethtool smartmontools zram-generator
   ];
 
+  # --- ACTUALIZACIONES AUTOMÁTICAS ---
+  system.autoUpgrade = {
+    enable = true;
+    flake = inputs.self.outPath;
+    flags = [
+      "-L" # print build logs
+    ];
+    dates = "04:00";
+    randomizedDelaySec = "45min";
+  };
+
   services.thermald.enable = true;
   system.stateVersion = "25.11";
 }

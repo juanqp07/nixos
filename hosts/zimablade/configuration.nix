@@ -94,10 +94,12 @@
 
   system.autoUpgrade = {
     enable = true;
+    flake = inputs.self.outPath;
+    flags = [
+      "-L" # print build logs
+    ];
     dates = "04:00";
-    flake = "/home/juan/nixos"; 
-    flags = [ "--update-input" "nixpkgs" "--commit-lock-file" ];
-    allowReboot = true;
+    randomizedDelaySec = "45min";
   };
 
   # --- 6. PAQUETES ---
