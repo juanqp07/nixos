@@ -6,52 +6,37 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
   };
 
-  outputs = { self, nixpkgs, nix-flatpak, ... }@inputs: {
+  outputs = { self, nixpkgs, nix-flatpak, ... }@inputs: 
+  let
+    # 1. Creamos una función auxiliar para no repetir código
+    mkHost = hostName: extraModules: nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs; }; # <--- Se pasa automáticamente a todos
+      modules = [
+        ./modules/common-system.nix
+        ./hosts/${hostName}/configuration.nix
+      ] ++ extraModules;
+    };
+  in
+  {
     nixosConfigurations = {
       
-      # 1. PORTÁTIL
-      elytra = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
-        modules = [
-          ./modules/common-system.nix
-          ./hosts/portatil/configuration.nix
-          ./modules/desktop-gaming.nix
-          nix-flatpak.nixosModules.nix-flatpak
-        ];
-      };
+      # 2. Definimos los hosts usando la función
+      # mkHost "nombre_carpeta" [ lista_de_modulos_extra ]
 
-      # 2. ORDENADOR
-      titan = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
-        modules = [
-          ./modules/common-system.nix
-          ./hosts/torre/configuration.nix
-          ./modules/desktop-gaming.nix
-          nix-flatpak.nixosModules.nix-flatpak
-        ];
-      };
+      elytra = mkHost "portatil" [ 
+        ./modules/desktop-gaming.nix 
+        nix-flatpak.nixosModules.nix-flatpak 
+      ];
 
-      # 3. SERVIDOR
-      atlas = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
-        modules = [
-          ./modules/common-system.nix
-          ./hosts/servidor/configuration.nix
-        ];
-      };
+      titan = mkHost "torre" [ 
+        ./modules/desktop-gaming.nix 
+        nix-flatpak.nixosModules.nix-flatpak 
+      ];
 
-      # 4. ZIMABLADE
-      pico = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
-        modules = [
-          ./modules/common-system.nix
-          ./hosts/zimablade/configuration.nix
-        ];
-      };
+      atlas = mkHost "servidor" [ ];
+
+      pico = mkHost "zimablade" [ ];
 
     };
     
