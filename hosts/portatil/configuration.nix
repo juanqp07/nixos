@@ -4,6 +4,7 @@
   imports = [ ./hardware-configuration.nix ];
 
   networking.hostName = "elytra";
+  boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # --- RED ---
   networking.networkmanager.wifi.backend = "iwd";

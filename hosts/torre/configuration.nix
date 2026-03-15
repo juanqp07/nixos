@@ -4,6 +4,7 @@
 
   imports = [ ./hardware-configuration.nix ];
   networking.hostName = "titan";
+  boot.kernelPackages = pkgs.linuxPackages_zen;
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
   # ---------------------------------------------------------
