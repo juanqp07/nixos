@@ -12,6 +12,7 @@
       # 1. PORTÁTIL
       elytra = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
         modules = [
           ./modules/common-system.nix
           ./hosts/portatil/configuration.nix
@@ -23,6 +24,7 @@
       # 2. ORDENADOR
       titan = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
         modules = [
           ./modules/common-system.nix
           ./hosts/torre/configuration.nix
@@ -34,6 +36,7 @@
       # 3. SERVIDOR
       atlas = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
         modules = [
           ./modules/common-system.nix
           ./hosts/servidor/configuration.nix
@@ -43,6 +46,7 @@
       # 4. ZIMABLADE
       pico = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs = { inherit inputs; }; # <--- AÑADIR ESTO
         modules = [
           ./modules/common-system.nix
           ./hosts/zimablade/configuration.nix
