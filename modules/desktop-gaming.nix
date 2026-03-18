@@ -88,6 +88,7 @@
   };
   # --- PAQUETES DE ESCRITORIO ---
   environment.systemPackages = with pkgs; [
+    inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
     floorp-bin vesktop 
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg

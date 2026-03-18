@@ -54,6 +54,7 @@
     vulkan-tools 
     amdgpu_top   
     lmstudio
+    jellyfin-media-player
   ];
 
   # ---------------------------------------------------------
