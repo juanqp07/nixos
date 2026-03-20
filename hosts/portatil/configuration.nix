@@ -3,25 +3,13 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  networking.hostName = "elytra";
+  networking.hostName = "elytra"; # He unificado el hostname que tenías duplicado arriba
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
-  # --- RED ---
-  networking.networkmanager.wifi.backend = "iwd";
-  networking.wireless.iwd.enable = true;
-  
-  # --- BLUETOOTH ---
-{ config, pkgs, lib, ... }:
-
-{
-  imports = [ ./hardware-configuration.nix ];
-
-  networking.hostName = "portatil";
-
-  # --- 1. OPTIMIZACIÓN CPU (Intel i5-9300H) ---
+  # --- 1. OPTIMIZACIÓN CPU (Intel i5-13450HX) ---
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   
-  # Gestión de energía inteligente (mejor que thermald solo)
+  # Gestión de energía (sigue siendo excelente para CPUs con P-Cores y E-Cores)
   services.auto-cpufreq.enable = true;
   services.auto-cpufreq.settings = {
     battery = {
@@ -34,24 +22,28 @@
     };
   };
 
-  # --- 2. GRÁFICOS E HÍBRIDO (Intel + NVIDIA 1050 Ti) ---
+  # --- 2. GRÁFICOS E HÍBRIDO (Intel 13th Gen + NVIDIA RTX 5050) ---
   services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
     extraPackages = with pkgs; [
-      intel-media-driver # Para i5-9300H (Coffee Lake)
-      vaapiIntel         # VA-API antiguo pero estable
+      intel-media-driver # Compatible y recomendado para Gen 8+ (tu 13ª Gen)
+      vaapiIntel         # Respaldo
       libvdpau-va-gl
     ];
   };
 
   hardware.nvidia = {
     modesetting.enable = true;
-    open = false;
+    # IMPORTANTÍSIMO: Para RTX 5050 es mejor usar los módulos abiertos
+    open = true; 
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    
+    # Al ser una GPU tan nueva, necesitamos los drivers más recientes, no los estables
+    package = config.boot.kernelPackages.nvidiaPackages.latest; 
+    
     powerManagement.enable = true;
     powerManagement.finegrained = false;
 
@@ -61,12 +53,11 @@
         enableOffloadCmd = true;
       };
       
-      # IMPORTANTE: Asegúrate de que estos ID son correctos. 
-      # Ejecuta: lspci | grep -E "VGA|3D"
-      # Intel suele ser 00:02.0 -> "PCI:0:2:0"
-      # Nvidia suele ser 01:00.0 -> "PCI:1:0:0"
-      intelBusId = "PCI:0:2:0";
-      nvidiaBusId = "PCI:1:0:0";
+      # ⚠️ ¡ATENCIÓN! DEBES CAMBIAR ESTO ⚠️
+      # Ejecuta en la terminal del Live USB: lspci | grep -E "VGA|3D"
+      # Traduce el formato. Ejemplo: si es 00:02.0 -> escribe "PCI:0:2:0"
+      intelBusId = "PCI:0:2:0";  # Cambiar por el tuyo
+      nvidiaBusId = "PCI:1:0:0"; # Cambiar por el tuyo
     };
   };
 
@@ -91,6 +82,5 @@
 
   services.libinput.enable = true;
 
-  system.stateVersion = "25.11";
-}
+  system.stateVersion = "25.11"; 
 }
