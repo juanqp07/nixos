@@ -10,15 +10,16 @@
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   
   # Gestión de energía (sigue siendo excelente para CPUs con P-Cores y E-Cores)
-  services.auto-cpufreq.enable = true;
+services.auto-cpufreq.enable = true;
+  # En las versiones nuevas, la estructura debe ser exactamente así:
   services.auto-cpufreq.settings = {
     battery = {
-      governor = "powersave";
-      turbo = "never";
+       governor = "powersave";
+       turbo = "never";
     };
     charger = {
-      governor = "performance";
-      turbo = "auto";
+       governor = "performance";
+       turbo = "auto";
     };
   };
 
