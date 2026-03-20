@@ -8,20 +8,6 @@
 
   # --- 1. OPTIMIZACIÓN CPU (Intel i5-13450HX) ---
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-  
-  # Gestión de energía (sigue siendo excelente para CPUs con P-Cores y E-Cores)
-services.auto-cpufreq.enable = true;
-  # En las versiones nuevas, la estructura debe ser exactamente así:
-  services.auto-cpufreq.settings = {
-    battery = {
-       governor = "powersave";
-       turbo = "never";
-    };
-    charger = {
-       governor = "performance";
-       turbo = "auto";
-    };
-  };
 
   # --- 2. GRÁFICOS E HÍBRIDO (Intel 13th Gen + NVIDIA RTX 5050) ---
   services.xserver.videoDrivers = [ "nvidia" ];
@@ -31,7 +17,7 @@ services.auto-cpufreq.enable = true;
     enable32Bit = true;
     extraPackages = with pkgs; [
       intel-media-driver # Compatible y recomendado para Gen 8+ (tu 13ª Gen)
-      vaapiIntel         # Respaldo
+      intel-vaapi-driver         # Respaldo
       libvdpau-va-gl
     ];
   };
