@@ -3,7 +3,7 @@
 {
   imports = [ ./hardware-configuration.nix ];
 
-  networking.hostName = "elytra"; # He unificado el hostname que tenías duplicado arriba
+  networking.hostName = "elytra";
   boot.kernelPackages = pkgs.linuxPackages_zen;
 
   # --- 1. OPTIMIZACIÓN CPU (Intel i5-13450HX) ---
@@ -16,19 +16,16 @@
     enable = true;
     enable32Bit = true;
     extraPackages = with pkgs; [
-      intel-media-driver # Compatible y recomendado para Gen 8+ (tu 13ª Gen)
-      intel-vaapi-driver         # Respaldo
+      intel-media-driver
+      intel-vaapi-driver
       libvdpau-va-gl
     ];
   };
 
   hardware.nvidia = {
     modesetting.enable = true;
-    # IMPORTANTÍSIMO: Para RTX 5050 es mejor usar los módulos abiertos
     open = true; 
     nvidiaSettings = true;
-    
-    # Al ser una GPU tan nueva, necesitamos los drivers más recientes, no los estables
     package = config.boot.kernelPackages.nvidiaPackages.latest; 
     
     powerManagement.enable = true;
@@ -39,19 +36,28 @@
         enable = true;
         enableOffloadCmd = true;
       };
-      
-      # ⚠️ ¡ATENCIÓN! DEBES CAMBIAR ESTO ⚠️
-      # Ejecuta en la terminal del Live USB: lspci | grep -E "VGA|3D"
-      # Traduce el formato. Ejemplo: si es 00:02.0 -> escribe "PCI:0:2:0"
-      intelBusId = "PCI:0:2:0";  # Cambiar por el tuyo
-      nvidiaBusId = "PCI:1:0:0"; # Cambiar por el tuyo
+      # Verifica estos IDs con 'lspci | grep -E "VGA|3D"'
+      intelBusId = "PCI:0:2:0";  
+      nvidiaBusId = "PCI:1:0:0"; 
     };
   };
 
-  # --- 3. RED Y BLUETOOTH ---
-  networking.networkmanager.wifi.backend = "iwd";
-  networking.wireless.iwd.enable = true;
+  # --- 3. RED Y BLUETOOTH (Optimizado para Gaming) ---
   
+  # Usamos el backend por defecto (wpa_supplicant) que es más estable para jugar que iwd
+  networking.networkmanager.enable = true;
+  
+  # Desactivamos el ahorro de energía que mata el ping
+  networking.networkmanager.wifi.powersave = false;
+  networking.networkmanager.wifi.macAddress = "preserve";
+
+  # PARCHE PARA REALTEK RTL8852BE:
+  # Desactivamos ASPM y Power Save a nivel de driver (módulo rtw89)
+  boot.extraModprobeConfig = ''
+    options rtw89_pci disable_aspm_l1=1 disable_aspm_l1ss=1
+    options rtw89_core disable_ps_mode=1
+  '';
+
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
@@ -65,6 +71,7 @@
     brightnessctl
     vdpauinfo
     libva-utils
+    intel-gpu-tools
   ];
 
   services.libinput.enable = true;

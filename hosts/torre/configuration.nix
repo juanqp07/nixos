@@ -46,7 +46,6 @@
   services.avahi.publish.userServices = true;
 
   environment.systemPackages = with pkgs; [
-    prismlauncher 
     headsetcontrol 
     lunar-client
     lact

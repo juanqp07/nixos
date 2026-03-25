@@ -92,6 +92,7 @@
     floorp-bin vesktop 
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
+    prismlauncher 
     distrobox podman-compose
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic-wayland
@@ -132,7 +133,7 @@
       name = "flathub";
       location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
     }];
-    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" "com.github.iwalton3.jellyfin-media-player"];
+    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" "com.github.iwalton3.jellyfin-media-player" "io.github.ryubing.Ryujinx" ];
     update.onActivation = true;
     uninstallUnmanaged = true; 
   };
