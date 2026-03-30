@@ -4,7 +4,7 @@
   imports = [ ./hardware-configuration.nix ];
 
   networking.hostName = "elytra";
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # --- 1. OPTIMIZACIÓN CPU (Intel i5-13450HX) ---
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
@@ -73,15 +73,6 @@
     libva-utils
     intel-gpu-tools
   ];
-
-  # budgie
-# budgie
-  services.xserver.enable = true;
-  services.xserver.desktopManager.budgie.enable = true;
-  
-  # Forzamos LightDM y nos aseguramos de que SDDM esté desactivado
-  services.displayManager.sddm.enable = lib.mkForce false;
-  services.xserver.displayManager.lightdm.enable = true;
 
   services.libinput.enable = true;
 
