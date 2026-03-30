@@ -74,6 +74,11 @@
     intel-gpu-tools
   ];
 
+  # budgie
+  services.xserver.enable = true;
+  services.xserver.desktopManager.budgie.enable = true;
+  services.xserver.displayManager.lightdm.enable = true;
+
   services.libinput.enable = true;
 
   system.stateVersion = "25.11"; 
