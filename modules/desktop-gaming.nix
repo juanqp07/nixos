@@ -108,7 +108,7 @@
     libreoffice hunspell
     hunspellDicts.es_ES
     openrgb-with-all-plugins
-    lmstudio
+    lmstudio localsend
   ];
   services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
