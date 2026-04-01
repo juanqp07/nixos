@@ -84,7 +84,28 @@
       "inputs": {
         "nix-flatpak": "nix-flatpak",
         "nix-software-center": "nix-software-center",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "subtui": "subtui"
+      }
+    },
+    "subtui": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1774815343,
+        "narHash": "sha256-PPnyrnBWhGZQ6KdUoz68WJv3sqtj5mncBIHm2MMaC7A=",
+        "owner": "MattiaPun",
+        "repo": "SubTUI",
+        "rev": "ae09ba5351a35a10bafc602d433fbea9be0e2d26",
+        "type": "github"
+      },
+      "original": {
+        "owner": "MattiaPun",
+        "repo": "SubTUI",
+        "type": "github"
       }
     },
     "systems": {

@@ -6,6 +6,10 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
     nix-software-center.url = "github:snowfallorg/nix-software-center";
     nix-software-center.inputs.nixpkgs.follows = "nixpkgs";
+    subtui = {
+       url = "github:MattiaPun/SubTUI";
+       inputs.nixpkgs.follows = "nixpkgs"; # Para que use tu misma versión de nixpkgs
+    };
   };
 
   outputs = { self, nixpkgs, nix-flatpak, ... }@inputs: 

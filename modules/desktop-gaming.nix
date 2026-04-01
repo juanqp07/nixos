@@ -50,8 +50,8 @@
     defaultNetwork.settings.dns_enabled = true;
   };
 
-  #virtualisation.virtualbox.host.enable = true;
-  #users.extraGroups.vboxusers.members = [ "juan" ];
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "juan" ];
 
   # --- PERMISOS DE USUARIO ---
   # Añadido "podman" a los grupos para gestión rootless
@@ -89,6 +89,7 @@
   # --- PAQUETES DE ESCRITORIO ---
   environment.systemPackages = with pkgs; [
     inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
+    inputs.subtui.packages.${pkgs.system}.default
     floorp-bin vesktop 
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
