@@ -81,6 +81,9 @@
     vdpauinfo
     libva-utils
     intel-gpu-tools
+    (alpaca.override {
+      ollama = ollama-cuda;
+    })
   ];
 
   services.libinput.enable = true;
