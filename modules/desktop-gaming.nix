@@ -104,7 +104,7 @@
     syncthing jetbrains.idea openjdk25
     feishin protonplus
     bottles cloudflare-warp
-    gelly google-chrome
+    google-chrome
     hydralauncher
     libreoffice hunspell
     hunspellDicts.es_ES

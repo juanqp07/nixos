@@ -81,7 +81,7 @@
   console.keyMap = lib.mkDefault "es";
 
   # Servicios base
-  #services.netbird.enable = true;
+  services.netbird.enable = true;
   services.fwupd.enable = true;
 
   # --- 4. CONFIGURACIÓN DE USUARIO ---

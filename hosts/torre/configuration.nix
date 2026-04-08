@@ -54,9 +54,6 @@
     amdgpu_top   
     lmstudio
     jellyfin-media-player
-    (alpaca.override {
-      ollama = ollama-rocm;
-    })
   ];
 
   # ---------------------------------------------------------
