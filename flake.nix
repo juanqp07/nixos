@@ -17,10 +17,21 @@
     # 1. Creamos una función auxiliar para no repetir código
     mkHost = hostName: extraModules: nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      specialArgs = { inherit inputs; }; # <--- Se pasa automáticamente a todos
+      specialArgs = { inherit inputs; };
       modules = [
         ./modules/common-system.nix
         ./hosts/${hostName}/configuration.nix
+
+        ({ config, pkgs, ... }: {
+          nixpkgs.overlays = [
+            (final: prev: {
+              openldap = prev.openldap.overrideAttrs (_: {
+                doCheck = false;
+              });
+            })
+          ];
+        })
+
       ] ++ extraModules;
     };
   in
