@@ -4,7 +4,7 @@
 
   imports = [ ./hardware-configuration.nix ];
   networking.hostName = "titan";
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
   # ---------------------------------------------------------
@@ -79,6 +79,17 @@
       Unit = "headset-led-off.service";
     };
   };
+
+  # ---------------------------------------------------------
+  # 5. MONTAR NVME
+  # ---------------------------------------------------------
+    
+  fileSystems."/mnt/nvme" = {
+    device = "/dev/disk/by-uuid/a8f2e7ba-5fe6-473d-82f6-ce00fae06297";
+    fsType = "ext4";
+    options = [ "defaults" "nofail" "noatime" ];
+  };
+
 
   # ---------------------------------------------------------
   # 5. CONTROL GPU (LACT)

@@ -22,16 +22,6 @@
         ./modules/common-system.nix
         ./hosts/${hostName}/configuration.nix
 
-        ({ config, pkgs, ... }: {
-          nixpkgs.overlays = [
-            (final: prev: {
-              openldap = prev.openldap.overrideAttrs (_: {
-                doCheck = false;
-              });
-            })
-          ];
-        })
-
       ] ++ extraModules;
     };
   in

@@ -90,7 +90,7 @@
   environment.systemPackages = with pkgs; [
     inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
     inputs.subtui.packages.${pkgs.system}.default
-    floorp-bin vesktop 
+    vesktop firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
     prismlauncher 
@@ -103,7 +103,7 @@
     go lm_sensors obs-studio gcc
     syncthing jetbrains.idea openjdk25
     feishin protonplus
-    bottles cloudflare-warp
+    cloudflare-warp
     google-chrome
     hydralauncher
     libreoffice hunspell
