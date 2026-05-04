@@ -109,7 +109,10 @@
     libreoffice hunspell
     hunspellDicts.es_ES
     openrgb-with-all-plugins
-    lmstudio localsend
+    lmstudio localsend eden
+    nodejs pnpm bun
+    gearlever typora
+    kdePackages.partitionmanager
   ];
   services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
