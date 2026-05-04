@@ -50,6 +50,7 @@
   # Desactivamos el ahorro de energía que mata el ping
   networking.networkmanager.wifi.powersave = false;
   networking.networkmanager.wifi.macAddress = "preserve";
+  services.blueman.enable = true;
 
   # PARCHE PARA REALTEK RTL8852BE:
   # Desactivamos ASPM y Power Save a nivel de driver (módulo rtw89)
@@ -61,15 +62,14 @@
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
-    settings.General = {
-      # For newer Bluetooth capabilities.
-      Experimental = true;
-      # For quicker device reconnection.
-      FastConnectable = true;
-    };
-    settings.Policy = {
-      # Power up all controllers.
-      AutoEnable = true;
+    settings = {
+      General = {
+        Experimental = true;
+        FastConnectable = true;
+      };
+      Policy = {
+        AutoEnable = true;
+      };
     };
   };
 
