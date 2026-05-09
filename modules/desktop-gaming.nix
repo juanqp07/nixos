@@ -113,6 +113,7 @@
     nodejs pnpm bun
     gearlever typora
     kdePackages.partitionmanager
+    rpi-imager
   ];
   services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
