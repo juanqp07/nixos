@@ -10,8 +10,6 @@
 
   zramSwap.enable = true;
 
-  # Habilitar soporte GPU (GuC/HuC firmware)
-  # Necesario para transcodificación eficiente en Jellyfin/Plex/Tdarr
   boot.kernelParams = [ 
     "i915.enable_guc=2" 
   ];

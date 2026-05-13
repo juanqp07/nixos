@@ -114,6 +114,7 @@
     gearlever typora
     kdePackages.partitionmanager
     rpi-imager
+    impression
   ];
   services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
@@ -138,7 +139,7 @@
       name = "flathub";
       location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
     }];
-    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" "com.github.iwalton3.jellyfin-media-player" "io.github.ryubing.Ryujinx" ];
+    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" "io.github.ryubing.Ryujinx" ];
     update.onActivation = true;
     uninstallUnmanaged = true; 
   };
