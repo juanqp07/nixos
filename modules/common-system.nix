@@ -31,14 +31,13 @@
     "net.core.wmem_max" = 16777216;
     "net.ipv4.tcp_rmem" = "4096 87380 16777216";
     "net.ipv4.tcp_wmem" = "4096 65536 16777216";
-    "net.ipv4.tcp_tw_reuse" = 1;
     "net.ipv4.tcp_fastopen" = 3;
 
-    # --- Seguridad de Red (Compatible con Docker) ---
+    # --- Seguridad de Red ---
     "net.ipv6.conf.all.forwarding" = 0;
-    "net.ipv4.icmp_echo_ignore_all" = 0; # No responde a pings externos
-    "net.ipv4.conf.all.rp_filter" = 0;
-    "net.ipv4.conf.default.rp_filter" = 0;
+    "net.ipv4.icmp_echo_ignore_all" = 0; # 0 = responde a pings, 1 = los ignora
+    "net.ipv4.conf.all.rp_filter" = 1;
+    "net.ipv4.conf.default.rp_filter" = 1;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.all.accept_source_route" = 0;

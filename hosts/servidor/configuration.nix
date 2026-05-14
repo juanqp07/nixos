@@ -21,13 +21,33 @@
     allowedTCPPorts = [ 22 53 80 443 21115 21116 21117 21118 21119 22000 8621 ];
     allowedUDPPorts = [ 53 21027 21116 22000 8621 ];
   
-    trustedInterfaces = [ "wt0" "docker0" ];
+    trustedInterfaces = [ "wt0" ];
     extraCommands = ''
-      iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT
+      iptables -A INPUT -s 192.168.1.0/24 -p tcp -m multiport --dports 22,53,80,443,21115,21116,21117,21118,21119,22000,8621 -j ACCEPT
+      iptables -A INPUT -s 192.168.1.0/24 -p udp -m multiport --dports 53,21027,21116,22000,8621 -j ACCEPT
     '';
   };
 
-  services.fail2ban.enable = true;
+  services.fail2ban = {
+    enable = true;
+    maxretry = 3;
+    bantime = "24h";
+    bantime-increment = {
+      enable = true;
+      rndtime = "15m";
+      overalljails = true;
+      maxtime = "90d";
+      multipliers = "1 2 4 8 16 32 64";
+    };
+    jails = {
+      sshd = ''
+        enabled = true
+        filter = sshd[mode=aggressive]
+        maxretry = 3
+        findtime = 10m
+      '';
+    };
+  };
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
