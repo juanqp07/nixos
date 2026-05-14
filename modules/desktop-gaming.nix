@@ -113,7 +113,7 @@
     nodejs pnpm bun
     gearlever typora
     kdePackages.partitionmanager
-    rpi-imager
+    rpi-imager opencode
     impression
   ];
   services.hardware.openrgb.enable = true;

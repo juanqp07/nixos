@@ -95,11 +95,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778580393,
-        "narHash": "sha256-cV0exYktVyef+YHE6w5RYwQu4zL8pxC0f6yb7wMsNOA=",
+        "lastModified": 1778699370,
+        "narHash": "sha256-BujR2VXTz3wlj8HFwxLFfkVTC+PRChnZtN8yoLRhv9c=",
         "owner": "MattiaPun",
         "repo": "SubTUI",
-        "rev": "ae70dba27ded35a503c0637d61e2247d7ee7263c",
+        "rev": "29066c199fbcd7b948b59205a82763a3d4deb3e7",
         "type": "github"
       },
       "original": {
