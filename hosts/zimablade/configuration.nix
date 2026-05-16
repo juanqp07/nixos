@@ -41,7 +41,29 @@
     trustedInterfaces = [ "wt0" "docker0" ];
   };
 
-  services.fail2ban.enable = true;
+  services.fail2ban = {
+  enable = true;
+
+  maxretry = 3;
+  bantime = "24h";
+
+  bantime-increment = {
+    enable = true;
+    rndtime = "15m";
+    overalljails = true;
+    maxtime = "90d";
+    multipliers = "1 2 4 8 16 32 64";
+  };
+
+  jails = {
+    sshd = {
+      enabled = true;
+      filter = "sshd[mode=aggressive]";
+      maxretry = 3;
+      findtime = "10m";
+    };
+  };
+};
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
