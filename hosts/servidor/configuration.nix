@@ -133,7 +133,7 @@
 
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
-    vim htop ncdu iotop ethtool smartmontools zram-generator
+    vim htop ncdu iotop ethtool smartmontools zram-generator pass gnupg docker-credential-helpers
   ];
 
   # --- ACTUALIZACIONES AUTOMÁTICAS ---
