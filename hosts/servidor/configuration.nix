@@ -30,8 +30,10 @@
 
   services.fail2ban = {
     enable = true;
+
     maxretry = 3;
     bantime = "24h";
+
     bantime-increment = {
       enable = true;
       rndtime = "15m";
@@ -39,13 +41,17 @@
       maxtime = "90d";
       multipliers = "1 2 4 8 16 32 64";
     };
+
     jails = {
-      sshd = ''
-        enabled = true
-        filter = sshd[mode=aggressive]
-        maxretry = 3
-        findtime = 10m
-      '';
+      sshd = {
+        enabled = true;
+        filter = "sshd[mode=aggressive]";
+
+        settings = {
+          maxretry = 3;
+          findtime = "10m";
+        };
+      };
     };
   };
   services.openssh = {
@@ -137,7 +143,7 @@
 
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
-    vim htop ncdu iotop ethtool smartmontools zram-generator
+    vim htop ncdu iotop ethtool smartmontools zram-generator pass gnupg docker-credential-helpers
   ];
 
   # --- ACTUALIZACIONES AUTOMÁTICAS ---

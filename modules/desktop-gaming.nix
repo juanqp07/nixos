@@ -136,6 +136,7 @@
     libxml2      # Más XML
     glibc
     libz
+    deno
   ];
 
   # --- FLATPAK ---
