@@ -54,6 +54,10 @@
     settings.PasswordAuthentication = true;
   };
   # --- DOCKER Y CONTENEDORES ---
+  programs.gnupg.agent = {
+    enable = true;
+    pinentryPackage = pkgs.pinentry-curses;  # o pinentry-gtk2 si tienes GUI
+  };
   virtualisation.docker = {
     enable = true;
     daemon = {

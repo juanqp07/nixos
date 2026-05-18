@@ -26,6 +26,11 @@
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   programs.kdeconnect.enable = true;
+  networking.networkmanager = {
+    enable = true;
+    packages = [ pkgs.networkmanager-openvpn ];
+  };
+  services.dbus.packages = [ pkgs.networkmanager-openvpn ];
 
   # --- SONIDO ---
   security.rtkit.enable = true;
@@ -89,6 +94,7 @@
   # --- PAQUETES DE ESCRITORIO ---
   environment.systemPackages = with pkgs; [
     inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
+    openvpn
     inputs.subtui.packages.${pkgs.system}.default
     vesktop firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
