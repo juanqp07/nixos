@@ -94,7 +94,7 @@
   # --- PAQUETES DE ESCRITORIO ---
   environment.systemPackages = with pkgs; [
     inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
-    openvpn
+    openvpn telegram-desktop
     inputs.subtui.packages.${pkgs.system}.default
     vesktop firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
@@ -102,7 +102,7 @@
     prismlauncher 
     distrobox podman-compose
     kdePackages.xdg-desktop-portal-kde wl-clipboard
-    protonplus supersonic-wayland
+    protonplus supersonic
     antigravity
     python3 kdePackages.kcalc
     heroic rustdesk-flutter
@@ -137,6 +137,23 @@
     glibc
     libz
     deno
+
+    # FurMark / OpenGL / X11
+    libx11
+    libxext
+    libxrandr
+    libxrender
+    libxi
+    libxfixes
+    libxcb
+    libxcursor
+    libxinerama
+
+    libGL
+    mesa
+    glib
+    libGLU
+    vulkan-loader
   ];
 
   # --- FLATPAK ---
