@@ -83,6 +83,12 @@
     intel-gpu-tools
   ];
 
+  # --- 5. SERVICIOS Y CONFIGURACIONES ADICIONALES ---
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-cuda;
+  };
+
   services.libinput.enable = true;
 
   system.stateVersion = "25.11"; 

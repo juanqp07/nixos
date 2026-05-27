@@ -115,13 +115,15 @@
     libreoffice hunspell
     hunspellDicts.es_ES
     openrgb-with-all-plugins
-    lmstudio localsend eden
+    localsend eden
     nodejs pnpm bun
     gearlever typora
     kdePackages.partitionmanager
     rpi-imager opencode
     impression
   ];
+
+
   services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
   programs.nix-ld.libraries = with pkgs; [
@@ -154,6 +156,11 @@
     glib
     libGLU
     vulkan-loader
+
+    gnumake
+    gcc
+    python3
+    nodejs_24
   ];
 
   # --- FLATPAK ---
