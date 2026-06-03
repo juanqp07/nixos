@@ -82,6 +82,7 @@
     autoStart = true;
     ports = [ "5001:5001" ];
     volumes = [
+      "/home/juan/.docker/config.json:/root/.docker/config.json:ro"
       "/var/run/docker.sock:/var/run/docker.sock"
       "/mnt/datos/AppData/dockge/data:/app/data"
       "/mnt/datos/AppData/dockge/stacks:/opt/stacks"
