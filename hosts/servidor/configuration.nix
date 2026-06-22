@@ -23,7 +23,7 @@
   
     trustedInterfaces = [ "wt0" ];
     extraCommands = ''
-      iptables -A INPUT -s 192.168.1.0/24 -p tcp -m multiport --dports 22,53,80,443,21115,21116,21117,21118,21119,22000,8621 -j ACCEPT
+      iptables -A INPUT -s 192.168.1.0/24 -p tcp -m multiport --dports 22,53,80,443,21115,21116,21117,21118,21119,22000,8621,25565 -j ACCEPT
       iptables -A INPUT -s 192.168.1.0/24 -p udp -m multiport --dports 53,21027,21116,22000,8621 -j ACCEPT
     '';
   };
