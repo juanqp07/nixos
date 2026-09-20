@@ -103,7 +103,7 @@
     distrobox podman-compose
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic
-    antigravity
+    antigravity-ide
     python3 kdePackages.kcalc
     heroic rustdesk-flutter
     go lm_sensors obs-studio gcc

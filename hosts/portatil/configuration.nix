@@ -5,28 +5,18 @@
     ./hardware-configuration.nix
   ];
 
-  # ============================================================
-  # IDENTIDAD / HARDWARE BASE
-  # ============================================================
-
   networking.hostName = "elytra";
 
-  # Mantener el stateVersion original de la instalación.
-  # No se cambia simplemente por usar nixos-unstable.
+  # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
 
-  # Firmware necesario para Intel/NVIDIA y microcódigo.
-  hardware.enableRedistributableFirmware = true;
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
+  # ============================================================
+  # HARDWARE / FIRMWARE
+  # ============================================================
 
-  # NO fijamos linuxPackages_latest.
-  # Dejar que NixOS seleccione el kernel por defecto del canal
-  # mantiene mejor coordinados kernel + módulos externos + NVIDIA.
-  #
-  # boot.kernelPackages = pkgs.linuxPackages_latest;
-  #
-  # Si más adelante queremos probar otro kernel, lo hacemos
-  # deliberadamente.
+  hardware.enableRedistributableFirmware = true;
+
+  hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
 
   # ============================================================
   # NVIDIA RTX 5050 + INTEL iGPU
@@ -36,90 +26,71 @@
 
   hardware.graphics = {
     enable = true;
-
-    # Necesario para Steam/Wine/Proton y aplicaciones 32-bit.
     enable32Bit = true;
 
-    # Intel Raptor Lake:
-    # - intel-media-driver -> VA-API moderno / iHD
-    # - vpl-gpu-rt        -> Intel VPL / QSV
     extraPackages = with pkgs; [
+      # Intel Raptor Lake
       intel-media-driver
       vpl-gpu-rt
-    ];
-
-    # 32-bit Intel VA-API para aplicaciones antiguas/compatibilidad.
-    extraPackages32 = with pkgs.driversi686Linux; [
-      intel-media-driver
     ];
   };
 
   hardware.nvidia = {
-    # KMS necesario/recomendado para Wayland.
     modesetting.enable = true;
 
-    # RTX 5050 / Blackwell soporta los módulos kernel abiertos.
+    # RTX 5050 / Blackwell
     open = true;
 
-    # NVIDIA Settings.
     nvidiaSettings = true;
 
-    # Preferimos la rama Production antes que perseguir "latest".
-    package = config.boot.kernelPackages.nvidiaPackages.production;
+    # Rama Production.
+    # Mejor que perseguir siempre la versión "latest".
+    branch = "production";
 
-    # Gestión de energía.
     powerManagement = {
       enable = true;
 
-      # En un portátil gaming híbrido prefiero no usar finegrained
-      # mientras probamos rendimiento/estabilidad.
+      # Lo dejamos desactivado para priorizar estabilidad
+      # en PRIME Offload.
       finegrained = false;
+
+      # Driver >= 595 + open modules.
+      kernelSuspendNotifier = true;
     };
 
-    # MUY importante en tu LOQ:
-    # permite que nvidia-powerd gestione Dynamic Boost cuando el
-    # firmware/hardware lo soporte.
+    # Dynamic Boost / nvidia-powerd.
     dynamicBoost.enable = true;
 
-    # Intel iGPU -> pantalla / escritorio
-    # NVIDIA -> juegos mediante PRIME Offload.
     prime = {
       offload = {
         enable = true;
         enableOffloadCmd = true;
       };
 
+      # Confirmados mediante lspci:
+      # 00:02.0 Intel
+      # 01:00.0 NVIDIA
       intelBusId = "PCI:0:2:0";
       nvidiaBusId = "PCI:1:0:0";
     };
   };
 
-  # ============================================================
-  # WAYLAND / KDE / ELECTRON
-  # ============================================================
-
-  # Plasma 6 utiliza Wayland por defecto.
-  # Esta variable hace que Electron/Chromium/VS Code prefieran
-  # Wayland nativo.
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
-  };
+  # Si powerManagement.enable escribe VRAM temporal durante
+  # suspensión, usar /var/tmp en vez de /tmp.
+  boot.kernelParams = [
+    "nvidia.NVreg_TemporaryFilePath=/var/tmp"
+  ];
 
   # ============================================================
-  # CPU / SCHEDULER
+  # CPU / SCHED-EXT
   # ============================================================
 
-  # sched-ext.
-  #
-  # Cosmos es un scheduler ligero orientado a localidad CPU/cache.
-  # Con estos flags usamos su perfil orientado a consistencia de
-  # gaming, inspirado en el modo Gaming de CachyOS.
-  #
-  # Si en algún momento queremos comparar rendimiento puro,
-  # podemos cambiarlo fácilmente a scx_lavd.
   services.scx = {
     enable = true;
     scheduler = "scx_cosmos";
+
+    # Modo Gaming de Cosmos.
+    # CachyOS usa exactamente estos argumentos.
     extraArgs = [
       "-s"
       "700"
@@ -127,30 +98,44 @@
     ];
   };
 
-  # GameMode permite que los juegos soliciten un perfil de
-  # rendimiento temporal.
+  # ============================================================
+  # GAMEMODE
+  # ============================================================
+
   programs.gamemode = {
     enable = true;
     enableRenice = true;
+
+    settings = {
+      general = {
+        # Llevar la CPU al governor performance mientras juegas.
+        desiredgov = "performance";
+
+        # Volver al governor normal al terminar.
+        defaultgov = "powersave";
+
+        # Prioridad ligeramente mayor para el juego.
+        renice = 10;
+
+        # Evitar que se active el salvapantallas durante el juego.
+        inhibit_screensaver = 1;
+
+        # Comprobar clientes con frecuencia razonable.
+        reaper_freq = 5;
+      };
+    };
   };
 
   # ============================================================
   # MEMORIA
   # ============================================================
 
-  # Tu portátil tiene 16 GB y usas VS Code + OpenCode + navegador +
-  # herramientas de desarrollo.
-  #
-  # ZRAM proporciona swap comprimida en RAM y evita depender de
-  # una pequeña partición de swap en disco.
   zramSwap = {
     enable = true;
     algorithm = "zstd";
     memoryPercent = 50;
   };
 
-  # Evita congelaciones largas cuando algún proceso se dispara en
-  # consumo de memoria.
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 5;
@@ -158,40 +143,43 @@
   };
 
   # ============================================================
-  # KERNEL / SISTEMA
+  # KERNEL / DESARROLLO / GAMING
   # ============================================================
 
   boot.kernel.sysctl = {
-    # Útil para VS Code, Node, watchers, proyectos grandes, etc.
+    "vm.max_map_count" = lib.mkForce 2147483642;
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
 
-  # Thermald para gestión térmica en Intel.
+  # ============================================================
+  # THERMALS
+  # ============================================================
+
   services.thermald.enable = true;
 
   # ============================================================
-  # RED
+  # WAYLAND / ELECTRON
+  # ============================================================
+
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
+  };
+
+  # ============================================================
+  # NETWORKMANAGER
   # ============================================================
 
   networking.networkmanager = {
     enable = true;
 
-    # Evita que la tarjeta Wi-Fi entre en ahorro de energía.
     wifi.powersave = false;
-
-    # Conserva la MAC del dispositivo.
     wifi.macAddress = "preserve";
   };
 
   # ============================================================
   # REALTEK RTL8852BE
   # ============================================================
-  #
-  # SOLO mantener esto si "lspci" confirma que tu Wi-Fi es RTL8852BE.
-  #
-  # Desactiva mecanismos de ahorro que pueden introducir problemas
-  # de estabilidad/latencia con determinados módulos rtw89.
 
   boot.extraModprobeConfig = ''
     options rtw89_pci disable_aspm_l1=1 disable_aspm_l1ss=1
@@ -221,34 +209,35 @@
   services.blueman.enable = true;
 
   # ============================================================
-  # OLLAMA / CUDA
+  # OLLAMA / NVIDIA CUDA
   # ============================================================
 
   #services.ollama = {
    # enable = true;
-   # package = pkgs.ollama-cuda;
+    #package = pkgs.ollama-cuda;
   #};
 
   # ============================================================
-  # SERVICIOS GENERALES
+  # SISTEMA
   # ============================================================
 
   services.libinput.enable = true;
 
-  # TRIM periódico para SSD.
   services.fstrim.enable = true;
 
   # ============================================================
-  # HERRAMIENTAS DE MONITORIZACIÓN / GAMING / DESARROLLO
+  # UTILIDADES
   # ============================================================
 
   environment.systemPackages = with pkgs; [
-    # GPU / Vulkan / vídeo
+    # NVIDIA / GPU
+    nvtopPackages.nvidia
     vulkan-tools
+
+    # Intel / vídeo
+    intel-gpu-tools
     libva-utils
     vdpauinfo
-    intel-gpu-tools
-    nvtopPackages.nvidia
 
     # Gaming
     mangohud
@@ -261,12 +250,10 @@
     powertop
     lm_sensors
     smartmontools
-
-    # Utilidades GPU/hardware
     pciutils
     usbutils
 
-    # Control de brillo
+    # Portátil
     brightnessctl
   ];
 }
