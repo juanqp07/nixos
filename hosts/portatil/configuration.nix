@@ -224,10 +224,10 @@
   # OLLAMA / CUDA
   # ============================================================
 
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-cuda;
-  };
+  #services.ollama = {
+   # enable = true;
+   # package = pkgs.ollama-cuda;
+  #};
 
   # ============================================================
   # SERVICIOS GENERALES
