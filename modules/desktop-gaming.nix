@@ -46,13 +46,11 @@
   services.printing.enable = true;
 
   # --- VIRTUALIZACIÓN (Podman & Distrobox) ---
+  # --- VIRTUALIZACIÓN (Docker & Distrobox) ---
   virtualisation.containers.enable = true;
-  virtualisation.podman = {
+
+  virtualisation.docker = {
     enable = true;
-    # Crea un alias de 'docker' para podman
-    dockerCompat = true;
-    # Necesario para que los contenedores se comuniquen entre sí
-    defaultNetwork.settings.dns_enabled = true;
   };
 
   #virtualisation.virtualbox.host.enable = true;
@@ -62,7 +60,7 @@
   # Añadido "podman" a los grupos para gestión rootless
   users.users.juan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "podman" "uinput" "render" ];
+    extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "docker" "uinput" "render" ];
   };
 
   # --- GAMING ---
