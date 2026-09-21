@@ -119,6 +119,8 @@
     kdePackages.partitionmanager
     rpi-imager opencode
     impression
+    android-tools
+    android-studio
   ];
 
 
