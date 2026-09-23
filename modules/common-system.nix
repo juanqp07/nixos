@@ -110,6 +110,7 @@
   environment.systemPackages = with pkgs; [
     git wget curl vim btop htop fastfetch pciutils lshw usbutils 
     dnsutils openssl zip unzip rar unrar fish ripgrep fd jq bat tree direnv lynis nvd
+    gedit
   ];  
 
   # --- 7. ALIAS DE MANTENIMIENTO ---
