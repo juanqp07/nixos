@@ -121,6 +121,10 @@
     impression
     android-tools
     android-studio
+    wireguard-tools
+    curl
+    jq
+    git
   ];
 
 

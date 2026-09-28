@@ -147,7 +147,7 @@
   # ============================================================
 
   boot.kernel.sysctl = {
-    "vm.max_map_count" = lib.mkForce 2147483642;
+    "vm.max_map_count" = lib.mkForce 1048576;
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
