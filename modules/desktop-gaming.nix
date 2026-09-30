@@ -28,7 +28,7 @@
   programs.kdeconnect.enable = true;
   networking.networkmanager = {
     enable = true;
-    packages = [ pkgs.networkmanager-openvpn ];
+    plugins = [ pkgs.networkmanager-openvpn ];
   };
   services.dbus.packages = [ pkgs.networkmanager-openvpn ];
 
@@ -66,7 +66,10 @@
   # --- GAMING ---
   programs.steam.enable = true;
   programs.gamemode.enable = true;
-  programs.appimage.binfmt = true;
+  programs.appimage = {
+    enable = true;
+    binfmt = true;
+  };
 
   # --- FUENTES ---
   fonts.packages = with pkgs; [
@@ -120,51 +123,118 @@
     rpi-imager opencode
     impression
     android-tools
-    android-studio
+    # android-studio movido a Flatpak (com.google.AndroidStudio):
+    # el tarball de ~1.35GB desde dl.google.com rompía `nixos-rebuild`
+    # con `curl: (56) Recv failure`. Se mantiene android-tools en el host
+    # para adb/fastboot + udev rules.
     wireguard-tools
     curl
     jq
     git
+    appimage-run
   ];
 
 
   services.hardware.openrgb.enable = true;
   programs.nix-ld.enable = true;
-  programs.nix-ld.libraries = with pkgs; [
-    stdenv.cc.cc # Librerías base de C++
-    zlib         # Muy común para compresión
-    fuse3        # Útil para sistemas de archivos
-    icu          # Soporte de internacionalización
-    nss          # Seguridad de red
-    openssl      # Cifrado (necesario para casi todo lo que use red)
-    curl         # Para descargar cosas desde el binario
-    expat        # Parseo de XML
-    libxml2      # Más XML
+    programs.nix-ld.libraries = with pkgs; [
+    stdenv.cc.cc
     glibc
+    zlib
     libz
-    deno
+    bzip2
+    xz
+    zstd
+    lz4
+    libgcc
 
-    # FurMark / OpenGL / X11
+    curl
+    openssl
+    nss
+    nspr
+
+    fontconfig
+    freetype
+    fribidi
+    harfbuzz
+    pango
+    libthai
+    libdatrie
+    expat
+    libxml2
+    icu
+
+    glib
+    gtk3
+    gtk4
+    gdk-pixbuf
+    cairo
+    atk
+    at-spi2-atk
+    at-spi2-core
+    libepoxy
+
+    alsa-lib
+    pipewire
+    libpulseaudio
+    libsndfile
+    libsamplerate
+
     libx11
     libxext
     libxrandr
     libxrender
     libxi
     libxfixes
-    libxcb
     libxcursor
     libxinerama
+    libxcomposite
+    libxdamage
+    libxscrnsaver
+    libxtst
+    libxkbcommon
+    libxkbfile
+
+    libxcb
+    libxcb-util
+    libxcb-wm
+    libxcb-image
+    libxcb-keysyms
+    libxcb-render-util
+    libxcb-cursor
+
+    wayland
 
     libGL
-    mesa
-    glib
     libGLU
+    mesa
     vulkan-loader
+    libdrm
+    libgbm
+
+    ffmpeg
+    libva
+    libvdpau
+
+    fuse3
+    libarchive
+    libffi
+    libcap
+    libuuid
+    libusb1
+    sqlite
+    dbus
+
+    libgpg-error
+
+    # libcom_err.so.2
+    e2fsprogs
 
     gnumake
     gcc
     python3
     nodejs_24
+    deno
   ];
 
   # --- FLATPAK ---
@@ -174,7 +244,13 @@
       name = "flathub";
       location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
     }];
-    packages = [ "com.stremio.Stremio" "dev.fredol.open-tv" "io.github.dvlv.boxbuddyrs" "io.github.ryubing.Ryujinx" ];
+    packages = [
+      "com.stremio.Stremio"
+      "dev.fredol.open-tv"
+      "io.github.dvlv.boxbuddyrs"
+      "io.github.ryubing.Ryujinx"
+      "com.google.AndroidStudio"
+    ];
     update.onActivation = true;
     uninstallUnmanaged = true; 
   };

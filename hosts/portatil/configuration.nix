@@ -29,7 +29,6 @@
     enable32Bit = true;
 
     extraPackages = with pkgs; [
-      # Intel Raptor Lake
       intel-media-driver
       vpl-gpu-rt
     ];
@@ -38,27 +37,20 @@
   hardware.nvidia = {
     modesetting.enable = true;
 
-    # RTX 5050 / Blackwell
+    # Blackwell → open kernel modules
     open = true;
 
     nvidiaSettings = true;
 
-    # Rama Production.
-    # Mejor que perseguir siempre la versión "latest".
-    branch = "production";
+    # NVIDIA Production Branch
+    branch = "latest";
 
     powerManagement = {
       enable = true;
-
-      # Lo dejamos desactivado para priorizar estabilidad
-      # en PRIME Offload.
       finegrained = false;
-
-      # Driver >= 595 + open modules.
       kernelSuspendNotifier = true;
     };
 
-    # Dynamic Boost / nvidia-powerd.
     dynamicBoost.enable = true;
 
     prime = {
@@ -67,19 +59,10 @@
         enableOffloadCmd = true;
       };
 
-      # Confirmados mediante lspci:
-      # 00:02.0 Intel
-      # 01:00.0 NVIDIA
       intelBusId = "PCI:0:2:0";
       nvidiaBusId = "PCI:1:0:0";
     };
   };
-
-  # Si powerManagement.enable escribe VRAM temporal durante
-  # suspensión, usar /var/tmp en vez de /tmp.
-  boot.kernelParams = [
-    "nvidia.NVreg_TemporaryFilePath=/var/tmp"
-  ];
 
   # ============================================================
   # CPU / SCHED-EXT
