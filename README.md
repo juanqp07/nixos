@@ -10,9 +10,11 @@ Este repositorio contiene mi configuración centralizada para 4 máquinas, gesti
     * `torre/` (titan): PC Ryzen 5600X + RX 6700 XT (AMD nativo).
     * `servidor/` (atlas): i5 1250p (Docker, Sin entorno gráfico).
     * `zimablade/` (pico): Intel Apollo Lake (ZimaBlade, Docker/Dockge).
+    * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
 * **modules/**: Módulos compartidos.
     * `common-system.nix`: Configuración base (Usuario, Idioma, Herramientas CLI).
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, Audio y Apps de escritorio.
+    * `palco-audio.nix`: BlueZ sink + PipeWire/WirePlumber + auto-pairing para la Pi (solo palco).
 
 ---
 
@@ -39,6 +41,23 @@ sudo nixos-rebuild switch --flake .#atlas
 ```bash
 sudo nixos-rebuild switch --flake .#pico
 ```
+
+### 🔊 Raspberry Pi 4B (palco) — receptor Bluetooth → jack
+```bash
+# 1. Construir la imagen SD desde la torre (titan tiene binfmt aarch64):
+nix build .#nixosConfigurations.palco.config.system.build.sdImage
+# 2. Grabarla (sustituye /dev/mmcblk0 por tu lector SD):
+zstdcat result/sd-image/*.img.zst | sudo dd of=/dev/mmcblk0 bs=4M status=progress conv=fsync
+# 3. Arrancar la Pi, generar su hardware real y aplicarlo:
+sudo nixos-generate-config --show-hardware-config > ~/nixos/hosts/rpi4-bt/hardware-configuration.nix
+git add hosts/rpi4-bt/hardware-configuration.nix
+sudo nixos-rebuild switch --flake .#palco
+```
+
+Uso en bolo (sin internet): la Pi arranca como `palco` visible por Bluetooth,
+se empareja una vez desde el móvil y reconecta sola. Alias útiles en la Pi:
+`palco-bolo` (apaga WiFi para estabilizar BT), `palco-config` (enciende WiFi
+para mantenimiento), `palco-estado` (diagnóstico BT + audio).
 
 ---
 

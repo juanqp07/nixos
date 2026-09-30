@@ -5,6 +5,9 @@
   imports = [ ./hardware-configuration.nix ];
   networking.hostName = "titan";
   boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  # Permite construir la imagen SD de palco (aarch64) desde la torre.
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
   # ---------------------------------------------------------

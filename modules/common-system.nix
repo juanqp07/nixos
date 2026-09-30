@@ -2,11 +2,15 @@
 
 {
   # ============================================================
-  # BOOT
+  # BOOT (x86_64 con UEFI; en Pi 4 lo gestiona extlinux + U-Boot)
   # ============================================================
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.systemd-boot.enable = lib.mkDefault (
+    pkgs.stdenv.hostPlatform.isx86_64
+  );
+  boot.loader.efi.canTouchEfiVariables = lib.mkDefault (
+    pkgs.stdenv.hostPlatform.isx86_64
+  );
 
   # ============================================================
   # RED Y KERNEL
@@ -87,7 +91,8 @@
 
   # Servicios base
   services.netbird.enable = true;
-  services.fwupd.enable = true;
+  # fwupd no tiene sentido en Pi 4 (sin UEFI/LVFS útil aquí)
+  services.fwupd.enable = pkgs.stdenv.hostPlatform.isx86_64;
 
   # ============================================================
   # USUARIO
@@ -134,34 +139,39 @@
   # PAQUETES CLI
   # ============================================================
 
-  environment.systemPackages = with pkgs; [
-    git
-    wget
-    curl
-    vim
-    btop
-    htop
-    fastfetch
-    pciutils
-    lshw
-    usbutils
-    dnsutils
-    openssl
-    zip
-    unzip
-    rar
-    unrar
-    fish
-    ripgrep
-    fd
-    jq
-    bat
-    tree
-    direnv
-    lynis
-    nvd
-    gedit
-  ];
+  environment.systemPackages =
+    with pkgs;
+    [
+      git
+      wget
+      curl
+      vim
+      btop
+      htop
+      fastfetch
+      pciutils
+      lshw
+      usbutils
+      dnsutils
+      openssl
+      zip
+      unzip
+      fish
+      ripgrep
+      fd
+      jq
+      bat
+      tree
+      direnv
+      lynis
+      nvd
+      gedit
+    ]
+    # rar/unrar solo existen para x86_64-linux; en la Pi se usa unzip.
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
+      rar
+      unrar
+    ];
 
   # ============================================================
   # ALIAS DE MANTENIMIENTO
