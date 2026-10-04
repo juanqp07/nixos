@@ -14,7 +14,10 @@
     "intel_pstate=active"
   ];
 
-  powerManagement.cpuFreqGovernor = "performance";
+  # Servidor: intel_pstate+HWP escala solo (powersave + EPP balance_performance
+  # por defecto): 400MHz en idle (fresco/silencioso) y turbo bajo carga.
+  # Rendimiento bajo demanda sin el ruido/consumo del governor fijo.
+  powerManagement.cpuFreqGovernor = "powersave";
   services.irqbalance.enable = true;
 
   # --- RED ---
