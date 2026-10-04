@@ -178,10 +178,14 @@
   # ============================================================
 
   environment.shellAliases = {
-    # Rebuild sin actualizar el flake: vía segura para el día a día.
+    # Actualiza todo: flake update + build + diff + switch.
     # Hace `git add` para evitar el warning "Git tree is dirty" (flake impuro).
+    # Si el update trae un tarball roto, puedes volver con
+    # `git checkout -- flake.lock` y luego `nix-up`.
     nix-up =
       "pushd ~/nixos > /dev/null && "
+      + "echo '--- 🔄 Actualizando ---' && "
+      + "nix flake update && "
       + "git add -A && "
       + "echo '--- 🏗️ Construyendo ---' && "
       + "sudo nixos-rebuild build --flake .#${config.networking.hostName} && "
@@ -190,16 +194,6 @@
       + "echo '--- 🚀 Aplicando ---' && "
       + "sudo nixos-rebuild switch --flake .#${config.networking.hostName} && "
       + "popd > /dev/null";
-
-    # Actualizar inputs + rebuild. Usar solo cuando quieras subir de versión
-    # (p. ej. nixos-unstable). Si el update trae un tarball roto, puedes
-    # volver con `git checkout -- flake.lock` y luego `nix-up`.
-    nix-update-and-rebuild =
-      "pushd ~/nixos > /dev/null && "
-      + "echo '--- 🔄 Actualizando ---' && "
-      + "nix flake update && "
-      + "popd > /dev/null && "
-      + "nix-up";
 
     nix-full-maintenance = "nix-up && nix-clean";
 
