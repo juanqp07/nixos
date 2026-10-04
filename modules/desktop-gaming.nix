@@ -96,8 +96,7 @@
   environment.systemPackages = with pkgs; [
     inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
     openvpn telegram-desktop
-    inputs.subtui.packages.${pkgs.system}.default
-    vesktop firefox
+    vesktop discord firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
     prismlauncher 

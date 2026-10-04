@@ -18,6 +18,8 @@
 
   hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
 
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
   # ============================================================
   # NVIDIA RTX 5050 + INTEL iGPU
   # ============================================================

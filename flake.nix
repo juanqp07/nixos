@@ -16,11 +16,6 @@
       "nixpkgs";
 
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
-
-    subtui = {
-      url = "github:MattiaPun/SubTUI";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = { self, nixpkgs, nix-flatpak, nixos-hardware, ... }@inputs:
@@ -40,54 +35,27 @@
         };
     in
     {
-      nixosConfigurations = {
+  nixosConfigurations = {
+    elytra = mkHost "portatil" "x86_64-linux" [
+      ./modules/desktop-gaming.nix
+      nix-flatpak.nixosModules.nix-flatpak
+    ];
 
-        # ======================================================
-        # PORTÁTIL
-        # ======================================================
+    titan = mkHost "torre" "x86_64-linux" [
+      ./modules/desktop-gaming.nix
+      nix-flatpak.nixosModules.nix-flatpak
+    ];
 
-        elytra = mkHost "portatil" "x86_64-linux" [
-          ./modules/desktop-gaming.nix
-          nix-flatpak.nixosModules.nix-flatpak
-        ];
+    atlas = mkHost "servidor" "x86_64-linux" [ ];
 
-        # ======================================================
-        # TORRE
-        # ======================================================
+    pico = mkHost "zimablade" "x86_64-linux" [ ];
 
-        titan = mkHost "torre" "x86_64-linux" [
-          ./modules/desktop-gaming.nix
-          nix-flatpak.nixosModules.nix-flatpak
-        ];
-
-        # ======================================================
-        # SERVIDOR
-        # ======================================================
-
-        atlas = mkHost "servidor" "x86_64-linux" [
-          ./modules/server-system.nix
-        ];
-
-        # ======================================================
-        # ZIMABLADE
-        # ======================================================
-
-        pico = mkHost "zimablade" "x86_64-linux" [
-          ./modules/server-system.nix
-        ];
-
-        # ======================================================
-        # RASPBERRY PI 4B — PALCO (receptor BT -> jack)
-        # aarch64-linux. Imagen SD via:
-        #   nix build .#nixosConfigurations.palco.config.system.build.sdImage
-        # ======================================================
-
-        palco = mkHost "rpi4-bt" "aarch64-linux" [
-          nixos-hardware.nixosModules.raspberry-pi-4
-          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-          ./modules/palco-audio.nix
-        ];
-      };
+    palco = mkHost "rpi4-bt" "aarch64-linux" [
+      nixos-hardware.nixosModules.raspberry-pi-4
+      "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+      ./modules/palco-audio.nix
+    ];
+  };
 
       formatter.x86_64-linux =
         nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;

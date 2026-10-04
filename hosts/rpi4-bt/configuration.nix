@@ -75,17 +75,23 @@
   };
 
   # Jack 3.5mm integrado (dtparam=audio=on).
-  # AVISO honesto: es PWM ~11 bits, SINAD ~56dB, 0.35Vrms.
-  # Vale para probar; para PA seria pasar a HAT I2S (ver palco-audio.nix).
-  hardware.raspberry-pi."4".audio.enable = true;
+  # Desactivado temporalmente porque el overlay audio-on-overlay
+  # falla con la combinación actual de nixos-hardware/nixpkgs.
+  hardware.raspberry-pi."4".audio.enable = false;
 
   hardware.enableRedistributableFirmware = true;
+
+  # sd-image.nix activa hardware.enableAllHardware=true.
+  # El kernel linux-rpi no proporciona todos esos módulos genéricos,
+  # provocando fallos como "dw-hdmi not found".
+  hardware.enableAllHardware = lib.mkForce false;
 
   zramSwap.enable = true;
 
   # --- RED ---
   networking.hostName = "palco";
   networking.networkmanager.enable = true;
+
   # Evita picos de coexistencia WiFi/BT cuando haya red para configurar.
   networking.networkmanager.wifi.powersave = false;
 
