@@ -1,671 +1,621 @@
 { config, pkgs, lib, ... }:
 
 {
+  # ============================================================
+  # PALCO-AUDIO
+  #
+  # Raspberry Pi 4B como receptor Bluetooth A2DP
+  # con salida analógica por jack 3.5 mm.
+  #
+  # Móvil
+  #   -> Bluetooth A2DP Source
+  #   -> BlueZ
+  #   -> PipeWire
+  #   -> WirePlumber
+  #   -> DSP
+  #   -> ALSA
+  #   -> Jack 3.5 mm
+  #
+  # DSP:
+  #   HPF 45 Hz
+  #   -> Compresor suave
+  #   -> Limiter -1 dBFS
+  # ============================================================
 
-# ============================================================
+  # ------------------------------------------------------------
+  # BLUETOOTH / BLUEZ
+  # ------------------------------------------------------------
 
-# PALCO-AUDIO
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
 
-#
+    settings = {
+      General = {
+        # Nombre visible del receptor.
+        Name = "palco";
 
-# Raspberry Pi 4B como receptor Bluetooth A2DP -> jack 3.5mm
+        # Clase Bluetooth de dispositivo de audio.
+        Class = "0x200414";
 
-#
+        # Solo Bluetooth clásico.
+        # A2DP funciona sobre BR/EDR y no necesitamos BLE.
+        ControllerMode = "bredr";
 
-# Móvil
+        # Facilita el establecimiento de la conexión.
+        FastConnectable = true;
 
-# -> Bluetooth A2DP
+        # Receptor permanentemente visible y emparejable.
+        DiscoverableTimeout = 0;
+        PairableTimeout = 0;
+        AlwaysPairable = true;
 
-# -> BlueZ
+        # Configuración de privacidad sencilla para un appliance.
+        Privacy = "off";
 
-# -> PipeWire / WirePlumber
+        # Permite reparar automáticamente emparejamientos JustWorks.
+        JustWorksRepairing = "always";
+      };
 
-# -> DSP
+      Policy = {
+        AutoEnable = true;
 
-# -> ALSA
-
-# -> Jack 3.5 mm
-
-#
-
-# DSP:
-
-# HPF 80 Hz -> Compresor 2:1 -> Limiter -1 dBFS
-
-# ============================================================
-
-# ------------------------------------------------------------
-
-# BLUETOOTH / BLUEZ
-
-# ------------------------------------------------------------
-
-hardware.bluetooth = {
-enable = true;
-powerOnBoot = true;
-
-
-settings = {
-  General = {
-    Name = "palco";
-    Class = "0x200414";
-
-    # Solo Bluetooth clásico para A2DP.
-    ControllerMode = "bredr";
-
-    FastConnectable = true;
-
-    # Siempre visible y emparejable.
-    DiscoverableTimeout = 0;
-    PairableTimeout = 0;
-    AlwaysPairable = true;
-
-    Privacy = "off";
-    JustWorksRepairing = "always";
+        # Reintentos de conexión progresivos.
+        ReconnectAttempts = 7;
+        ReconnectIntervals = "1,2,4,8,16,32,64";
+      };
+    };
   };
 
-  Policy = {
-    AutoEnable = true;
-    ReconnectAttempts = 7;
-    ReconnectIntervals = "1,2,4,8,16,32,64";
-  };
-};
-
-
-};
-
-# ------------------------------------------------------------
-
-# AGENTE DE EMPAREJAMIENTO
-
-# ------------------------------------------------------------
-
-systemd.services.bt-agent = {
-description = "Palco: agente Bluetooth NoInputNoOutput";
-
-
-after = [
-  "bluetooth.service"
-];
-
-partOf = [
-  "bluetooth.target"
-];
-
-wantedBy = [
-  "multi-user.target"
-];
-
-serviceConfig = {
-  ExecStart = "${pkgs.bluez-tools}/bin/bt-agent -c NoInputNoOutput";
-  Restart = "always";
-  RestartSec = 5;
-};
-
-
-};
-
-# ------------------------------------------------------------
-
-# BLUETOOTH VISIBLE / EMPAREJABLE
-
-# ------------------------------------------------------------
-
-systemd.services.palco-bt-discoverable = {
-description = "Palco: Bluetooth visible y emparejable";
-
-
-after = [
-  "bluetooth.service"
-  "bt-agent.service"
-];
-
-requires = [
-  "bluetooth.service"
-];
-
-wantedBy = [
-  "multi-user.target"
-];
-
-path = with pkgs; [
-  bluez
-  bluez-tools
-  coreutils
-  util-linux
-];
-
-script = ''
-  rfkill unblock bluetooth 2>/dev/null || true
-
-  for i in $(seq 1 30); do
-    if bluetoothctl show >/dev/null 2>&1; then
-      break
-    fi
-
-    sleep 2
-  done
-
-  printf 'power on\ndiscoverable on\npairable on\n' \
-    | bluetoothctl >/dev/null 2>&1 || true
-'';
-
-serviceConfig = {
-  Type = "oneshot";
-  RemainAfterExit = true;
-};
-
-
-};
-
-# ------------------------------------------------------------
-
-# RECONEXIÓN BLUETOOTH
-
-# ------------------------------------------------------------
-
-systemd.services.palco-bt-reaffirm = {
-description = "Palco: reconexión Bluetooth de móviles";
-
-
-after = [
-  "bluetooth.service"
-  "bt-agent.service"
-];
-
-path = with pkgs; [
-  bluez
-  bluez-tools
-  coreutils
-  gnugrep
-];
-
-script = ''
-  rfkill unblock bluetooth 2>/dev/null || true
-
-  bluetoothctl show 2>/dev/null \
-    | grep -q "Powered: yes" \
-    || printf 'power on\n' \
-    | bluetoothctl >/dev/null 2>&1 || true
-
-  printf 'discoverable on\npairable on\n' \
-    | bluetoothctl >/dev/null 2>&1 || true
-
-  bluetoothctl paired-devices 2>/dev/null \
-    | while read -r _ mac _rest; do
-        [ -n "$mac" ] || continue
-
-        if ! bluetoothctl info "$mac" 2>/dev/null \
-          | grep -q "Connected: yes"; then
-
-          timeout 20 bluetoothctl connect "$mac" \
-            >/dev/null 2>&1 || true
-        fi
-      done
-'';
-
-serviceConfig = {
-  Type = "oneshot";
-};
-
-
-};
-
-systemd.timers.palco-bt-reaffirm = {
-description = "Palco: comprobar Bluetooth cada 2 minutos";
-
-
-wantedBy = [
-  "timers.target"
-];
-
-timerConfig = {
-  OnBootSec = "1min";
-  OnUnitActiveSec = "2min";
-};
-
-
-};
-
-# ------------------------------------------------------------
-
-# BACKUP DE CLAVES BLUETOOTH
-
-# ------------------------------------------------------------
-
-systemd.services.palco-bt-backup = {
-description = "Palco: backup de claves Bluetooth";
-
-
-before = [
-  "bluetooth.service"
-];
-
-wantedBy = [
-  "multi-user.target"
-];
-
-path = with pkgs; [
-  coreutils
-  gnutar
-  gzip
-  gnugrep
-];
-
-script = ''
-  BACKUP=/var/lib/palco/bluetooth-backup.tgz
-
-  mkdir -p /var/lib/palco
-
-  if grep -rq "LinkKey" /var/lib/bluetooth/ 2>/dev/null; then
-    tar -czf "$BACKUP" -C /var/lib bluetooth
-    sync
-
-  elif [ -f "$BACKUP" ]; then
-    tar -xzf "$BACKUP" -C /var/lib
-    sync
-  fi
-'';
-
-serviceConfig = {
-  Type = "oneshot";
-  RemainAfterExit = true;
-};
-
-
-};
-
-# ------------------------------------------------------------
-
-# PIPEWIRE
-
-# ------------------------------------------------------------
-
-services.pulseaudio.enable = lib.mkForce false;
-
-security.rtkit.enable = true;
-
-services.pipewire = {
-enable = true;
-
-
-# Equipo headless: arrancar PipeWire sin depender de
-# socket activation.
-socketActivation = false;
-
-alsa = {
-  enable = true;
-  support32Bit = false;
-};
-
-pulse.enable = true;
-wireplumber.enable = true;
-
-extraLv2Packages = [
-  pkgs.lsp-plugins
-];
-
-# ----------------------------------------------------------
-# RELOJ
-# ----------------------------------------------------------
-
-extraConfig.pipewire."20-palco-clock" = {
-  "context.properties" = {
-    "default.clock.rate" = 48000;
-
-    "default.clock.allowed-rates" = [
-      44100
-      48000
+  # ------------------------------------------------------------
+  # AGENTE BLUETOOTH
+  # ------------------------------------------------------------
+
+  # Agente permanente para dispositivos sin interacción
+  # teclado/pantalla durante el emparejamiento.
+  systemd.services.bt-agent = {
+    description = "Palco: agente Bluetooth NoInputNoOutput";
+
+    after = [
+      "bluetooth.service"
     ];
 
-    "resample.quality" = 5;
-  };
-};
+    requires = [
+      "bluetooth.service"
+    ];
 
-# ----------------------------------------------------------
-# DSP
-# ----------------------------------------------------------
+    partOf = [
+      "bluetooth.service"
+    ];
 
-extraConfig.pipewire."50-palco-dsp" = {
-  "context.modules" = [
-    {
-      name = "libpipewire-module-filter-chain";
+    wantedBy = [
+      "multi-user.target"
+    ];
 
-      flags = [
-        "ifexists"
-        "nofail"
-      ];
+    serviceConfig = {
+      ExecStart =
+        "${pkgs.bluez-tools}/bin/bt-agent -c NoInputNoOutput";
 
-      args = {
-        "node.description" = "palco DSP";
-        "media.name" = "palco-dsp";
-
-        "filter.graph" = {
-          nodes = [
-            {
-              type = "lv2";
-              name = "hpf";
-
-              plugin =
-                "http://lsp-plug.in/plugins/lv2/filter_stereo";
-
-              control = {
-                "ft" = 1;
-                "f" = 80.0;
-                "s" = 1;
-              };
-            }
-
-            {
-              type = "lv2";
-              name = "comp";
-
-              plugin =
-                "http://lsp-plug.in/plugins/lv2/compressor_stereo";
-
-              control = {
-                "al" = 0.158489;
-                "cr" = 2.0;
-                "at" = 20.0;
-                "rt" = 150.0;
-                "mk" = 1.0;
-              };
-            }
-
-            {
-              type = "lv2";
-              name = "lim";
-
-              plugin =
-                "http://lsp-plug.in/plugins/lv2/limiter_stereo";
-
-              control = {
-                "th" = 0.891251;
-                "lk" = 5.0;
-              };
-            }
-          ];
-
-          links = [
-            {
-              output = "hpf:out_l";
-              input = "comp:in_l";
-            }
-
-            {
-              output = "hpf:out_r";
-              input = "comp:in_r";
-            }
-
-            {
-              output = "comp:out_l";
-              input = "lim:in_l";
-            }
-
-            {
-              output = "comp:out_r";
-              input = "lim:in_r";
-            }
-          ];
-
-          inputs = [
-            "hpf:in_l"
-            "hpf:in_r"
-          ];
-
-          outputs = [
-            "lim:out_l"
-            "lim:out_r"
-          ];
-        };
-
-        "capture.props" = {
-          "node.name" = "palco_dsp_input";
-          "media.class" = "Audio/Sink";
-          "audio.channels" = 2;
-          "audio.position" = [
-            "FL"
-            "FR"
-          ];
-        };
-
-        "playback.props" = {
-          "node.name" = "palco_dsp_output";
-          "node.passive" = true;
-          "audio.channels" = 2;
-          "audio.position" = [
-            "FL"
-            "FR"
-          ];
-        };
-      };
-    }
-  ];
-};
-
-# ----------------------------------------------------------
-# WIREPLUMBER
-# ----------------------------------------------------------
-
-wireplumber.extraConfig = {
-
-  # Sistema sin escritorio/sesión gráfica.
-  "10-palco-headless" = {
-    "wireplumber.profiles" = {
-      main = {
-        "monitor.bluez.seat-monitoring" = "disabled";
-      };
+      Restart = "always";
+      RestartSec = 3;
     };
   };
 
-  # Bluetooth A2DP.
-  "51-palco-bluetooth" = {
-    "wireplumber.settings" = {
-      "bluetooth.autoswitch-to-headset-profile" = false;
+  # ------------------------------------------------------------
+  # BLUETOOTH VISIBLE / EMPAREJABLE
+  # ------------------------------------------------------------
+
+  systemd.services.palco-bt-discoverable = {
+    description = "Palco: Bluetooth visible y emparejable";
+
+    after = [
+      "bluetooth.service"
+      "bt-agent.service"
+    ];
+
+    requires = [
+      "bluetooth.service"
+    ];
+
+    wantedBy = [
+      "multi-user.target"
+    ];
+
+    path = with pkgs; [
+      bluez
+      bluez-tools
+      coreutils
+      util-linux
+    ];
+
+    script = ''
+      rfkill unblock bluetooth 2>/dev/null || true
+
+      for i in $(seq 1 30); do
+        if bluetoothctl show >/dev/null 2>&1; then
+          break
+        fi
+
+        sleep 2
+      done
+
+      printf 'power on\ndiscoverable on\npairable on\n' \
+        | bluetoothctl >/dev/null 2>&1 || true
+    '';
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+  };
+
+  # ------------------------------------------------------------
+  # BACKUP DE CLAVES BLUETOOTH
+  # ------------------------------------------------------------
+
+  # Protege los emparejamientos frente a problemas de la
+  # microSD o una reinstalación accidental.
+  systemd.services.palco-bt-backup = {
+    description = "Palco: backup de claves Bluetooth";
+
+    before = [
+      "bluetooth.service"
+    ];
+
+    wantedBy = [
+      "multi-user.target"
+    ];
+
+    path = with pkgs; [
+      coreutils
+      gnutar
+      gzip
+      gnugrep
+    ];
+
+    script = ''
+      BACKUP=/var/lib/palco/bluetooth-backup.tgz
+
+      mkdir -p /var/lib/palco
+
+      if grep -rq "LinkKey" /var/lib/bluetooth/ 2>/dev/null; then
+        tar -czf "$BACKUP" -C /var/lib bluetooth
+        sync
+
+      elif [ -f "$BACKUP" ]; then
+        tar -xzf "$BACKUP" -C /var/lib
+        sync
+      fi
+    '';
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+  };
+
+  # ------------------------------------------------------------
+  # PIPEWIRE
+  # ------------------------------------------------------------
+
+  services.pulseaudio.enable = lib.mkForce false;
+
+  # RTKit para planificación realtime.
+  security.rtkit.enable = true;
+
+  services.pipewire = {
+    enable = true;
+
+    # En una máquina headless queremos que PipeWire arranque
+    # inmediatamente al iniciar los servicios del usuario.
+    socketActivation = false;
+
+    # Audio real mediante PipeWire.
+    audio.enable = true;
+
+    alsa = {
+      enable = true;
+      support32Bit = false;
     };
 
-    "monitor.bluez.properties" = {
-      # Solo receptor A2DP.
-      "bluez5.roles" = [
-        "a2dp_sink"
-      ];
+    # Compatibilidad con aplicaciones PulseAudio.
+    pulse.enable = true;
 
-      "bluez5.codecs" = [
-        "sbc"
-        "aac"
-      ];
+    wireplumber.enable = true;
 
-      "bluez5.enable-sbc-xq" = false;
-      "bluez5.enable-hw-volume" = true;
-    };
+    # Plugins LV2 usados por el DSP.
+    extraLv2Packages = [
+      pkgs.lsp-plugins
+    ];
 
-    "monitor.bluez.rules" = [
-      {
-        matches = [
-          {
-            "device.name" = "~bluez_card.*";
-          }
+    # ----------------------------------------------------------
+    # RELOJ / RENDIMIENTO
+    # ----------------------------------------------------------
+
+    extraConfig.pipewire."20-palco-clock" = {
+      "context.properties" = {
+        # Frecuencia interna preferida.
+        "default.clock.rate" = 48000;
+
+        # Mantener compatibilidad con música 44.1 kHz.
+        "default.clock.allowed-rates" = [
+          44100
+          48000
         ];
 
-        actions = {
-          "update-props" = {
-            "bluez5.auto-connect" = [
-              "a2dp_sink"
-            ];
+        # Buena calidad de remuestreo sin cargar demasiado la Pi.
+        "resample.quality" = 5;
+
+        # Buffer conservador para maximizar estabilidad.
+        "default.clock.quantum" = 1024;
+        "default.clock.min-quantum" = 512;
+        "default.clock.max-quantum" = 2048;
+      };
+    };
+
+    # ----------------------------------------------------------
+    # DSP
+    # ----------------------------------------------------------
+
+    extraConfig.pipewire."50-palco-dsp" = {
+      "context.modules" = [
+        {
+          name = "libpipewire-module-filter-chain";
+
+          flags = [
+            "ifexists"
+            "nofail"
+          ];
+
+          args = {
+            "node.description" = "palco DSP";
+            "media.name" = "palco-dsp";
+
+            "filter.graph" = {
+              # Cadena TRANSPARENTE: solo dinámica, cero ecualización.
+              # El tono (graves/agudos) lo decide el móvil; aquí solo
+              # se nivela y se ponen techo anti-saturación.
+              nodes = [
+                {
+                  type = "lv2";
+                  name = "comp";
+
+                  plugin =
+                    "http://lsp-plug.in/plugins/lv2/compressor_stereo";
+
+                  control = {
+                    # -12 dBFS.
+                    "al" = 0.251189;
+
+                    # 1.5:1, transparente.
+                    "cr" = 1.5;
+
+                    # Ataque 30 ms: deja pasar transitorios
+                    # (bombo/caja intactos = calidad percibida).
+                    "at" = 30.0;
+
+                    # Release 200 ms.
+                    "rt" = 200.0;
+
+                    # Makeup +4 dB (= 1.584893 lineal): devuelve el
+                    # nivel para que no suene más bajo que en directo.
+                    # 0 dBFS -> -12+8 = -4, +4 = 0 -> el limiter
+                    # lo deja en -1 dBFS.
+                    "mk" = 1.584893;
+                  };
+                }
+
+                {
+                  type = "lv2";
+                  name = "lim";
+
+                  plugin =
+                    "http://lsp-plug.in/plugins/lv2/limiter_stereo";
+
+                  control = {
+                    # Techo -1 dBFS.
+                    "th" = 0.891251;
+
+                    # Lookahead 5 ms.
+                    "lk" = 5.0;
+
+                    # ALR lento: nivela temas flojos/fuertes
+                    # sin bombeo.
+                    "alr_at" = 50.0;
+                    "alr_rt" = 300.0;
+                  };
+                }
+              ];
+
+              links = [
+                {
+                  output = "comp:out_l";
+                  input = "lim:in_l";
+                }
+
+                {
+                  output = "comp:out_r";
+                  input = "lim:in_r";
+                }
+              ];
+
+              inputs = [
+                "comp:in_l"
+                "comp:in_r"
+              ];
+
+              outputs = [
+                "lim:out_l"
+                "lim:out_r"
+              ];
+            };
+
+            # Entrada virtual del DSP.
+            "capture.props" = {
+              "node.name" = "palco_dsp_input";
+              "node.description" = "Palco DSP Input";
+              "media.class" = "Audio/Sink";
+
+              "audio.channels" = 2;
+
+              "audio.position" = [
+                "FL"
+                "FR"
+              ];
+            };
+
+            # Salida física del DSP.
+            "playback.props" = {
+              "node.name" = "palco_dsp_output";
+              "node.description" = "Palco DSP Output";
+
+              # Permite que WirePlumber lo conecte
+              # automáticamente a la salida física.
+              "node.passive" = true;
+
+              "audio.channels" = 2;
+
+              "audio.position" = [
+                "FL"
+                "FR"
+              ];
+            };
+          };
+        }
+      ];
+    };
+
+    # ----------------------------------------------------------
+    # WIREPLUMBER / BLUETOOTH A2DP
+    # ----------------------------------------------------------
+
+    wireplumber.extraConfig = {
+      "10-palco-headless" = {
+        "wireplumber.profiles" = {
+          main = {
+            # No depender de seat/session monitoring gráfico.
+            "monitor.bluez.seat-monitoring" = "disabled";
           };
         };
-      }
-    ];
+      };
+
+      "51-palco-bluetooth" = {
+        "wireplumber.settings" = {
+          # Nunca pasar automáticamente a HFP/HSP.
+          # Conservamos exclusivamente audio de alta fidelidad.
+          "bluetooth.autoswitch-to-headset-profile" = false;
+          "bluetooth.profile-preference" = "quality";
+        };
+
+        "monitor.bluez.properties" = {
+          "override.bluez5.roles" = [
+            "a2dp_sink"
+          ];
+
+          "override.bluez5.codecs" = [
+            "sbc"
+            "sbc_xq"
+            "aac"
+          ];
+
+          "bluez5.enable-sbc-xq" = true;
+          "bluez5.enable-hw-volume" = true;
+        };
+
+        "monitor.bluez.rules" = [
+          {
+            matches = [
+              {
+                "device.name" = "~bluez_card.*";
+              }
+            ];
+
+            actions = {
+              "update-props" = {
+                # Solo queremos reconectar A2DP.
+                "bluez5.auto-connect" = [
+                  "a2dp_sink"
+                ];
+              };
+            };
+          }
+        ];
+      };
+    };
   };
-};
 
+  # ------------------------------------------------------------
+  # ARRANQUE HEADLESS DE PIPEWIRE
+  # ------------------------------------------------------------
 
-};
+  # Cuando socketActivation está desactivado, arrancamos
+  # explícitamente los servicios al entrar en default.target.
+  systemd.user.services.pipewire.wantedBy = [
+    "default.target"
+  ];
 
-# ------------------------------------------------------------
+  systemd.user.services.wireplumber.wantedBy = [
+    "default.target"
+  ];
 
-# USUARIO HEADLESS
+  systemd.user.services.pipewire-pulse.wantedBy = [
+    "default.target"
+  ];
 
-# ------------------------------------------------------------
+  # ------------------------------------------------------------
+  # DSP COMO SALIDA PREDETERMINADA
+  # ------------------------------------------------------------
 
-users.users.juan.linger = true;
+  systemd.user.services.palco-dsp-default = {
+    description = "Palco: DSP como salida predeterminada";
 
-# ------------------------------------------------------------
+    after = [
+      "pipewire.service"
+      "wireplumber.service"
+    ];
 
-# DSP POR DEFECTO
+    wants = [
+      "pipewire.service"
+      "wireplumber.service"
+    ];
 
-# ------------------------------------------------------------
+    wantedBy = [
+      "default.target"
+    ];
 
-systemd.user.services.palco-dsp-default = {
-description = "Palco: DSP como salida predeterminada";
+    path = with pkgs; [
+      pipewire
+      wireplumber
+      coreutils
+      gnugrep
+      gawk
+      gnused
+    ];
 
+    script = ''
+      for i in $(seq 1 30); do
+        ID=$(
+          wpctl status 2>/dev/null \
+            | awk '/palco DSP/ {
+                gsub(/[.]/, "", $1);
+                print $1;
+                exit
+              }'
+        )
 
-after = [
-  "pipewire.service"
-  "wireplumber.service"
-];
+        if [ -n "$ID" ]; then
+          wpctl set-default "$ID" || true
+          exit 0
+        fi
 
-wantedBy = [
-  "default.target"
-];
+        sleep 2
+      done
 
-path = with pkgs; [
-  pipewire
-  wireplumber
-  coreutils
-  gnugrep
-  gawk
-  gnused
-];
-
-script = ''
-  for i in $(seq 1 30); do
-    ID=$(
-      wpctl status 2>/dev/null \
-        | awk '/palco DSP/ {
-            gsub(/[.]/, "", $1);
-            print $1;
-            exit
-          }'
-    )
-
-    if [ -n "$ID" ]; then
-      wpctl set-default "$ID" || true
       exit 0
-    fi
+    '';
 
-    sleep 2
-  done
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+  };
 
-  exit 0
-'';
+  # ------------------------------------------------------------
+  # NIVEL DEL JACK
+  # ------------------------------------------------------------
 
-serviceConfig = {
-  Type = "oneshot";
-  RemainAfterExit = true;
-};
+  systemd.services.palco-jack-level = {
+    description = "Palco: nivel de salida jack al 80%";
 
+    after = [
+      "sound.target"
+    ];
 
-};
+    wantedBy = [
+      "multi-user.target"
+    ];
 
-# ------------------------------------------------------------
+    path = with pkgs; [
+      alsa-utils
+    ];
 
-# NIVEL DEL JACK
+    script = ''
+      for ctl in Headphone PCM Master; do
+        amixer -q -c 0 sset "$ctl" 100% unmute 2>/dev/null || true
+      done
+    '';
 
-# ------------------------------------------------------------
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+  };
 
-systemd.services.palco-jack-level = {
-description = "Palco: nivel de salida jack al 80%";
+  # ------------------------------------------------------------
+  # HERRAMIENTAS
+  # ------------------------------------------------------------
 
+  environment.systemPackages = with pkgs; [
+    bluez
+    bluez-tools
+    alsa-utils
+    pipewire
+    wireplumber
+    util-linux
+    lsp-plugins
+    lv2
+  ];
 
-after = [
-  "sound.target"
-];
+  # ------------------------------------------------------------
+  # ALIASES
+  # ------------------------------------------------------------
 
-wantedBy = [
-  "multi-user.target"
-];
+  environment.shellAliases = {
+    # Modo bolo:
+    # Wi-Fi bloqueado, Bluetooth sigue activo.
+    palco-bolo =
+      "sudo rfkill block wifi && "
+      + "printf 'power on\\ndiscoverable on\\npairable on\\n' "
+      + "| bluetoothctl";
 
-path = with pkgs; [
-  alsa-utils
-];
+    # Modo configuración:
+    # vuelve a permitir Wi-Fi.
+    palco-config =
+      "sudo rfkill unblock wifi && "
+      + "echo 'WiFi activada: usa nmtui para configurar red'";
 
-script = ''
-  for ctl in Headphone PCM Master; do
-    amixer -q -c 0 sset "$ctl" 80% unmute 2>/dev/null || true
-  done
-'';
+    # Estado general.
+    palco-estado =
+      "bluetoothctl show && "
+      + "echo '---' && "
+      + "bluetoothctl devices && "
+      + "echo '---' && "
+      + "wpctl status && "
+      + "echo '---' && "
+      + "aplay -l && "
+      + "echo '---' && "
+      + "systemctl --no-pager --failed";
 
-serviceConfig = {
-  Type = "oneshot";
-  RemainAfterExit = true;
-};
+    # Estado Bluetooth.
+    palco-bt =
+      "bluetoothctl show && "
+      + "echo '---' && "
+      + "bluetoothctl devices && "
+      + "echo '---' && "
+      + "bluetoothctl paired-devices && "
+      + "echo '---' && "
+      + "rfkill list bluetooth";
 
+    # Estado DSP.
+    palco-dsp-check =
+      "wpctl status | grep -i 'palco DSP'; "
+      + "echo '---'; "
+      + "pw-dump 2>/dev/null "
+      + "| grep -o 'palco-dsp[^\\\"]*' "
+      + "| sort -u";
 
-};
-
-# ------------------------------------------------------------
-
-# PAQUETES
-
-# ------------------------------------------------------------
-
-environment.systemPackages = with pkgs; [
-bluez
-bluez-tools
-alsa-utils
-pipewire
-wireplumber
-util-linux
-lsp-plugins
-lv2
-];
-
-# ------------------------------------------------------------
-
-# ALIASES
-
-# ------------------------------------------------------------
-
-environment.shellAliases = {
-palco-bolo =
-"sudo rfkill block wifi && "
-+ "printf 'power on\ndiscoverable on\npairable on\n' "
-+ "| bluetoothctl";
-
-
-palco-config =
-  "sudo rfkill unblock wifi && "
-  + "echo 'WiFi activada: usa nmtui para configurar red'";
-
-palco-estado =
-  "bluetoothctl show && "
-  + "echo '---' && "
-  + "wpctl status && "
-  + "echo '---' && "
-  + "aplay -l && "
-  + "echo '---' && "
-  + "systemctl --no-pager --failed";
-
-palco-bt =
-  "bluetoothctl show && "
-  + "echo '---' && "
-  + "bluetoothctl devices && "
-  + "echo '---' && "
-  + "bluetoothctl paired-devices && "
-  + "echo '---' && "
-  + "rfkill list bluetooth";
-
-palco-dsp-check =
-  "wpctl status | grep -i 'palco DSP'; "
-  + "echo '---'; "
-  + "pw-dump 2>/dev/null "
-  + "| grep -o 'palco-dsp[^\\\"]*' "
-  + "| sort -u";
-
-palco-audio-test =
-  "speaker-test -t wav -c 2";
-
-
-};
+    # Prueba directa de audio.
+    palco-audio-test =
+      "speaker-test -t wav -c 2";
+  };
 }
