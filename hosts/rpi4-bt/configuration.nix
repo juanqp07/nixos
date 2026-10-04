@@ -1,278 +1,219 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
-imports = [
-./hardware-configuration.nix
-];
+  imports = [
+    ./hardware-configuration.nix
+  ];
+
+  # ============================================================
+  # PALCO — Raspberry Pi 4B 8GB
+  #
+  # Móvil
+  #   -> Bluetooth A2DP
+  #   -> BlueZ
+  #   -> PipeWire / WirePlumber
+  #   -> DSP
+  #   -> ALSA
+  #   -> Jack 3.5 mm
+  # ============================================================
+
+  # ------------------------------------------------------------
+  # KERNEL / BOOT
+  # ------------------------------------------------------------
+
+  boot.supportedFilesystems.zfs = lib.mkForce false;
+
+  boot.loader.grub.enable = lib.mkForce false;
+  boot.loader.generic-extlinux-compatible.enable = lib.mkDefault true;
+
+  boot.kernelParams = [
+    "fsck.repair=yes"
+  ];
+
+  # Reduce el tamaño del initrd en la microSD.
+  boot.initrd.compressor = "xz";
+
+  boot.initrd.availableKernelModules = [
+    "pcie-brcmstb"
+    "reset-raspberrypi"
+  ];
+
+  # ------------------------------------------------------------
+  # WATCHDOG
+  # ------------------------------------------------------------
+
+  systemd.settings.Manager = {
+    RuntimeWatchdogSec = "10s";
+    RebootWatchdogSec = "2min";
+    ShutdownWatchdogSec = "2min";
+  };
+
+  # ------------------------------------------------------------
+  # SISTEMA DE FICHEROS
+  # ------------------------------------------------------------
+
+  fileSystems."/" = {
+    device = lib.mkForce "/dev/disk/by-label/NIXOS_SD";
+    fsType = lib.mkForce "ext4";
+
+    options = [
+      "noatime"
+      "commit=15"
+      "barrier=1"
+      "journal_checksum"
+    ];
+  };
+
+  fileSystems."/boot/firmware" = {
+    device = "/dev/disk/by-label/FIRMWARE";
+    fsType = "vfat";
+
+    options = [
+      "nofail"
+      "noatime"
+    ];
+  };
+
+  # ------------------------------------------------------------
+  # LOGS
+  # ------------------------------------------------------------
+
+  # Logs en RAM para reducir escrituras sobre la microSD.
+  services.journald.settings.Journal = {
+    Storage = "volatile";
+    RuntimeMaxUse = "64M";
+    RuntimeKeepFree = "100M";
+  };
+
+  # ------------------------------------------------------------
+  # NIX
+  # ------------------------------------------------------------
+
+  # Esta máquina es un appliance; las generaciones se controlan
+  # desde la máquina que construye/despliega la imagen.
+  nix.gc.automatic = lib.mkForce false;
+  nix.settings.auto-optimise-store = lib.mkForce false;
+
+  # ------------------------------------------------------------
+  # USUARIO
+  # ------------------------------------------------------------
+
+  users.users.juan.initialPassword = "nixos";
+
+  # Útil para administración directa por consola.
+  # QUITAR cuando tengas SSH por clave totalmente configurado.
+  services.getty.autologinUser = "juan";
 
-# ============================================================
+  # Necesario para que los servicios de usuario de PipeWire /
+  # WirePlumber funcionen aunque no haya una sesión interactiva.
+  users.users.juan.linger = true;
 
-# PALCO — Raspberry Pi 4B 8GB
+  users.users.juan.extraGroups = [
+    "audio"
+    "bluetooth"
+    "video"
+    "render"
+    "dialout"
+  ];
 
-#
+  # ------------------------------------------------------------
+  # RASPBERRY PI
+  # ------------------------------------------------------------
 
-# Móvil -> Bluetooth A2DP -> BlueZ -> PipeWire/DSP -> jack 3.5mm
+  hardware.raspberry-pi.firmware = {
+    enable = true;
+    uboot.enable = true;
+  };
 
-# ============================================================
+  hardware.enableRedistributableFirmware = true;
 
-# ------------------------------------------------------------
+  # Evita que sd-image-aarch64 introduzca hardware innecesario.
+  hardware.enableAllHardware = lib.mkForce false;
 
-# KERNEL / BOOT
+  # Routing del Bluetooth integrado de la Pi 4.
+  hardware.raspberry-pi."4".bluetooth.enable = true;
 
-# ------------------------------------------------------------
+  boot.kernelModules = [
+    "hci_uart"
+    "hci_bcm"
+  ];
 
-boot.supportedFilesystems.zfs = lib.mkForce false;
+  # El audio del perfil Raspberry Pi ya proporciona el overlay
+  # necesario. Evitamos audio.enable porque nuestra combinación
+  # actual puede generar audio-on-overlay y FDT_ERR_NOTFOUND.
+  hardware.raspberry-pi."4".audio.enable = false;
 
-boot.loader.grub.enable = lib.mkForce false;
-boot.loader.generic-extlinux-compatible.enable = lib.mkDefault true;
+  hardware.raspberry-pi.configtxt.settings.all = {
+    audio_pwm_mode = 2;
+  };
 
-boot.kernelParams = [
-"fsck.repair=yes"
-];
+  # ------------------------------------------------------------
+  # MEMORIA
+  # ------------------------------------------------------------
 
-# ------------------------------------------------------------
+  zramSwap.enable = true;
 
-# INITRD
+  # ------------------------------------------------------------
+  # RED
+  # ------------------------------------------------------------
 
-# ------------------------------------------------------------
+  networking.hostName = "palco";
 
-# Reducimos el tamaño del initrd para evitar problemas de lectura
+  networking.networkmanager.enable = true;
 
-# desde la microSD con U-Boot.
+  # Evita que Wi-Fi entre en powersave.
+  networking.networkmanager.wifi.powersave = false;
 
-boot.initrd.compressor = "xz";
+  networking.firewall = {
+    enable = true;
 
-boot.initrd.availableKernelModules = [
-"pcie-brcmstb"
-"reset-raspberrypi"
-];
+    allowedTCPPorts = [
+      22
+    ];
 
-# ------------------------------------------------------------
+    allowedUDPPorts = [ ];
+  };
 
-# WATCHDOG
+  # ------------------------------------------------------------
+  # NETBIRD
+  # ------------------------------------------------------------
 
-# ------------------------------------------------------------
+  services.netbird.enable = lib.mkForce false;
 
-systemd.settings.Manager = {
-RuntimeWatchdogSec = "10s";
-RebootWatchdogSec = "2min";
-ShutdownWatchdogSec = "2min";
-};
+  # ------------------------------------------------------------
+  # SSH
+  # ------------------------------------------------------------
 
-# ------------------------------------------------------------
+  services.openssh = {
+    enable = true;
 
-# SISTEMA DE FICHEROS
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = true;
+    };
+  };
 
-# ------------------------------------------------------------
+  # ------------------------------------------------------------
+  # ACTUALIZACIONES
+  # ------------------------------------------------------------
 
-fileSystems."/" = {
-device = lib.mkDefault "/dev/disk/by-label/NIXOS_SD";
-fsType = lib.mkDefault "ext4";
+  system.autoUpgrade.enable = lib.mkForce false;
 
+  # ------------------------------------------------------------
+  # HERRAMIENTAS BASE
+  # ------------------------------------------------------------
 
-options = [
-  "noatime"
-  "commit=15"
-  "barrier=1"
-  "journal_checksum"
-];
+  environment.systemPackages = with pkgs; [
+    raspberrypi-eeprom
+    libraspberrypi
 
+    tmux
+    ncdu
+  ];
 
-};
+  # ------------------------------------------------------------
+  # ESTADO DEL SISTEMA
+  # ------------------------------------------------------------
 
-fileSystems."/boot/firmware" = {
-device = "/dev/disk/by-label/FIRMWARE";
-fsType = "vfat";
-
-
-options = [
-  "nofail"
-  "noatime"
-];
-
-
-};
-
-# ------------------------------------------------------------
-
-# LOGS
-
-# ------------------------------------------------------------
-
-services.journald.settings.Journal = {
-Storage = "volatile";
-RuntimeMaxUse = "64M";
-RuntimeKeepFree = "100M";
-};
-
-# ------------------------------------------------------------
-
-# NIX
-
-# ------------------------------------------------------------
-
-nix.gc.automatic = lib.mkForce false;
-nix.settings.auto-optimise-store = lib.mkForce false;
-
-users.users.juan.initialPassword = "nixos";
-
-services.getty.autologinUser = "juan";
-
-# ------------------------------------------------------------
-
-# RASPBERRY PI
-
-# ------------------------------------------------------------
-
-hardware.raspberry-pi.firmware = {
-enable = true;
-uboot.enable = true;
-};
-
-hardware.enableRedistributableFirmware = true;
-
-# sd-image-aarch64 habilita todo el hardware por defecto.
-
-# Lo desactivamos para no introducir módulos de otras plataformas.
-
-hardware.enableAllHardware = lib.mkForce false;
-
-# ------------------------------------------------------------
-
-# BLUETOOTH INTEGRADO
-
-# ------------------------------------------------------------
-
-# Routing del Bluetooth interno de la Raspberry Pi 4.
-
-hardware.raspberry-pi."4".bluetooth.enable = true;
-
-# Módulos necesarios para el Bluetooth UART Broadcom.
-
-boot.kernelModules = [
-"hci_uart"
-"hci_bcm"
-];
-
-# ------------------------------------------------------------
-
-# AUDIO ANALÓGICO
-
-# ------------------------------------------------------------
-
-# No usamos el overlay audio-on-overlay porque producía:
-
-#
-
-# FDT_ERR_NOTFOUND
-
-#
-
-# El perfil común de Raspberry Pi ya añade dtparam=audio=on.
-
-hardware.raspberry-pi."4".audio.enable = false;
-
-# ------------------------------------------------------------
-
-# ZRAM
-
-# ------------------------------------------------------------
-
-zramSwap.enable = true;
-
-# ------------------------------------------------------------
-
-# RED
-
-# ------------------------------------------------------------
-
-networking.hostName = "palco";
-
-networking.networkmanager.enable = true;
-
-networking.networkmanager.wifi.powersave = false;
-
-networking.firewall = {
-enable = true;
-
-
-allowedTCPPorts = [
-  22
-];
-
-allowedUDPPorts = [ ];
-
-
-};
-
-# ------------------------------------------------------------
-
-# NETBIRD
-
-# ------------------------------------------------------------
-
-# No se necesita VPN en este equipo.
-
-services.netbird.enable = lib.mkForce false;
-
-# ------------------------------------------------------------
-
-# SSH
-
-# ------------------------------------------------------------
-
-services.openssh = {
-enable = true;
-
-
-settings = {
-  PermitRootLogin = "no";
-  PasswordAuthentication = true;
-};
-
-
-};
-
-# ------------------------------------------------------------
-
-# ACTUALIZACIONES
-
-# ------------------------------------------------------------
-
-system.autoUpgrade.enable = lib.mkForce false;
-
-# ------------------------------------------------------------
-
-# USUARIO
-
-# ------------------------------------------------------------
-
-users.users.juan.extraGroups = [
-"audio"
-"bluetooth"
-"video"
-"render"
-"dialout"
-];
-
-# ------------------------------------------------------------
-
-# PAQUETES BASE
-
-# ------------------------------------------------------------
-
-environment.systemPackages = with pkgs; [
-raspberrypi-eeprom
-libraspberrypi
-tmux
-ncdu
-];
-
-# ------------------------------------------------------------
-
-# ESTADO
-
-# ------------------------------------------------------------
-
-system.stateVersion = "25.11";
+  system.stateVersion = "25.11";
 }
