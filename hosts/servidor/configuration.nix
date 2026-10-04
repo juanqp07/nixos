@@ -86,12 +86,12 @@
   # --- DOCKGE ---
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.dockge = {
-    image = "cmcooper1980/dockge:latest"; 
+    image = "cmcooper1980/dockge:latest";
     autoStart = true;
     ports = [ "5001:5001" ];
     volumes = [
-      "/home/juan/.docker/config.json:/root/.docker/config.json:ro"
       "/var/run/docker.sock:/var/run/docker.sock"
+      "/mnt/datos/AppData/dockge/docker:/root/.docker:ro"
       "/mnt/datos/AppData/dockge/data:/app/data"
       "/mnt/datos/AppData/dockge/stacks:/opt/stacks"
     ];
@@ -101,6 +101,7 @@
   };
 
   systemd.tmpfiles.rules = [
+    "d /mnt/datos/AppData/dockge/docker 0755 juan users -"
     "d /mnt/datos/AppData/dockge/data 0755 juan users -"
     "d /mnt/datos/AppData/dockge/stacks 0755 juan users -"
   ];
