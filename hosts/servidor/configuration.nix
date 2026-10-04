@@ -74,6 +74,12 @@
   };
   virtualisation.docker = {
     enable = true;
+    # Poda semanal: con ~70 contenedores + watchtower, las imágenes viejas
+    # se acumulan en /. Mismo patrón que pico.
+    autoPrune = {
+      enable = true;
+      dates = "weekly";
+    };
     daemon = {
       settings = {
         # claves con guiones es más seguro escribirlas como strings
@@ -167,5 +173,7 @@
   };
 
   services.thermald.enable = true;
+  # TRIM semanal para el NVMe (desktops y titan ya lo tienen).
+  services.fstrim.enable = true;
   system.stateVersion = "25.11";
 }
