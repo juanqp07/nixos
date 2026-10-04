@@ -90,7 +90,8 @@
   console.keyMap = lib.mkDefault "es";
 
   # Servicios base
-  services.netbird.enable = true;
+  # NOTA: netbird NO va aquí. Cada host lo habilita explícitamente
+  # (desktop-gaming.nix, servidor, zimablade). Palco no lo usa.
   # fwupd no tiene sentido en Pi 4 (sin UEFI/LVFS útil aquí)
   services.fwupd.enable = pkgs.stdenv.hostPlatform.isx86_64;
 
@@ -109,6 +110,13 @@
   };
 
   programs.fish.enable = true;
+
+  # direnv + nix-direnv: activa devShells al hacer `cd` (sin esto el
+  # paquete direnv solo no integra el shell).
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+  };
 
   # ============================================================
   # NIX
@@ -132,7 +140,9 @@
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 7d";
+    # 30d en general para no perder rollback si un kernel latest rompe nvidia.
+    # pico (zimablade) lo fuerza a 7d por disco pequeño, palco lo desactiva.
+    options = "--delete-older-than 30d";
   };
 
   # ============================================================
@@ -178,11 +188,23 @@
   # ============================================================
 
   environment.shellAliases = {
-    # Actualiza todo: flake update + build + diff + switch.
+    # nix-up: reconstruye con el lock ACTUAL (seguro, sin update).
     # Hace `git add` para evitar el warning "Git tree is dirty" (flake impuro).
-    # Si el update trae un tarball roto, puedes volver con
-    # `git checkout -- flake.lock` y luego `nix-up`.
     nix-up =
+      "pushd ~/nixos > /dev/null && "
+      + "git add -A && "
+      + "echo '--- 🏗️ Construyendo ---' && "
+      + "sudo nixos-rebuild build --flake .#${config.networking.hostName} && "
+      + "echo '--- 📋 Diferencias ---' && "
+      + "nvd diff /run/current-system result && "
+      + "echo '--- 🚀 Aplicando ---' && "
+      + "sudo nixos-rebuild switch --flake .#${config.networking.hostName} && "
+      + "popd > /dev/null";
+
+    # nix-update: actualiza el catálogo (flake update) y luego aplica.
+    # Si el update trae un tarball roto, vuelve con
+    # `git checkout -- flake.lock` y luego `nix-up`.
+    nix-update =
       "pushd ~/nixos > /dev/null && "
       + "echo '--- 🔄 Actualizando ---' && "
       + "nix flake update && "
@@ -198,7 +220,7 @@
     nix-full-maintenance = "nix-up && nix-clean";
 
     nix-clean =
-      "sudo nix-collect-garbage --delete-older-than 7d && "
+      "sudo nix-collect-garbage --delete-older-than 30d && "
       + "nix-store --optimise";
   };
 }

@@ -4,28 +4,35 @@
   imports = [ ./hardware-configuration.nix ];
 
   # --- KERNEL, CGROUPS Y RENDIMIENTO ---
+  # cgroupv1 eliminado en kernel 6.x: no se fuerzan flags obsoletos.
+  # Servidor: gobernador performance fijo + irqbalance (reparte red/docker
+  # entre P-cores/E-cores del i5-1250P). Sin scx ni mitigations=off (expuesto).
   boot.kernelPackages = pkgs.linuxPackages_latest;
   hardware.enableRedistributableFirmware = true;
   boot.kernelParams = [
-    "systemd.unified_cgroup_hierarchy=1"
-    "cgroup_no_v1=all"
     "i915.enable_guc=3"
+    "intel_pstate=active"
   ];
+
+  powerManagement.cpuFreqGovernor = "performance";
+  services.irqbalance.enable = true;
 
   # --- RED ---
   networking.networkmanager.enable = true;
   networking.hostName = "atlas";
 
+  # Red privada con el resto de máquinas (interfaz wt0).
+  services.netbird.enable = true;
+
   networking.firewall = {
-    enable = true; 
+    enable = true;
     allowedTCPPorts = [ 22 53 80 443 8384 21115 21116 21117 21118 21119 22000 8621 25565 ];
     allowedUDPPorts = [ 53 21027 21116 22000 8621 ];
-  
+
     trustedInterfaces = [ "wt0" ];
-    extraCommands = ''
-      iptables -A INPUT -s 192.168.1.0/24 -p tcp -m multiport --dports 22,53,80,443,21115,21116,21117,21118,21119,22000,8621,25565 -j ACCEPT
-      iptables -A INPUT -s 192.168.1.0/24 -p udp -m multiport --dports 53,21027,21116,22000,8621 -j ACCEPT
-    '';
+    # NOTA: no se usa extraCommands con iptables manual (duplicaba allowed*Ports
+    # y docker escribe sus propias reglas de todas formas). Si quieres restringir
+    # a LAN, filtra por interfaz con interfaces.wt0.allowed* en vez de global.
   };
 
   services.fail2ban = {
@@ -57,6 +64,7 @@
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
+    # Servidor secundario: login con contraseña permitido (igual que pico).
     settings.PasswordAuthentication = true;
   };
   # --- DOCKER Y CONTENEDORES ---
@@ -105,12 +113,9 @@
    };
 
 
-  # --- GPU / VA-API (Intel iGPU) ---
-  services.xserver.videoDrivers = [ "modesetting" ];
-  
+  # --- GPU / VA-API (Intel iGPU, headless: solo transcodificación) ---
     hardware.graphics = {
     enable = true;
-    enable32Bit = true;
     extraPackages = with pkgs; [
       intel-media-driver
       vpl-gpu-rt
@@ -126,7 +131,6 @@
     LANG = "es_ES.UTF-8";
     LC_ALL = "es_ES.UTF-8";
     LIBVA_DRIVER_NAME = "iHD";
-    MESA_LOADER_DRIVER_OVERRIDE = "anv";
   };
 
   # --- USUARIOS ---
@@ -139,7 +143,7 @@
   fileSystems."/mnt/datos" = {
     device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7";
     fsType = "ext4";
-    options = [ "defaults" "nofail" "noatime" ];
+    options = [ "defaults" "nofail" "noatime" "x-systemd.automount" "x-systemd.device-timeout=5" ];
   };
 
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
@@ -148,9 +152,10 @@
   ];
 
   # --- ACTUALIZACIONES AUTOMÁTICAS ---
+  # Flake explícito al repo vivo (outPath apuntaba al store congelado del build).
   system.autoUpgrade = {
     enable = true;
-    flake = inputs.self.outPath;
+    flake = "path:/home/juan/nixos#atlas";
     flags = [
       "-L" # print build logs
     ];

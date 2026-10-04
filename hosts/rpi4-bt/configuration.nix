@@ -175,10 +175,8 @@
   };
 
   # ------------------------------------------------------------
-  # NETBIRD
+  # NETBIRD: no se usa en palco (appliance Bluetooth, sin red privada).
   # ------------------------------------------------------------
-
-  services.netbird.enable = lib.mkForce false;
 
   # ------------------------------------------------------------
   # SSH

@@ -4,15 +4,12 @@
   imports = [ ./hardware-configuration.nix ];
 
   # --- 1. KERNEL Y RENDIMIENTO (Intel Apollo Lake) ---
-  # En NixOS 25.11 el kernel suele ser muy moderno (6.12+), 
+  # En NixOS 25.11 el kernel suele ser muy moderno (6.12+),
   # el soporte para Apollo Lake está maduro.
+  # NOTA: sin i915.enable_guc (Apollo Lake no tiene GuC/HuC, daba errores en dmesg).
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   zramSwap.enable = true;
-
-  boot.kernelParams = [ 
-    "i915.enable_guc=2" 
-  ];
 
   boot.loader.systemd-boot.configurationLimit = 10;
 
@@ -26,12 +23,14 @@
     ];
   };
 
-  environment.variables = { 
-    LIBVA_DRIVER_NAME = "iHD"; 
-  };
+  # NOTA: sin LIBVA_DRIVER_NAME forzado. Apollo Lake (Gen9 LP) elige solo
+  # entre i965/iHD según app; forzar iHD rompía algunas rutas VA-API.
 
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "pico";
+
+  # Red privada con el resto de máquinas (interfaz wt0).
+  services.netbird.enable = true;
 
   networking.firewall = {
     enable = true; 
@@ -70,7 +69,8 @@
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
-    settings.PasswordAuthentication = true; 
+    # Servidor secundario: login con contraseña permitido (igual que atlas).
+    settings.PasswordAuthentication = true;
   };
 
   # --- 4. DOCKER Y DOCKGE ---
@@ -81,18 +81,24 @@
       dates = "weekly";
     };
     logDriver = "json-file";
+    daemon.settings = {
+      "log-opts" = {
+        "max-size" = "10m";
+        "max-file" = "3";
+      };
+    };
   };
 
   # Dockge container
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.dockge = {
     # Usamos la imagen oficial
-    image = "cmcooper1980/dockge:latest"; 
+    image = "cmcooper1980/dockge:latest";
     autoStart = true;
     ports = [ "5001:5001" ];
     volumes = [
       "/var/run/docker.sock:/var/run/docker.sock"
-      "/var/lib/dockge//data:/app/data"
+      "/var/lib/dockge/data:/app/data"
       "/var/lib/dockge/stacks:/opt/stacks"
     ];
     environment = {
@@ -115,9 +121,10 @@
     options = lib.mkForce "--delete-older-than 7d"; 
   };
 
+  # Flake explícito al repo vivo (outPath apuntaba al store congelado del build).
   system.autoUpgrade = {
     enable = true;
-    flake = inputs.self.outPath;
+    flake = "path:/home/juan/nixos#pico";
     flags = [
       "-L" # print build logs
     ];

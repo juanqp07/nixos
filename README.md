@@ -6,10 +6,10 @@ Este repositorio contiene mi configuración centralizada para 4 máquinas, gesti
 
 * **flake.nix**: Punto de entrada que define los hosts y las versiones de los paquetes.
 * **hosts/**: Configuraciones específicas de hardware.
-    * `portatil/` (elytra): Laptop i5 9th Gen + NVIDIA (Híbrido/Optimus).
-    * `torre/` (titan): PC Ryzen 5600X + RX 6700 XT (AMD nativo).
-    * `servidor/` (atlas): i5 1250p (Docker, Sin entorno gráfico).
-    * `zimablade/` (pico): Intel Apollo Lake (ZimaBlade, Docker/Dockge).
+    * `portatil/` (elytra): Laptop i5-13450HX (Raptor Lake HX) + NVIDIA RTX 5050 Max-Q / UHD integrada (PRIME offload).
+    * `torre/` (titan): PC Ryzen 5 5600X + RX 6700 XT 12GB + 32GB RAM (AMD nativo).
+    * `servidor/` (atlas): i5-1250P + 32GB RAM (Docker, sin entorno gráfico).
+    * `zimablade/` (pico): Intel Celeron N3450 (Apollo Lake) (ZimaBlade, Docker/Dockge).
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
 * **modules/**: Módulos compartidos.
     * `common-system.nix`: Configuración base (Usuario, Idioma, Herramientas CLI).

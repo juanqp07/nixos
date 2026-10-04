@@ -6,6 +6,14 @@
   networking.hostName = "titan";
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # mitigations=off: +5-15% en juegos en Ryzen. Solo máquina personal,
+  # nunca en servidores expuestos. Asumes riesgo Spectre/Meltdown.
+  # amd_pstate activo (mejor que acpi-cpufreq en Zen 2/3 con kernel latest).
+  boot.kernelParams = [
+    "mitigations=off"
+    "amd_pstate=active"
+  ];
+
   # Permite construir la imagen SD de palco (aarch64) desde la torre.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
   # ---------------------------------------------------------
@@ -35,9 +43,12 @@
 
   # ---------------------------------------------------------
   # 3. SERVICIOS Y PAQUETES
+  # scx/gamemode/zram/inotify/bluetooth heredados de desktop-gaming.nix
+  # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
   # ---------------------------------------------------------
+  zramSwap.memoryPercent = lib.mkForce 25;
+
   services.openssh.enable = true;
-  networking.firewall.allowedTCPPorts = [ 1234 ];
 
   services.sunshine = {
     enable = true;
@@ -48,13 +59,16 @@
   services.avahi.publish.enable = true;
   services.avahi.publish.userServices = true;
 
+  services.fstrim.enable = true;
+  services.smartd.enable = true;
+
   environment.systemPackages = with pkgs; [
-    headsetcontrol 
+    headsetcontrol
     lunar-client
     lact
-    clinfo       
-    vulkan-tools 
-    amdgpu_top   
+    clinfo
+    vulkan-tools
+    amdgpu_top
     lmstudio
   ];
 
@@ -89,7 +103,7 @@
   fileSystems."/mnt/nvme" = {
     device = "/dev/disk/by-uuid/a8f2e7ba-5fe6-473d-82f6-ce00fae06297";
     fsType = "ext4";
-    options = [ "defaults" "nofail" "noatime" ];
+    options = [ "defaults" "nofail" "noatime" "x-systemd.automount" "x-systemd.device-timeout=5" ];
   };
 
 

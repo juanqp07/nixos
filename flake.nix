@@ -46,9 +46,13 @@
       nix-flatpak.nixosModules.nix-flatpak
     ];
 
-    atlas = mkHost "servidor" "x86_64-linux" [ ];
+    atlas = mkHost "servidor" "x86_64-linux" [
+      ./modules/server-system.nix
+    ];
 
-    pico = mkHost "zimablade" "x86_64-linux" [ ];
+    pico = mkHost "zimablade" "x86_64-linux" [
+      ./modules/server-system.nix
+    ];
 
     palco = mkHost "rpi4-bt" "aarch64-linux" [
       nixos-hardware.nixosModules.raspberry-pi-4
@@ -58,9 +62,40 @@
   };
 
       formatter.x86_64-linux =
-        nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;
+        nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
       formatter.aarch64-linux =
-        nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;
+        nixpkgs.legacyPackages.aarch64-linux.nixfmt;
+
+      # devShells por proyecto: `nix develop .#python` etc. o auto con direnv.
+      # Evitan meter toolchains globales en systemPackages.
+      devShells.x86_64-linux =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        in
+        {
+          python = pkgs.mkShell {
+            packages = with pkgs; [
+              python3
+              uv
+              ruff
+            ];
+          };
+          node = pkgs.mkShell {
+            packages = with pkgs; [
+              nodejs_24
+              pnpm
+            ];
+          };
+          rust = pkgs.mkShell {
+            packages = with pkgs; [
+              rustc
+              cargo
+              rust-analyzer
+              gcc
+              pkg-config
+            ];
+          };
+        };
     };
 }

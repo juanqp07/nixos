@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, lib, ... }:
 
 {
   # --- KERNEL ---
@@ -32,6 +32,9 @@
   };
   services.dbus.packages = [ pkgs.networkmanager-openvpn ];
 
+  # Red privada entre tus máquinas (elytra + titan).
+  services.netbird.enable = true;
+
   # --- SONIDO ---
   security.rtkit.enable = true;
   services.pipewire = {
@@ -45,10 +48,9 @@
   # --- IMPRESIÓN ---
   services.printing.enable = true;
 
-  # --- VIRTUALIZACIÓN (Podman & Distrobox) ---
-  # --- VIRTUALIZACIÓN (Docker & Distrobox) ---
-  virtualisation.containers.enable = true;
-
+  # --- VIRTUALIZACIÓN (Docker + Distrobox) ---
+  # Docker-first: podman eliminado para evitar dos daemons.
+  # Distrobox funciona con backend docker.
   virtualisation.docker = {
     enable = true;
   };
@@ -57,15 +59,26 @@
   #users.extraGroups.vboxusers.members = [ "juan" ];
 
   # --- PERMISOS DE USUARIO ---
-  # Añadido "podman" a los grupos para gestión rootless
   users.users.juan = {
     isNormalUser = true;
     extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "docker" "uinput" "render" ];
   };
 
-  # --- GAMING ---
-  programs.steam.enable = true;
-  programs.gamemode.enable = true;
+  # --- GAMING (base común elytra + titan) ---
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    gamescopeSession.enable = true;
+  };
+  hardware.steam-hardware.enable = true;
+  hardware.xpadneo.enable = true;
+  services.ratbagd.enable = true;
+  services.power-profiles-daemon.enable = true;
+  services.fstrim.enable = true;
+  programs.obs-studio = {
+    enable = true;
+    enableVirtualCamera = true;
+  };
   programs.appimage = {
     enable = true;
     binfmt = true;
@@ -93,22 +106,24 @@
     extraFlags = [ "--no-browser" ];
   };
   # --- PAQUETES DE ESCRITORIO ---
+  # IDEs desde nixpkgs (ven docker.sock, adb/udev y debuggers sin sandbox).
+  # android-studio se queda en Flatpak: el tarball ~1.35GB rompía rebuild con curl 56.
   environment.systemPackages = with pkgs; [
-    inputs.nix-software-center.packages.${pkgs.system}.nix-software-center
+    inputs.nix-software-center.packages.${pkgs.stdenv.hostPlatform.system}.nix-software-center
     openvpn telegram-desktop
     vesktop discord firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
     vlc mpv yt-dlp ffmpeg
-    prismlauncher 
-    distrobox podman-compose
+    prismlauncher
+    distrobox lazydocker
     kdePackages.xdg-desktop-portal-kde wl-clipboard
     protonplus supersonic
     antigravity-ide
-    python3 kdePackages.kcalc
+    kdePackages.kcalc
     heroic rustdesk-flutter
-    go lm_sensors obs-studio gcc
-    syncthing jetbrains.idea openjdk25
-    feishin protonplus
+    lm_sensors
+    syncthing jetbrains.idea
+    feishin
     cloudflare-warp
     google-chrome
     hydralauncher
@@ -116,7 +131,6 @@
     hunspellDicts.es_ES
     openrgb-with-all-plugins
     localsend eden
-    nodejs pnpm bun
     gearlever typora
     kdePackages.partitionmanager
     rpi-imager opencode
@@ -127,10 +141,11 @@
     # con `curl: (56) Recv failure`. Se mantiene android-tools en el host
     # para adb/fastboot + udev rules.
     wireguard-tools
-    curl
-    jq
-    git
     appimage-run
+    mangohud
+    gamescope
+    protonup-qt
+    protontricks
   ];
 
 
@@ -236,6 +251,58 @@
     deno
   ];
 
+  # --- MEMORIA / SCHEDULER (paridad elytra + titan) ---
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+    memoryPercent = 50;
+  };
+
+  services.scx = {
+    enable = true;
+    scheduler = "scx_cosmos";
+    extraArgs = [
+      "-s"
+      "700"
+      "-S"
+    ];
+  };
+
+  programs.gamemode = {
+    enable = true;
+    enableRenice = true;
+    settings.general = {
+      desiredgov = "performance";
+      defaultgov = "powersave";
+      renice = 10;
+      inhibit_screensaver = 1;
+      reaper_freq = 5;
+    };
+  };
+
+  boot.kernel.sysctl = {
+    # mkForce: common-system.nix define 262144, gaming necesita 1048576 (Proton/VSCode).
+    "vm.max_map_count" = lib.mkForce 1048576;
+    "fs.inotify.max_user_watches" = 524288;
+    "fs.inotify.max_user_instances" = 1024;
+  };
+
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+    settings = {
+      General = {
+        Experimental = true;
+        FastConnectable = true;
+      };
+      Policy = {
+        AutoEnable = true;
+      };
+    };
+  };
+
+  services.blueman.enable = true;
+
   # --- FLATPAK ---
   services.flatpak = {
     enable = true;
@@ -246,11 +313,11 @@
     packages = [
       "com.stremio.Stremio"
       "dev.fredol.open-tv"
-      "io.github.dvlv.boxbuddyrs"
       "io.github.ryubing.Ryujinx"
       "com.google.AndroidStudio"
     ];
     update.onActivation = true;
-    uninstallUnmanaged = true; 
+    # false: no desinstala lo que instales a mano (Bottles, etc.)
+    uninstallUnmanaged = false;
   };
 }
