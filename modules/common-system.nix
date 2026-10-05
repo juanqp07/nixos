@@ -188,6 +188,14 @@
   # ============================================================
 
   environment.shellAliases = {
+    # Compara lo arrancado (/run/booted-system) con lo recién aplicado
+    # (/run/current-system). Kernel, módulos, initrd y systemd piden reinicio;
+    # apps y servicios se recargan solos con el switch.
+    # Se invoca con `sh -c` para que funcione igual en bash y fish.
+    nix-reboot-check = ''
+      sh -c 'for p in kernel kernel-modules initrd systemd; do a=$(readlink /run/booted-system/$p 2>/dev/null); b=$(readlink /run/current-system/$p 2>/dev/null); if [ "$a" != "$b" ]; then echo "Reinicio necesario: cambio en $p"; R=1; fi; done; if [ "$R" = "1" ]; then true; else echo "Sin reinicio necesario"; fi'
+    '';
+
     # nix-up: reconstruye con el lock ACTUAL (seguro, sin update).
     # Hace `git add` para evitar el warning "Git tree is dirty" (flake impuro).
     nix-up =
@@ -199,6 +207,8 @@
       + "nvd diff /run/current-system result && "
       + "echo '--- 🚀 Aplicando ---' && "
       + "sudo nixos-rebuild switch --flake .#${config.networking.hostName} && "
+      + "echo '--- 🔁 Reinicio ---' && "
+      + "nix-reboot-check && "
       + "popd > /dev/null";
 
     # nix-update: actualiza el catálogo (flake update) y luego aplica.
@@ -215,6 +225,8 @@
       + "nvd diff /run/current-system result && "
       + "echo '--- 🚀 Aplicando ---' && "
       + "sudo nixos-rebuild switch --flake .#${config.networking.hostName} && "
+      + "echo '--- 🔁 Reinicio ---' && "
+      + "nix-reboot-check && "
       + "popd > /dev/null";
 
     nix-full-maintenance = "nix-up && nix-clean";
