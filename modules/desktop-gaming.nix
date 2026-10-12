@@ -146,6 +146,7 @@
     gamescope
     protonup-qt
     protontricks
+    streamlink
   ];
 
 
