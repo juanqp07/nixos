@@ -147,6 +147,7 @@
     protonup-qt
     protontricks
     streamlink
+    gopeed
   ];
 
 
