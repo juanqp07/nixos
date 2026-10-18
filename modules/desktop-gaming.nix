@@ -148,6 +148,14 @@
     protontricks
     streamlink
     gopeed
+    kdePackages.filelight
+
+    # Compilación de Rust
+    rustc
+    cargo
+    rustfmt
+    clippy
+    stdenv.cc
   ];
 
 
@@ -251,6 +259,11 @@
     python3
     nodejs_24
     deno
+
+    rustc
+    cargo
+    rustfmt
+    clippy
   ];
 
   # --- MEMORIA / SCHEDULER (paridad elytra + titan) ---

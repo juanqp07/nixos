@@ -11,6 +11,20 @@
   system.stateVersion = "25.11";
 
   # ============================================================
+  # APPIMAGE / GEAR LEVER
+  # Bibliotecas necesarias para Orbiscreen
+  # ============================================================
+
+  programs.appimage.package = pkgs.appimage-run.override {
+    extraPkgs = appimagePkgs: with appimagePkgs; [
+      libunwind
+      elfutils
+      libffi
+      pcre2
+    ];
+  };
+
+  # ============================================================
   # HARDWARE / FIRMWARE
   # ============================================================
 
@@ -134,6 +148,13 @@
 
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;
+
+  # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
+  # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 1701 9001 ];
+  };
 
   # ============================================================
   # UTILIDADES
