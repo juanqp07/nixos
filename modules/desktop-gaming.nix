@@ -259,6 +259,7 @@
     python3
     nodejs_24
     deno
+    bun
 
     rustc
     cargo
