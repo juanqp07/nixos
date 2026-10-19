@@ -133,7 +133,9 @@
     localsend eden
     gearlever typora
     kdePackages.partitionmanager
-    rpi-imager opencode
+    rpi-imager
+    bun
+    opencode
     impression
     android-tools
     # android-studio movido a Flatpak (com.google.AndroidStudio):
