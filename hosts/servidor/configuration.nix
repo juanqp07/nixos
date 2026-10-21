@@ -93,21 +93,103 @@
   };
 
   # --- DOCKGE ---
-  virtualisation.oci-containers.backend = "docker";
-  virtualisation.oci-containers.containers.dockge = {
-    image = "cmcooper1980/dockge:latest";
+virtualisation.oci-containers.backend = "docker";
+
+virtualisation.oci-containers.containers = {
+  arcane = {
+    image = "ghcr.io/getarcaneapp/manager:latest";
     autoStart = true;
-    ports = [ "5001:5001" ];
-    volumes = [
-      "/var/run/docker.sock:/var/run/docker.sock"
-      "/mnt/datos/AppData/dockge/docker:/root/.docker:ro"
-      "/mnt/datos/AppData/dockge/data:/app/data"
-      "/mnt/datos/AppData/dockge/stacks:/opt/stacks"
+
+    ports = [
+      "3552:3552"
     ];
+
+    volumes = [
+      "arcane-data:/app/data"
+      "/var/run/docker.sock:/var/run/docker.sock"
+      "/mnt/datos/arcane/projects:/app/data/projects"
+    ];
+
+    environmentFiles = [
+      "/mnt/datos/AppData/arcane/arcane.env"
+    ];
+
     environment = {
-      DOCKGE_STACKS_DIR = "/opt/stacks";
+      APP_URL = "http://192.168.1.143:3552";
+      PUID = "1000";
+      PGID = "1000";
+      LOG_LEVEL = "info";
+      LOG_JSON = "false";
+      OIDC_ENABLED = "false";
+      PROJECTS_DIRECTORY = "/app/data/projects";
     };
+
+    dependsOn = [ "arcane-postgres" ];
+
+    extraOptions = [
+      "--network=arcane-net"
+    ];
   };
+
+  arcane-postgres = {
+    image = "postgres:17-alpine";
+    autoStart = true;
+
+    volumes = [
+      "postgres-data:/var/lib/postgresql/data"
+    ];
+
+    environmentFiles = [
+      "/mnt/datos/AppData/arcane/postgres.env"
+    ];
+
+    extraOptions = [
+      "--network=arcane-net"
+      "--network-alias=postgres"
+    ];
+
+    # PostgreSQL no necesita publicar el puerto 5432:
+    # Arcane accede a él por la red privada arcane-net.
+    #
+    # Si necesitas acceder desde el propio host:
+    # ports = [ "127.0.0.1:5334:5432" ];
+  };
+};
+
+# Crear la red Docker antes de iniciar los contenedores.
+systemd.services.arcane-docker-network = {
+  description = "Docker network for Arcane";
+  wantedBy = [ "multi-user.target" ];
+  requires = [ "docker.service" ];
+  after = [ "docker.service" ];
+  before = [
+    "docker-arcane.service"
+    "docker-arcane-postgres.service"
+  ];
+
+  serviceConfig = {
+    Type = "oneshot";
+    RemainAfterExit = true;
+  };
+
+  script = ''
+    ${config.virtualisation.docker.package}/bin/docker \
+      network inspect arcane-net >/dev/null 2>&1 || \
+    ${config.virtualisation.docker.package}/bin/docker \
+      network create arcane-net
+  '';
+};
+
+# Asegurar que la red exista también al iniciar manualmente los servicios.
+systemd.services.docker-arcane = {
+  requires = [ "arcane-docker-network.service" ];
+  after = [ "arcane-docker-network.service" ];
+};
+
+systemd.services.docker-arcane-postgres = {
+  requires = [ "arcane-docker-network.service" ];
+  after = [ "arcane-docker-network.service" ];
+};
 
   systemd.tmpfiles.rules = [
     "d /mnt/datos/AppData/dockge/docker 0755 juan users -"
