@@ -77,7 +77,7 @@
   services.fstrim.enable = true;
   programs.obs-studio = {
     enable = true;
-    enableVirtualCamera = true;
+    enableVirtualCamera = false;
   };
   programs.appimage = {
     enable = true;
@@ -338,4 +338,33 @@
     # false: no desinstala lo que instales a mano (Bottles, etc.)
     uninstallUnmanaged = false;
   };
+
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      gearlever = prev.gearlever.overridePythonAttrs (old: {
+        makeWrapperArgs = [
+          "--prefix"
+          "PATH"
+          ":"
+          (prev.lib.makeBinPath [
+            prev.file
+            prev._7zz
+            prev.which
+            prev.appimage-run
+            prev.desktop-file-utils
+            prev.gtk4.dev
+            prev.bintools
+            prev.libnotify
+            prev.dwarfs
+            prev.squashfs-tools
+          ])
+        ];
+
+        preFixup = (old.preFixup or "") + ''
+          makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
+        '';
+      });
+    })
+  ];
 }
