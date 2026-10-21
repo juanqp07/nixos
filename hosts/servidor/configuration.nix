@@ -7,7 +7,7 @@
   # cgroupv1 eliminado en kernel 6.x: no se fuerzan flags obsoletos.
   # Servidor: gobernador performance fijo + irqbalance (reparte red/docker
   # entre P-cores/E-cores del i5-1250P). Sin scx ni mitigations=off (expuesto).
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages;
   hardware.enableRedistributableFirmware = true;
   boot.kernelParams = [
     "i915.enable_guc=3"

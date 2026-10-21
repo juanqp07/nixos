@@ -7,7 +7,7 @@
   # En NixOS 25.11 el kernel suele ser muy moderno (6.12+),
   # el soporte para Apollo Lake está maduro.
   # NOTA: sin i915.enable_guc (Apollo Lake no tiene GuC/HuC, daba errores en dmesg).
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages;
 
   zramSwap.enable = true;
 
