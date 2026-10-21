@@ -88,6 +88,10 @@
         # claves con guiones es más seguro escribirlas como strings
         "storage-driver" = "overlay2";
         "log-driver"     = "journald";
+
+        features = {
+          "containerd-snapshotter" = true;
+        };
       };
     };
   };
