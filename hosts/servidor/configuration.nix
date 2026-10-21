@@ -83,11 +83,11 @@
       enable = true;
       dates = "weekly";
     };
-    daemon = {
-      settings = {
-        # claves con guiones es más seguro escribirlas como strings
-        "storage-driver" = "overlay2";
-        "log-driver"     = "journald";
+    daemon.settings = {
+      "log-driver" = "journald";
+    
+      features = {
+        "containerd-snapshotter" = true;
       };
     };
   };
