@@ -152,6 +152,7 @@
     gopeed
     kdePackages.filelight
     libnotify
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
 
     # Compilación de Rust
     rustc
