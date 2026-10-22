@@ -15,12 +15,7 @@
     nix-software-center.inputs.nixpkgs.follows =
       "nixpkgs";
 
-    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
-    zen-browser = {
-      url = "github:youwen5/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    
+    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";    
   };
 
   outputs = { self, nixpkgs, nix-flatpak, nixos-hardware, ... }@inputs:
