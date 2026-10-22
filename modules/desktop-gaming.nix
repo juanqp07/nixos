@@ -267,6 +267,8 @@
     cargo
     rustfmt
     clippy
+
+    libnotify
   ];
 
   # --- MEMORIA / SCHEDULER (paridad elytra + titan) ---
