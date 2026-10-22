@@ -125,6 +125,12 @@
     options rtw89_core disable_ps_mode=1
   '';
 
+  services.pipewire.wireplumber.extraConfig."11-bluetooth-policy" = {
+    "wireplumber.settings" = {
+      "bluetooth.autoswitch-to-headset-profile" = false;
+    };
+  };
+
   # ============================================================
   # BLUETOOTH: heredado de modules/desktop-gaming.nix
   # ============================================================
