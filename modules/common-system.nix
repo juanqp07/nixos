@@ -12,6 +12,9 @@
     pkgs.stdenv.hostPlatform.isx86_64
   );
 
+  # Evita que /boot se llene con generaciones antiguas (los hosts pueden sobrescribirlo).
+  boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
+
   # ============================================================
   # RED Y KERNEL
   # ============================================================
