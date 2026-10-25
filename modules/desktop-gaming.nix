@@ -231,7 +231,7 @@
   environment.systemPackages = with pkgs; [
     openvpn telegram-desktop
     vesktop discord firefox
-    onlyoffice-desktopeditors kdePackages.kate vscode
+    onlyoffice-desktopeditors kdePackages.kate gedit vscode
     vlc mpv yt-dlp ffmpeg
     prismlauncher
     distrobox lazydocker

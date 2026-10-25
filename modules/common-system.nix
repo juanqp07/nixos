@@ -178,7 +178,6 @@
       direnv
       lynis
       nvd
-      gedit
     ]
     # rar/unrar solo existen para x86_64-linux; en la Pi se usa unzip.
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
