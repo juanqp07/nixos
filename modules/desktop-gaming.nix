@@ -464,6 +464,8 @@
       "dev.fredol.open-tv"
       "io.github.ryubing.Ryujinx"
       "com.google.AndroidStudio"
+      "com.github.sdv43.whaler"
+      "io.github.dvlv.boxbuddyrs"
     ];
 
     update.onActivation = true;
