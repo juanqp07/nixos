@@ -8,7 +8,6 @@
   boot.kernelParams = [
       "quiet"
       "splash"
-      "boot.shell_on_fail"
       "loglevel=3"
       "rd.systemd.show_status=false"
       "rd.udev.log_level=3"
@@ -17,8 +16,10 @@
   services.cloudflare-warp.enable = true;
   boot.plymouth.enable = true;
 
+  # ESP de 1 GB: limita las generaciones en /boot para que no se llene (kernel latest + initrd con firmware GPU).
+  boot.loader.systemd-boot.configurationLimit = 8;
+
   boot.consoleLogLevel = 0;
-  boot.initrd.verbose = false;
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
