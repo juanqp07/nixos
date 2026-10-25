@@ -241,9 +241,8 @@
     kdePackages.kcalc
     heroic rustdesk-flutter
     lm_sensors
-    syncthing jetbrains.idea
+    jetbrains.idea
     feishin
-    cloudflare-warp
 
     # Navegadores.
     firefox

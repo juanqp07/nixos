@@ -239,7 +239,7 @@ systemd.services.docker-arcane-postgres = {
 
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
-    vim htop ncdu iotop ethtool smartmontools zram-generator pass gnupg docker-credential-helpers
+    vim htop ncdu iotop ethtool smartmontools pass gnupg docker-credential-helpers
     intel-gpu-tools # intel_gpu_top: verificar QSV/iGPU en jellyfin/immich
     lazydocker # gestión TUI de los ~70 contenedores
   ];
