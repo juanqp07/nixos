@@ -10,7 +10,6 @@
   boot.kernelPackages = pkgs.linuxPackages;
   hardware.enableRedistributableFirmware = true;
   boot.kernelParams = [
-    "i915.enable_guc=3"
     "intel_pstate=active"
   ];
 
