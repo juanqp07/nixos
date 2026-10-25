@@ -32,6 +32,7 @@
     allowedUDPPorts = [ 53 21027 21116 22000 8621 ];
 
     trustedInterfaces = [ "wt0" ];
+    checkReversePath = "loose";
     # NOTA: no se usa extraCommands con iptables manual (duplicaba allowed*Ports
     # y docker escribe sus propias reglas de todas formas). Si quieres restringir
     # a LAN, filtra por interfaz con interfaces.wt0.allowed* en vez de global.

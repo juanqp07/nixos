@@ -41,6 +41,7 @@
     allowedTCPPorts = [ 22 5001 53 ]; 
     allowedUDPPorts = [ 53 ]; 
     trustedInterfaces = [ "wt0" "docker0" ];
+    checkReversePath = "loose";
   };
 
   services.fail2ban = {
