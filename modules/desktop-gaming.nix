@@ -22,6 +22,7 @@
 
   boot.consoleLogLevel = 0;
 
+  services.netbird.enable = true;
 
   # ============================================================
   # COMPATIBILIDAD CON CLINE CLI EN NIXOS
@@ -275,6 +276,7 @@
     streamlink
     gopeed
     impression
+    musicpresence
 
     # Gaming.
     prismlauncher
