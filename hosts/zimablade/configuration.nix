@@ -128,10 +128,14 @@
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#pico";
+    # Cada noche toma lo último del canal estable (26.05) sin escribir el flake.lock del repo.
     flags = [
       "-L" # print build logs
+      "--no-write-lock-file"
+      "--override-input" "nixpkgs-stable" "github:NixOS/nixpkgs/nixos-26.05"
     ];
-    dates = "04:00";
+    # Escalonado respecto a atlas (04:00): nunca actualizan a la vez.
+    dates = "05:30";
     randomizedDelaySec = "45min";
   };
 

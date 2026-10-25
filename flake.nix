@@ -4,6 +4,9 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # Canal estable para los servidores (atlas, pico): solo correcciones y seguridad.
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";
+
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     nix-flatpak.url =
@@ -12,10 +15,11 @@
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";    
   };
 
-  outputs = { self, nixpkgs, nix-flatpak, nixos-hardware, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, ... }@inputs:
     let
-      mkHost = hostName: system: extraModules:
-        nixpkgs.lib.nixosSystem {
+      # pkgsInput: nixpkgs (unstable) o nixpkgs-stable según el equipo.
+      mkHost = pkgsInput: hostName: system: extraModules:
+        pkgsInput.lib.nixosSystem {
           inherit system;
 
           specialArgs = {
@@ -30,25 +34,25 @@
     in
     {
   nixosConfigurations = {
-    elytra = mkHost "portatil" "x86_64-linux" [
+    elytra = mkHost nixpkgs "portatil" "x86_64-linux" [
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
     ];
 
-    titan = mkHost "torre" "x86_64-linux" [
+    titan = mkHost nixpkgs "torre" "x86_64-linux" [
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
     ];
 
-    atlas = mkHost "servidor" "x86_64-linux" [
+    atlas = mkHost nixpkgs-stable "servidor" "x86_64-linux" [
       ./modules/server-system.nix
     ];
 
-    pico = mkHost "zimablade" "x86_64-linux" [
+    pico = mkHost nixpkgs-stable "zimablade" "x86_64-linux" [
       ./modules/server-system.nix
     ];
 
-    palco = mkHost "rpi4-bt" "aarch64-linux" [
+    palco = mkHost nixpkgs "rpi4-bt" "aarch64-linux" [
       nixos-hardware.nixosModules.raspberry-pi-4
       "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
       ./modules/palco-audio.nix

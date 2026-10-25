@@ -250,9 +250,13 @@ systemd.services.docker-arcane-postgres = {
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#atlas";
+    # Cada noche toma lo último del canal estable (26.05) sin escribir el flake.lock del repo.
     flags = [
       "-L" # print build logs
+      "--no-write-lock-file"
+      "--override-input" "nixpkgs-stable" "github:NixOS/nixpkgs/nixos-26.05"
     ];
+    # Escalonado respecto a pico (05:30) para no reiniciar el DNS de los dos a la vez.
     dates = "04:00";
     randomizedDelaySec = "45min";
   };
