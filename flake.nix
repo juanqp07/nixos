@@ -9,12 +9,6 @@
     nix-flatpak.url =
       "github:gmodena/nix-flatpak/?ref=latest";
 
-    nix-software-center.url =
-      "github:snowfallorg/nix-software-center";
-
-    nix-software-center.inputs.nixpkgs.follows =
-      "nixpkgs";
-
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";    
   };
 
@@ -85,6 +79,14 @@
             packages = with pkgs; [
               nodejs_24
               pnpm
+            ];
+          };
+          # Java/Kotlin para DAM: ajusta el JDK a la versión que pida el curso.
+          java = pkgs.mkShell {
+            packages = with pkgs; [
+              jdk21
+              gradle
+              kotlin
             ];
           };
           rust = pkgs.mkShell {

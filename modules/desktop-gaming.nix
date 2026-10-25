@@ -54,6 +54,8 @@
   # Distrobox funciona con backend docker.
   virtualisation.docker = {
     enable = true;
+    # Arranca bajo demanda (socket activation). Contenedores con --restart=always no arrancan solos al iniciar.
+    enableOnBoot = false;
   };
 
   #virtualisation.virtualbox.host.enable = true;
@@ -110,7 +112,6 @@
   # IDEs desde nixpkgs (ven docker.sock, adb/udev y debuggers sin sandbox).
   # android-studio se queda en Flatpak: el tarball ~1.35GB rompía rebuild con curl 56.
   environment.systemPackages = with pkgs; [
-    inputs.nix-software-center.packages.${pkgs.stdenv.hostPlatform.system}.nix-software-center
     openvpn telegram-desktop
     vesktop discord firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
@@ -302,6 +303,10 @@
   boot.kernel.sysctl = {
     # mkForce: common-system.nix define 262144, gaming necesita 1048576 (Proton/VSCode).
     "vm.max_map_count" = lib.mkForce 1048576;
+    # Con zram, swappiness alto es lo recomendado (el kernel admite hasta 200);
+    # mkForce porque common-system.nix lo deja en 10.
+    "vm.swappiness" = lib.mkForce 180;
+    "vm.page-cluster" = 0;
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
