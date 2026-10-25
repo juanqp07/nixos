@@ -38,7 +38,7 @@
   networking.firewall = {
     enable = true; 
     # Solo puertos esenciales. 53 eliminado (a menos que sea servidor DNS).
-    allowedTCPPorts = [ 22 5001 ]; 
+    allowedTCPPorts = [ 22 5001 53 ]; 
     allowedUDPPorts = [ ]; 
     trustedInterfaces = [ "wt0" "docker0" ];
   };
