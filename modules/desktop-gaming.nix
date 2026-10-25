@@ -81,7 +81,7 @@
   virtualisation.libvirtd = {
     enable = true;
     # Arranca bajo demanda (socket activation). Contenedores con --restart=always no arrancan solos al iniciar.
-    enableOnBoot = false;
+    onBoot = "ignore";
   };
 
   #virtualisation.virtualbox.host.enable = true;
