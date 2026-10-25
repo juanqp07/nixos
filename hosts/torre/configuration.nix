@@ -24,17 +24,15 @@
   # ---------------------------------------------------------
   # 2. GRÁFICOS Y GPU (Radeon RX 6700 XT)
   # ---------------------------------------------------------
-  boot.initrd.kernelModules = [ "amdgpu" ];
+  hardware.amdgpu = {
+    initrd.enable = true; # carga amdgpu en el initrd (antes: boot.initrd.kernelModules)
+    opencl.enable = true; # ROCm OpenCL (antes: rocmPackages.clr y clr.icd a mano)
+  };
   services.xserver.videoDrivers = [ "amdgpu" ];
 
   hardware.graphics = {
     enable = true;
-    enable32Bit = true; 
-    
-    extraPackages = with pkgs; [
-      rocmPackages.clr
-      rocmPackages.clr.icd
-    ];
+    enable32Bit = true;
   };
 
   environment.variables = {
@@ -65,7 +63,6 @@
   environment.systemPackages = with pkgs; [
     headsetcontrol
     lunar-client
-    lact
     clinfo
     vulkan-tools
     amdgpu_top
