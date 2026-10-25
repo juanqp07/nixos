@@ -1,10 +1,14 @@
 { config, pkgs, inputs, lib, ... }:
 
 {
-  # --- KERNEL ---
+  # ============================================================
+  # ARRANQUE Y KERNEL
+  # ============================================================
+
   boot.kernelParams = [
       "quiet"
       "splash"
+      "boot.shell_on_fail"
       "loglevel=3"
       "rd.systemd.show_status=false"
       "rd.udev.log_level=3"
@@ -13,49 +17,68 @@
   services.cloudflare-warp.enable = true;
   boot.plymouth.enable = true;
 
-  # ESP de 1 GB: limita las generaciones en /boot para que no se llene (kernel latest + initrd con firmware GPU).
-  boot.loader.systemd-boot.configurationLimit = 8;
-
   boot.consoleLogLevel = 0;
+  boot.initrd.verbose = false;
   # --- ENTORNO GRÁFICO (Plasma 6) ---
   services.xserver.enable = true;
   services.xserver.xkb = { layout = "es"; variant = ""; };
   services.displayManager.sddm = {
     enable = true;
     theme = "breeze";
+    wayland.enable = true;
   };
-  services.displayManager.sddm.wayland.enable = true;
+
   services.desktopManager.plasma6.enable = true;
+
   programs.kdeconnect.enable = true;
-  networking.networkmanager = {
-    enable = true;
-    plugins = [ pkgs.networkmanager-openvpn ];
-  };
-  services.dbus.packages = [ pkgs.networkmanager-openvpn ];
 
-  # Red privada entre tus máquinas (elytra + titan).
-  services.netbird.enable = true;
 
-  # --- SONIDO ---
+  # ============================================================
+  # SONIDO Y BLUETOOTH
+  # ============================================================
+
   security.rtkit.enable = true;
+
   services.pipewire = {
     enable = true;
+
     alsa.enable = true;
     alsa.support32Bit = true;
+
     pulse.enable = true;
     jack.enable = true;
   };
-  
-  # --- IMPRESIÓN ---
-  services.printing.enable = true;
 
-  # --- VIRTUALIZACIÓN (Docker + Distrobox) ---
-  # Docker-first: podman eliminado para evitar dos daemons.
-  # Distrobox funciona con backend docker.
-  virtualisation.docker = {
+  hardware.bluetooth = {
     enable = true;
-    # Arranca bajo demanda (socket activation). Contenedores con --restart=always no arrancan solos al iniciar.
-    enableOnBoot = false;
+    powerOnBoot = true;
+
+    settings = {
+      General = {
+        Experimental = true;
+        FastConnectable = true;
+      };
+
+      Policy = {
+        AutoEnable = true;
+      };
+    };
+  };
+
+  services.blueman.enable = true;
+
+
+  # ============================================================
+  # VIRTUALIZACIÓN: DOCKER + KVM + LIBVIRT
+  # ============================================================
+
+  # Docker como backend principal para los contenedores.
+  # Distrobox sigue funcionando con Docker.
+  virtualisation.docker.enable = true;
+
+  # Máquinas virtuales mediante QEMU/KVM y libvirt.
+  virtualisation.libvirtd = {
+    enable = true;
   };
 
   #virtualisation.virtualbox.host.enable = true;
@@ -64,54 +87,117 @@
   # --- PERMISOS DE USUARIO ---
   users.users.juan = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "video" "audio" "lp" "scanner" "docker" "uinput" "render" ];
+
+    extraGroups = [
+      "wheel"
+      "video"
+      "audio"
+      "lp"
+      "scanner"
+      "docker"
+      "libvirtd"
+      "uinput"
+      "render"
+    ];
   };
 
-  # --- GAMING (base común elytra + titan) ---
+
+  # ============================================================
+  # IMPRESIÓN Y SINCRONIZACIÓN
+  # ============================================================
+
+  services.printing.enable = true;
+
+  services.syncthing = {
+    enable = true;
+    user = "juan";
+
+    # Directorio base para las carpetas sincronizadas.
+    dataDir = "/home/juan";
+
+    # Configuración y claves de Syncthing.
+    configDir = "/home/juan/.config/syncthing";
+
+    openDefaultPorts = true;
+    extraFlags = [
+      "--no-browser"
+    ];
+  };
+
+
+  # ============================================================
+  # GAMING Y MANDOS
+  # ============================================================
+
   programs.steam = {
     enable = true;
+
     remotePlay.openFirewall = true;
     gamescopeSession.enable = true;
   };
+
   hardware.steam-hardware.enable = true;
   hardware.xpadneo.enable = true;
+
   services.ratbagd.enable = true;
+
   services.power-profiles-daemon.enable = true;
   services.fstrim.enable = true;
+
+  programs.gamemode = {
+    enable = true;
+    enableRenice = true;
+
+    settings.general = {
+      desiredgov = "performance";
+      defaultgov = "powersave";
+      renice = 10;
+      inhibit_screensaver = 1;
+      reaper_freq = 5;
+    };
+  };
+
+
+  # ============================================================
+  # OBSERVABILIDAD, APPIMAGE Y RGB
+  # ============================================================
+
   programs.obs-studio = {
     enable = true;
     enableVirtualCamera = false;
   };
+
   programs.appimage = {
     enable = true;
     binfmt = true;
   };
 
-  # --- FUENTES ---
+  services.hardware.openrgb.enable = true;
+
+
+  # ============================================================
+  # FUENTES
+  # ============================================================
+
   fonts.packages = with pkgs; [
-  noto-fonts
-  noto-fonts-cjk-sans
-  noto-fonts-color-emoji
-  liberation_ttf
-  fira-code
-  fira-code-symbols
-  mplus-outline-fonts.githubRelease
-  dina-font
-  proggyfonts
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-color-emoji
+    liberation_ttf
+    fira-code
+    fira-code-symbols
+    mplus-outline-fonts.githubRelease
+    dina-font
+    proggyfonts
   ];
 
-  services.syncthing = {
-    enable = true;
-    user = "juan";
-    dataDir = "/home/juan";    # Directorio base para las carpetas sincronizadas
-    configDir = "/home/juan/.config/syncthing"; # Donde se guardan las llaves y config
-    openDefaultPorts = true;
-    extraFlags = [ "--no-browser" ];
-  };
-  # --- PAQUETES DE ESCRITORIO ---
-  # IDEs desde nixpkgs (ven docker.sock, adb/udev y debuggers sin sandbox).
-  # android-studio se queda en Flatpak: el tarball ~1.35GB rompía rebuild con curl 56.
+
+  # ============================================================
+  # PAQUETES DEL ESCRITORIO
+  # ============================================================
+
   environment.systemPackages = with pkgs; [
+    inputs.nix-software-center.packages.${pkgs.stdenv.hostPlatform.system}.nix-software-center
     openvpn telegram-desktop
     vesktop discord firefox
     onlyoffice-desktopeditors kdePackages.kate vscode
@@ -127,35 +213,74 @@
     syncthing jetbrains.idea
     feishin
     cloudflare-warp
+
+    # Navegadores.
+    firefox
     google-chrome
-    hydralauncher
-    libreoffice hunspell
+
+    # Ofimática y edición.
+    onlyoffice-desktopeditors
+    libreoffice
+    hunspell
     hunspellDicts.es_ES
-    openrgb-with-all-plugins
-    localsend eden
-    gearlever typora
+    typora
+
+    # KDE y utilidades de escritorio.
+    kdePackages.kate
+    kdePackages.kcalc
+    kdePackages.filelight
     kdePackages.partitionmanager
-    rpi-imager
-    bun
-    opencode
-    impression
-    android-tools
-    # android-studio movido a Flatpak (com.google.AndroidStudio):
-    # el tarball de ~1.35GB desde dl.google.com rompía `nixos-rebuild`
-    # con `curl: (56) Recv failure`. Se mantiene android-tools en el host
-    # para adb/fastboot + udev rules.
-    wireguard-tools
-    appimage-run
-    mangohud
-    gamescope
-    protonup-qt
-    protontricks
+    kdePackages.xdg-desktop-portal-kde
+    wl-clipboard
+    libnotify
+    lm_sensors
+
+    # Multimedia.
+    vlc
+    mpv
+    yt-dlp
+    ffmpeg
+    supersonic
+    feishin
     streamlink
     gopeed
-    kdePackages.filelight
-    libnotify
+    impression
 
-    # Compilación de Rust
+    # Gaming.
+    prismlauncher
+    heroic
+    hydralauncher
+    eden
+    mangohud
+    gamescope
+    protonplus
+    protonup-qt
+    protontricks
+
+    # Contenedores.
+    distrobox
+    lazydocker
+
+    # Desarrollo.
+    vscode
+    antigravity-ide
+    jetbrains.idea
+    opencode
+    bun
+    android-tools
+
+    # Android Studio se mantiene en Flatpak.
+    # Se evita descargar el tarball durante nixos-rebuild.
+
+    # Gestión de AppImage y utilidades.
+    gearlever
+    appimage-run
+
+    # Hardware y dispositivos.
+    openrgb-with-all-plugins
+    rpi-imager
+
+    # Compilación de Rust.
     rustc
     cargo
     rustfmt
@@ -164,9 +289,14 @@
   ];
 
 
-  services.hardware.openrgb.enable = true;
+  # ============================================================
+  # NIX-LD: COMPATIBILIDAD CON BINARIOS LINUX
+  # ============================================================
+
   programs.nix-ld.enable = true;
-    programs.nix-ld.libraries = with pkgs; [
+
+  programs.nix-ld.libraries = with pkgs; [
+    # Runtime y bibliotecas básicas.
     stdenv.cc.cc
     glibc
     zlib
@@ -177,11 +307,13 @@
     lz4
     libgcc
 
+    # Seguridad y certificados.
     curl
     openssl
     nss
     nspr
 
+    # Fuentes y renderizado de texto.
     fontconfig
     freetype
     fribidi
@@ -193,6 +325,7 @@
     libxml2
     icu
 
+    # GTK y bibliotecas gráficas.
     glib
     gtk3
     gtk4
@@ -203,12 +336,14 @@
     at-spi2-core
     libepoxy
 
+    # Audio.
     alsa-lib
     pipewire
     libpulseaudio
     libsndfile
     libsamplerate
 
+    # X11.
     libx11
     libxext
     libxrandr
@@ -224,6 +359,7 @@
     libxkbcommon
     libxkbfile
 
+    # XCB.
     libxcb
     libxcb-util
     libxcb-wm
@@ -232,19 +368,21 @@
     libxcb-render-util
     libxcb-cursor
 
+    # Wayland.
     wayland
 
+    # OpenGL, Vulkan y vídeo.
     libGL
     libGLU
     mesa
     vulkan-loader
     libdrm
     libgbm
-
     ffmpeg
     libva
     libvdpau
 
+    # Sistema de archivos y dispositivos.
     fuse3
     libarchive
     libffi
@@ -253,26 +391,29 @@
     libusb1
     sqlite
     dbus
-
     libgpg-error
-
-    # libcom_err.so.2
     e2fsprogs
 
+    # Herramientas de compilación.
     gnumake
     gcc
     python3
+
+    # Entornos de desarrollo.
     nodejs_24
     deno
     bun
-
     rustc
     cargo
     rustfmt
     clippy
   ];
 
-  # --- MEMORIA / SCHEDULER (paridad elytra + titan) ---
+
+  # ============================================================
+  # MEMORIA Y SCHEDULER
+  # ============================================================
+
   zramSwap = {
     enable = true;
     algorithm = "zstd";
@@ -282,69 +423,53 @@
   services.scx = {
     enable = true;
     scheduler = "scx_cosmos";
+
     extraArgs = [
       "-s"
       "700"
     ];
   };
 
-  programs.gamemode = {
-    enable = true;
-    enableRenice = true;
-    settings.general = {
-      desiredgov = "performance";
-      defaultgov = "powersave";
-      renice = 10;
-      inhibit_screensaver = 1;
-      reaper_freq = 5;
-    };
-  };
-
   boot.kernel.sysctl = {
-    # mkForce: common-system.nix define 262144, gaming necesita 1048576 (Proton/VSCode).
+    # El valor original común era 262144.
+    # Se fuerza 1048576 para Proton y aplicaciones exigentes.
     "vm.max_map_count" = lib.mkForce 1048576;
-    # Con zram, swappiness alto es lo recomendado (el kernel admite hasta 200);
-    # mkForce porque common-system.nix lo deja en 10.
-    "vm.swappiness" = lib.mkForce 180;
-    "vm.page-cluster" = 0;
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
 
-  hardware.bluetooth = {
-    enable = true;
-    powerOnBoot = true;
-    settings = {
-      General = {
-        Experimental = true;
-        FastConnectable = true;
-      };
-      Policy = {
-        AutoEnable = true;
-      };
-    };
-  };
 
-  services.blueman.enable = true;
+  # ============================================================
+  # FLATPAK
+  # ============================================================
 
-  # --- FLATPAK ---
   services.flatpak = {
     enable = true;
-    remotes = [{
-      name = "flathub";
-      location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-    }];
+
+    remotes = [
+      {
+        name = "flathub";
+        location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+      }
+    ];
+
     packages = [
       "com.stremio.Stremio"
       "dev.fredol.open-tv"
       "io.github.ryubing.Ryujinx"
       "com.google.AndroidStudio"
     ];
+
     update.onActivation = true;
-    # false: no desinstala lo que instales a mano (Bottles, etc.)
+
+    # No desinstala aplicaciones instaladas manualmente.
     uninstallUnmanaged = false;
   };
 
+
+  # ============================================================
+  # OVERLAYS
+  # ============================================================
 
   nixpkgs.overlays = [
     (final: prev: {
