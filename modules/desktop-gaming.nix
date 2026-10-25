@@ -6,13 +6,14 @@
   # ============================================================
 
   boot.kernelParams = [
-      "quiet"
-      "splash"
-      "loglevel=3"
-      "rd.systemd.show_status=false"
-      "rd.udev.log_level=3"
-      "udev.log_priority=3"
-    ];
+    "quiet"
+    "splash"
+    "loglevel=3"
+    "rd.systemd.show_status=false"
+    "rd.udev.log_level=3"
+    "udev.log_priority=3"
+  ];
+
   services.cloudflare-warp.enable = true;
   boot.plymouth.enable = true;
 
@@ -20,9 +21,34 @@
   boot.loader.systemd-boot.configurationLimit = 8;
 
   boot.consoleLogLevel = 0;
-  # --- ENTORNO GRÁFICO (Plasma 6) ---
+
+
+  # ============================================================
+  # COMPATIBILIDAD CON CLINE CLI EN NIXOS
+  # ============================================================
+
+  # Cline CLI espera encontrar Bash en /bin/bash.
+  # NixOS crea /bin/sh, pero no garantiza que exista /bin/bash.
+  # Creamos un enlace al Bash de Nix después de la activación
+  # del script binsh de NixOS, conservando /bin/sh intacto.
+  system.activationScripts.cline-bash-compat = {
+    deps = [ "binsh" ];
+    text = ''
+      ln -sfn "${pkgs.bashInteractive}/bin/bash" /bin/bash
+    '';
+  };
+
+
+  # ============================================================
+  # ENTORNO GRÁFICO (Plasma 6)
+  # ============================================================
+
   services.xserver.enable = true;
-  services.xserver.xkb = { layout = "es"; variant = ""; };
+  services.xserver.xkb = {
+    layout = "es";
+    variant = "";
+  };
+
   services.displayManager.sddm = {
     enable = true;
     theme = "breeze";
@@ -80,7 +106,9 @@
   # Máquinas virtuales mediante QEMU/KVM y libvirt.
   virtualisation.libvirtd = {
     enable = true;
-    # Arranca bajo demanda (socket activation). Contenedores con --restart=always no arrancan solos al iniciar.
+
+    # Arranca bajo demanda (socket activation).
+    # Contenedores con --restart=always no arrancan solos al iniciar.
     onBoot = "ignore";
   };
 
@@ -122,6 +150,7 @@
     configDir = "/home/juan/.config/syncthing";
 
     openDefaultPorts = true;
+
     extraFlags = [
       "--no-browser"
     ];
@@ -270,6 +299,7 @@
     opencode
     bun
     android-tools
+    bashInteractive
 
     # Android Studio se mantiene en Flatpak.
     # Se evita descargar el tarball durante nixos-rebuild.
@@ -436,9 +466,11 @@
     # El valor original común era 262144.
     # Se fuerza 1048576 para Proton y aplicaciones exigentes.
     "vm.max_map_count" = lib.mkForce 1048576;
+
     # Con zram, swappiness alto es lo recomendado (el kernel admite hasta 200);
     # mkForce porque common-system.nix lo deja en 10.
     "vm.swappiness" = lib.mkForce 180;
+
     "vm.page-cluster" = 0;
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
