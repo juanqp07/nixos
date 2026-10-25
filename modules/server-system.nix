@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 
 {
   # ============================================================
@@ -24,12 +24,16 @@
     # Reiniciar ante soft lockup de CPU.
     "kernel.softlockup_panic" = 1;
 
-    # Reiniciar si una tarea permanece bloqueada.
-    "kernel.hung_task_panic" = 1;
-    "kernel.hung_task_timeout_secs" = 300;
+    # hung_task_panic eliminado: un bloqueo temporal de disco o Docker no debe
+    # reiniciar el servidor entero (el kernel sigue avisando en el log).
 
     # Tiempo antes de reiniciar después de kernel panic.
     "kernel.panic" = 10;
+
+    # Con zram el swap es memoria comprimida (barato): swappiness 100 y sin readahead de swap.
+    # mkForce porque common-system.nix lo deja en 10.
+    "vm.swappiness" = lib.mkForce 100;
+    "vm.page-cluster" = 0;
 
     # SysRq disponible para recuperación manual.
     "kernel.sysrq" = 1;

@@ -258,6 +258,8 @@ systemd.services.docker-arcane-postgres = {
   };
 
   services.thermald.enable = true;
+  # SMART: aviso temprano de fallo de disco (complementa a beszel).
+  services.smartd.enable = true;
   # TRIM semanal para el NVMe (desktops y titan ya lo tienen).
   services.fstrim.enable = true;
   system.stateVersion = "25.11";

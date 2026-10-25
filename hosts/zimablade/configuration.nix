@@ -9,7 +9,10 @@
   # NOTA: sin i915.enable_guc (Apollo Lake no tiene GuC/HuC, daba errores en dmesg).
   boot.kernelPackages = pkgs.linuxPackages;
 
-  zramSwap.enable = true;
+  zramSwap = {
+    enable = true;
+    algorithm = "lz4"; # más ligero que zstd para el Celeron
+  };
 
   boot.loader.systemd-boot.configurationLimit = 10;
 
@@ -92,7 +95,7 @@
   # Dockge container
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.dockge = {
-    # Usamos la imagen oficial
+    # Fork de louislam/dockge mantenido por cmcooper1980 (no es la imagen oficial)
     image = "cmcooper1980/dockge:latest";
     autoStart = true;
     ports = [ "5001:5001" ];
