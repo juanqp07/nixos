@@ -110,8 +110,12 @@
   # ---------------------------------------------------------
   # 5. CONTROL GPU (LACT)
   # ---------------------------------------------------------
-  systemd.packages = [ pkgs.lact ];
-  systemd.services.lactd.wantedBy = [ "multi-user.target" ];
+  # El módulo services.lact instala el paquete y arranca lactd (antes se hacía a mano).
+  services.lact.enable = true;
+
+  # En AMD hace falta para que LACT pueda aplicar overclock/undervolt (requiere reiniciar;
+  # el kernel puede marcarse como alterado, como con cualquier modo overdrive).
+  hardware.amdgpu.overdrive.enable = true;
 
   system.stateVersion = "25.11"; 
 }
