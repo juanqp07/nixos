@@ -499,6 +499,7 @@
       "com.google.AndroidStudio"
       "com.github.sdv43.whaler"
       "io.github.dvlv.boxbuddyrs"
+      "net.waterfox.waterfox"
     ];
 
     update.onActivation = true;

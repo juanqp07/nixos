@@ -15,6 +15,7 @@
   # Evita que /boot se llene con generaciones antiguas (los hosts pueden sobrescribirlo).
   boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
 
+  boot.loader.systemd-boot.edk2-uefi-shell.enable = true;
   # ============================================================
   # RED Y KERNEL
   # ============================================================
