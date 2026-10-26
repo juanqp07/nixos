@@ -231,7 +231,7 @@
 
   environment.systemPackages = with pkgs; [
     openvpn telegram-desktop
-    vesktop discord firefox
+    vesktop discord
     onlyoffice-desktopeditors kdePackages.kate gedit vscode
     vlc mpv yt-dlp ffmpeg
     prismlauncher
@@ -246,7 +246,6 @@
     feishin
 
     # Navegadores.
-    firefox
     google-chrome
 
     # Ofimática y edición.
