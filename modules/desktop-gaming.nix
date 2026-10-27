@@ -244,6 +244,7 @@
     lm_sensors
     jetbrains.idea
     feishin
+    lmstudio
 
     # Navegadores.
     google-chrome

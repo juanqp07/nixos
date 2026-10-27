@@ -64,7 +64,6 @@
     clinfo
     vulkan-tools
     amdgpu_top
-    lmstudio
   ];
 
   # ---------------------------------------------------------
