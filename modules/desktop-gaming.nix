@@ -300,6 +300,8 @@
     bun
     android-tools
     bashInteractive
+    go
+    nodejs_24
 
     # Android Studio se mantiene en Flatpak.
     # Se evita descargar el tarball durante nixos-rebuild.
