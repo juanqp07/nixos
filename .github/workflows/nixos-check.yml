@@ -1,0 +1,47 @@
+name: NixOS configuration evaluation
+
+on:
+  pull_request:
+    paths:
+      - "**.nix"
+      - "flake.nix"
+      - "flake.lock"
+      - ".github/workflows/nixos-check.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "**.nix"
+      - "flake.nix"
+      - "flake.lock"
+      - ".github/workflows/nixos-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Evaluate ${{ matrix.host }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        host:
+          - elytra
+          - titan
+          - atlas
+          - pico
+          - palco
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Evaluate system closure
+        run: |
+          nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
