@@ -1,6 +1,6 @@
 # ❄️ Configuración NixOS de Juan (Flakes)
 
-Este repositorio contiene mi configuración centralizada para 4 máquinas, gestionada mediante **Nix Flakes**.
+Este repositorio contiene la configuración centralizada de cinco equipos, gestionada mediante **Nix Flakes**.
 
 ## 📂 Estructura del Repositorio
 
@@ -12,9 +12,10 @@ Este repositorio contiene mi configuración centralizada para 4 máquinas, gesti
     * `zimablade/` (pico): Intel Celeron N3450 (Apollo Lake) (ZimaBlade, Docker/Dockge).
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
 * **modules/**: Módulos compartidos.
-    * `common-system.nix`: Configuración base (Usuario, Idioma, Herramientas CLI).
-    * `desktop-gaming.nix`: Entorno Plasma 6, Steam, Audio y Apps de escritorio.
-    * `palco-audio.nix`: BlueZ sink + PipeWire/WirePlumber + auto-pairing para la Pi (solo palco).
+    * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
+    * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
+    * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
+    * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
 
 ---
 
@@ -75,31 +76,51 @@ para mantenimiento), `palco-estado` (diagnóstico BT + audio).
 
 ## 🔄 Actualización y Mantenimiento
 
-### Actualizar el Sistema (Software)
-1. **Actualizar el catálogo de paquetes** (modifica el flake.lock):
+### Actualizar el sistema de forma controlada
+
+1. Comprueba que no tienes cambios ajenos a la configuración y actualiza las dependencias:
    ```bash
+   git status --short
    nix flake update
+   git diff -- flake.lock
    ```
-2. **Aplicar la actualización**:
+2. Evalúa las cinco configuraciones antes de desplegar:
    ```bash
-   sudo nixos-rebuild switch --flake .#nombre-maquina
+   for host in elytra titan atlas pico palco; do
+     nix eval --show-trace --raw ".#nixosConfigurations.$host.config.system.build.toplevel.drvPath" >/dev/null || exit 1
+   done
    ```
+3. Construye primero la configuración del equipo que vayas a actualizar y revisa el resultado:
+   ```bash
+   sudo nixos-rebuild build --flake .#elytra
+   ```
+   Cambia `elytra` por el host correspondiente. La compilación de la configuración de escritorio no sustituye las pruebas de hardware en el equipo real.
+4. Aplica el cambio solo cuando hayas revisado las diferencias:
+   ```bash
+   sudo nixos-rebuild switch --flake .#elytra
+   ```
+
+Los hosts `atlas` y `pico` tienen configurado `system.autoUpgrade`. Esa política puede aplicar actualizaciones automáticamente; comprueba sus copias locales del repositorio, los registros de actualización y la disponibilidad de copias de seguridad antes de depender de ella para servicios críticos.
 ---
 
 ## 🧹 Mantenimiento y Limpieza
 
-Para evitar que el disco se llene con versiones antiguas del sistema:
+Para liberar espacio sin eliminar todas las generaciones anteriores:
 
-* **Eliminar versiones de más de 7 días**:
-    `sudo nix-collect-garbage -d`
-* **Optimizar el almacenamiento (eliminar duplicados)**:
-    `nix-store --optimise`
+* **Eliminar generaciones antiguas de más de 30 días** (coincide con la política general de `common-system.nix`):
+    `sudo nix-collect-garbage --delete-older-than 30d`
+* **Optimizar el almacenamiento compartido**:
+    `sudo nix-store --optimise`
+
+Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo las que tienen más de siete días, y reduce las posibilidades de volver a una generación anterior. En `pico`, la recolección automática del sistema está configurada con un umbral de 7 días.
 
 ---
 
-## ⚠️ Notas de Configuración
-* **Git**: Antes de aplicar un cambio con el comando `switch`, debes añadir los archivos nuevos a git (`git add .`), de lo contrario Nix los ignorará.
-* **NVIDIA**: El portátil usa el driver propietario estable.
-* **Docker/Podman**: 
-    * `atlas` y `pico` usan **Docker** y **Dockge** para gestión de contenedores.
-    * El resto usa **Podman** o no tiene entorno de contenedores habilitado por defecto.
+## ✅ Validación automática
+
+GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts en cada pull request y en los cambios que llegan a `main`. Es una comprobación de evaluación de Nix; no sustituye la compilación completa ni las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
+
+## ⚠️ Notas de configuración
+* **Git y Flakes**: los archivos nuevos deben estar añadidos a Git para que un flake basado en Git pueda verlos. Añade solo los archivos necesarios (por ejemplo, `git add modules/nuevo-modulo.nix`); los alias `nix-up` y `nix-update` no deben preparar automáticamente todos tus cambios.
+* **NVIDIA**: `elytra` usa una RTX 5050 con PRIME offload; comprueba los controladores y el kernel en el hardware real antes de cambiar de rama.
+* **Contenedores**: `elytra` y `titan` habilitan Docker para uso local; `atlas` y `pico` lo utilizan para sus servicios. `palco` es un appliance de audio Bluetooth y no necesita el stack de escritorio.
