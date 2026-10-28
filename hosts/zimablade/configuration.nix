@@ -20,8 +20,8 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # Gen9+ (Apollo Lake)
-      intel-compute-runtime # OpenCL
+      intel-media-driver   # VA-API/media path; verify with vainfo on this GPU
+      intel-compute-runtime-legacy1 # OpenCL for Gen8/Gen9/Gen11 (Apollo Lake is Gen9)
       libvdpau-va-gl
     ];
   };
