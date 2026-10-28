@@ -115,6 +115,11 @@
 
   programs.fish.enable = true;
 
+  # SSH con contraseña se mantiene deliberadamente para no depender de claves
+  # que puedan perderse. Root no debe autenticarse directamente por SSH.
+  services.openssh.settings.PasswordAuthentication = lib.mkDefault true;
+  services.openssh.settings.PermitRootLogin = lib.mkDefault "no";
+
   # direnv + nix-direnv: activa devShells al hacer `cd` (sin esto el
   # paquete direnv solo no integra el shell).
   programs.direnv = {

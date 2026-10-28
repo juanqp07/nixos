@@ -98,10 +98,9 @@
   # USUARIO
   # ------------------------------------------------------------
 
-  users.users.juan.initialPassword = "nixos";
-
-  # Útil para administración directa por consola.
-  # QUITAR cuando tengas SSH por clave totalmente configurado.
+  # La contraseña inicial no se guarda en el repositorio público.
+  # En una imagen nueva, establece una contraseña propia desde la consola local
+  # antes de administrar la Pi por SSH. La autenticación SSH por contraseña sigue habilitada.
   services.getty.autologinUser = "juan";
 
   # Necesario para que los servicios de usuario de PipeWire /
@@ -188,6 +187,21 @@
     settings = {
       PermitRootLogin = "no";
       PasswordAuthentication = true;
+    };
+  };
+
+  # Protege el acceso SSH por contraseña frente a intentos repetidos.
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    bantime = "1h";
+
+    jails.sshd = {
+      enabled = true;
+      settings = {
+        maxretry = 5;
+        findtime = "10m";
+      };
     };
   };
 

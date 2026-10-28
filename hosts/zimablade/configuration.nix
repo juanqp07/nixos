@@ -125,17 +125,17 @@
     options = lib.mkForce "--delete-older-than 7d"; 
   };
 
-  # Flake explícito al repo vivo (outPath apuntaba al store congelado del build).
+  # Usa las revisiones fijadas en flake.lock. El lock se actualiza y revisa de forma controlada.
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#pico";
-    # Cada noche toma lo último del canal estable (26.05) sin escribir el flake.lock del repo.
+    upgrade = false;
+    operation = "boot";
     flags = [
-      "-L" # print build logs
+      "-L"
       "--no-write-lock-file"
-      "--override-input" "nixpkgs-stable" "github:NixOS/nixpkgs/nixos-26.05"
     ];
-    # Escalonado respecto a atlas (04:00): nunca actualizan a la vez.
+    # Escalonado respecto a atlas (04:00); prepara una generación sin activarla en caliente.
     dates = "05:30";
     randomizedDelaySec = "45min";
   };

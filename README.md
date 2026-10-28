@@ -55,6 +55,12 @@ git add hosts/rpi4-bt/hardware-configuration.nix
 sudo nixos-rebuild switch --flake .#palco
 ```
 
+Primera puesta en marcha: entra por la consola local y ejecuta `passwd` para
+establecer una contraseña propia antes de usar SSH. SSH sigue admitiendo
+contraseñas; no se exige una clave SSH. La contraseña inicial no se almacena en
+este repositorio público. Si ya tenías la Pi configurada, quitar el valor inicial
+de la configuración no cambia una contraseña existente.
+
 Uso en bolo (sin internet): la Pi arranca como `palco` visible por Bluetooth,
 se empareja una vez desde el móvil y reconecta sola. Alias útiles en la Pi:
 `palco-bolo` (apaga WiFi para estabilizar BT), `palco-config` (enciende WiFi
@@ -100,7 +106,7 @@ para mantenimiento), `palco-estado` (diagnóstico BT + audio).
    sudo nixos-rebuild switch --flake .#elytra
    ```
 
-Los hosts `atlas` y `pico` tienen configurado `system.autoUpgrade`. Esa política puede aplicar actualizaciones automáticamente; comprueba sus copias locales del repositorio, los registros de actualización y la disponibilidad de copias de seguridad antes de depender de ella para servicios críticos.
+Los hosts `atlas` y `pico` tienen `system.autoUpgrade` activado con `operation = "boot"`: se prepara una generación nueva usando las revisiones fijadas en `flake.lock`, pero no se activa en caliente ni se reinicia automáticamente. Las actualizaciones de paquetes requieren actualizar y revisar el lockfile de forma deliberada; después, despliega la configuración actualizada en la copia local del repositorio de cada servidor. Comprueba los registros con `journalctl -u nixos-upgrade.service` y mantén copias de seguridad de los datos persistentes.
 ---
 
 ## 🧹 Mantenimiento y Limpieza
