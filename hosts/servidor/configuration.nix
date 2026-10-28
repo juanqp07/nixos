@@ -238,6 +238,10 @@ systemd.services.docker-arcane-postgres = {
     options = [ "defaults" "nofail" "noatime" "x-systemd.automount" "x-systemd.device-timeout=5" ];
   };
 
+  # El disco contiene datos persistentes de contenedores. Si no monta, no arranques
+  # Docker: evitar que los bind mounts creen directorios vacíos en la raíz del sistema.
+  systemd.services.docker.unitConfig.RequiresMountsFor = "/mnt/datos";
+
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
     vim htop ncdu iotop ethtool smartmontools pass gnupg docker-credential-helpers
@@ -246,17 +250,18 @@ systemd.services.docker-arcane-postgres = {
   ];
 
   # --- ACTUALIZACIONES AUTOMÁTICAS ---
-  # Flake explícito al repo vivo (outPath apuntaba al store congelado del build).
+  # Usa las revisiones fijadas en flake.lock: la actualización del lock se revisa
+  # y despliega de forma controlada, en lugar de resolver una rama distinta cada noche.
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#atlas";
-    # Cada noche toma lo último del canal estable (26.05) sin escribir el flake.lock del repo.
+    upgrade = false;
+    operation = "boot";
     flags = [
-      "-L" # print build logs
+      "-L"
       "--no-write-lock-file"
-      "--override-input" "nixpkgs-stable" "github:NixOS/nixpkgs/nixos-26.05"
     ];
-    # Escalonado respecto a pico (05:30) para no reiniciar el DNS de los dos a la vez.
+    # Prepara la generación fuera del horario de uso; se activa en el siguiente reinicio planificado.
     dates = "04:00";
     randomizedDelaySec = "45min";
   };

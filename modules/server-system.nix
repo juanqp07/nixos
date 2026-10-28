@@ -8,15 +8,15 @@
   # Reiniciar automáticamente después de un kernel panic.
   boot.kernelParams = [
     "panic=10"
-    "boot.panic_on_fail"
     "nmi_watchdog=1"
   ];
 
   boot.kernel.sysctl = {
     # --- Auto-reinicio ante fallos críticos ---
 
-    # Reiniciar si el kernel entra en OOM.
-    "vm.panic_on_oom" = 1;
+    # No convertir la falta de memoria en un kernel panic: el OOM killer y
+    # earlyoom pueden actuar sobre procesos concretos sin reiniciar el host.
+    "vm.panic_on_oom" = 0;
 
     # Reiniciar ante kernel oops.
     "kernel.panic_on_oops" = 1;
