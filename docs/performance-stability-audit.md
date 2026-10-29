@@ -165,15 +165,15 @@ Los informes iniciales de ambos hosts no incluían pruebas de carga. Posteriorme
 - El host mostró 14 GiB de memoria disponibles, sin uso de swap/ZRAM, seis contenedores en ejecución, cero unidades de systemd fallidas y sin errores de E/S ni de EXT4 coincidentes con los filtros del diagnóstico.
 - La raíz eMMC tiene aproximadamente 8,3 GiB libres (69 % usado). Mantener la poda semanal de Docker y la recolección Nix semanal; revisar espacio si se acerca al 80 %, en vez de borrar datos automáticamente sin inspección.
 - La temperatura de CPU leída en el momento del informe rondaba 52–53 °C. Es una única lectura cercana al arranque, no una prueba térmica bajo carga.
-- `lscpu` reportó `Reg file data sampling: Vulnerable: No microcode` para el Celeron N3450. Se habilita explícitamente `hardware.cpu.intel.updateMicrocode` para cargar el microcódigo Intel en el initrd. Después de desplegar y reiniciar, verificar `cat /sys/devices/system/cpu/vulnerabilities/reg_file_data_sampling`; si sigue indicando falta de microcódigo, revisar la versión de BIOS/firmware y el microcódigo disponible para esta plataforma.
+- `lscpu` reporta `Reg file data sampling: Vulnerable: No microcode` para el Celeron N3450 incluso con `hardware.cpu.intel.updateMicrocode = true` y la revisión `0x48` cargada. La opción de NixOS sí carga el microcódigo disponible en el initrd, pero no puede añadir por sí misma una corrección que no esté en ese firmware. La revisión `0x48` de Apollo Lake se publicó en 2022, antes de la divulgación de RFDS en marzo de 2024. En febrero de 2026 se retiró una propuesta del kernel para forzar la mitigación de Goldmont, porque no se pudo confirmar que esa revisión realmente limpiara los registros afectados por RFDS. Por tanto, el estado actual debe considerarse real y no se debe forzar un parámetro ni parchear la detección para mostrar `Mitigation: Clear Register File` sin validación de Intel. Fuentes: [Intel RFDS advisory](https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/advisory-guidance/register-file-data-sampling.html), [microcode 0x46 → 0x48 para Apollo Lake](https://newreleases.io/project/github/intel/Intel-Linux-Processor-Microcode-Data-Files/release/microcode-20220510), [explicación y retirada de la propuesta del kernel](https://lists.openwall.net/linux-kernel/2026/02/02/809).
 - Los avisos `ee1004` y `EDAC pnd2` aparecen en el arranque, pero el informe no muestra evidencia suficiente para atribuirles un fallo funcional. Se conservan sin añadir parámetros de kernel especulativos.
 
 ### Próximas validaciones pendientes
 
-1. Ejecutar las pruebas de CPU y RAM con `stress-ng` disponible en el entorno de ejecución; el informe actual no contiene resultados de carga.
+1. Las pruebas de CPU y RAM con `stress-ng` ya están documentadas más abajo; no hace falta repetirlas por ahora.
 2. En Atlas, revisar temperaturas con `sensors` y confirmar que `/mnt/datos` está montado correctamente.
 3. En Atlas, verificar en el stack correcto qué contenedor realiza la transcodificación y observar actividad de Intel GPU durante una transcodificación real.
-4. Después del reinicio de Pico, comprobar el estado RFDS desde `/sys/devices/system/cpu/vulnerabilities/reg_file_data_sampling`.
+4. RFDS de Pico ya se ha comprobado tras actualizar: el microcódigo está cargado (`0x48`), pero no se reconoce una mitigación específica para RFDS. No queda una corrección confirmada pendiente de aplicar desde NixOS; revisar futuras actualizaciones oficiales de Intel/kernel, sin falsear el estado de seguridad.
 
 ## Resultados de las pruebas stress-ng (29 de octubre de 2026)
 
@@ -192,9 +192,9 @@ Pruebas de tres minutos en cada host, CPU y memoria por separado. Son verificaci
 - CPU: `stress-ng --cpu 2 --timeout 180s --metrics-brief`; 2 trabajadores, 245.749 operaciones, 1.365,27 ops/s en tiempo real, 0 fallos y métricas fiables. Temperatura máxima observada aproximada: 57 °C.
 - Memoria: `stress-ng --vm 1 --vm-bytes 15% --timeout 180s --metrics-brief`; aproximadamente 2 GiB de memoria de prueba, 8.225.288 operaciones, 44.596,24 ops/s, 0 fallos y métricas fiables. Temperatura máxima observada aproximada: 57 °C.
 - Al finalizar seguían disponibles unos 14 GiB de RAM, sin uso apreciable de zram, y los seis contenedores del host seguían activos. No hay motivo basado en estas pruebas para aumentar la presión de carga en este Celeron.
-- El informe todavía muestra `Reg file data sampling: Vulnerable: No microcode`. La opción propuesta de actualización de microcódigo debe verificarse después de desplegar y reiniciar; el informe se generó antes de aplicar ese cambio.
+- El sistema mantiene `Reg file data sampling: Vulnerable: No microcode` aun después de actualizar y con microcódigo `0x48` cargado. La opción de NixOS funciona para cargar la revisión disponible, pero esa revisión es anterior a la divulgación de RFDS y no se ha confirmado que incluya la corrección necesaria.
 
 ### Conclusión y próximos pasos
 
-Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las siguientes tareas útiles son evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, verificar el estado de microcódigo después de actualizar y reiniciar.
+Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las siguientes tareas útiles son evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, mantener la carga del microcódigo activada y volver a revisar RFDS si Intel publica una revisión aplicable o el kernel ofrece una mitigación validada.
 
