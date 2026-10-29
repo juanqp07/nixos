@@ -17,9 +17,9 @@
   #   -> Jack 3.5 mm
   #
   # DSP:
-  #   HPF 45 Hz
-  #   -> Compresor suave
-  #   -> Limiter -1 dBFS
+  #   Compresor suave
+  #   -> Limitador -1 dBFS
+  # No hay filtro pasa-altos activo en la cadena configurada.
   # ============================================================
 
   # ------------------------------------------------------------
@@ -525,7 +525,7 @@
   # ------------------------------------------------------------
 
   systemd.services.palco-jack-level = {
-    description = "Palco: nivel de salida jack al 80%";
+    description = "Palco: nivel de salida jack al 100%";
 
     after = [
       "sound.target"

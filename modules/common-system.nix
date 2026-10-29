@@ -15,49 +15,26 @@
   # Evita que /boot se llene con generaciones antiguas (los hosts pueden sobrescribirlo).
   boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
 
-  boot.loader.systemd-boot.edk2-uefi-shell.enable = true;
+  boot.loader.systemd-boot.edk2-uefi-shell.enable = lib.mkDefault pkgs.stdenv.hostPlatform.isx86_64;
   # ============================================================
   # RED Y KERNEL
   # ============================================================
 
   boot.kernel.sysctl = {
-    # --- Rendimiento de Red ---
-    "net.core.default_qdisc" = "cake";
-    "net.ipv4.tcp_congestion_control" = "bbr";
-    "net.core.rmem_max" = 16777216;
-    "net.core.wmem_max" = 16777216;
-    "net.ipv4.tcp_rmem" = "4096 87380 16777216";
-    "net.ipv4.tcp_wmem" = "4096 65536 16777216";
-    "net.ipv4.tcp_fastopen" = 3;
-
-    # --- Seguridad de Red ---
+    # --- Seguridad de red ---
+    # La ruta inversa (rp_filter) se configura en networking.firewall por host:
+    # los equipos con VPN necesitan tolerar rutas asimétricas.
     "net.ipv6.conf.all.forwarding" = 0;
     "net.ipv4.icmp_echo_ignore_all" = 0;
-    "net.ipv4.conf.all.rp_filter" = 1;
-    "net.ipv4.conf.default.rp_filter" = 1;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.all.accept_source_route" = 0;
 
-    # --- Memoria y Ficheros ---
-    "fs.file-max" = 2097152;
-    "fs.nr_open" = 1048576;
-    # Todos los hosts de este flake usan zram. 100 trata la memoria comprimida
-    # y la caché de archivos con coste relativo equivalente; afinarlo más exige medir.
+    # --- Memoria ---
+    # Todos los hosts usan zram; afinar más exige medir presión de RAM y carga.
     "vm.swappiness" = 100;
-    # No hacer read-ahead de páginas de swap: zram no es un disco secuencial.
     "vm.page-cluster" = 0;
     "vm.max_map_count" = 262144;
-
-    # --- Conexiones ---
-    "net.core.somaxconn" = 8192;
-    "net.ipv4.tcp_max_syn_backlog" = 8192;
-
-    # --- Streaming ---
-    "net.ipv4.tcp_slow_start_after_idle" = 0;
-
-    # --- MTU ---
-    "net.ipv4.tcp_mtu_probing" = 1;
   };
 
   # ============================================================
@@ -123,6 +100,8 @@
   # que puedan perderse. Root no debe autenticarse directamente por SSH.
   services.openssh.settings.PasswordAuthentication = lib.mkDefault true;
   services.openssh.settings.PermitRootLogin = lib.mkDefault "no";
+  services.openssh.settings.MaxAuthTries = lib.mkDefault 3;
+  services.openssh.settings.LoginGraceTime = lib.mkDefault "30s";
 
   # direnv + nix-direnv: activa devShells al hacer `cd` (sin esto el
   # paquete direnv solo no integra el shell).
@@ -144,6 +123,10 @@
     ];
 
     auto-optimise-store = true;
+
+    # Límite conservador; cada host define un presupuesto adecuado a su hardware.
+    max-jobs = lib.mkDefault 2;
+    cores = lib.mkDefault 1;
 
     allowed-users = [
       "@wheel"

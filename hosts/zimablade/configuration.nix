@@ -32,6 +32,18 @@
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "pico";
 
+  # Evita que el Celeron y la memoria limitada compitan con los contenedores.
+  nix.settings = {
+    max-jobs = 1;
+    cores = 1;
+  };
+
+  # Límite de registros ajustado al almacenamiento de la ZimaBlade.
+  services.journald.extraConfig = ''
+    SystemMaxUse=256M
+    MaxRetentionSec=1week
+  '';
+
   # Red privada con el resto de máquinas (interfaz wt0).
   services.netbird.enable = true;
 
@@ -117,6 +129,7 @@
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
   services.thermald.enable = true; 
+  services.fstrim.enable = true;
   services.smartd.enable = false;
 
   nix.gc = {
@@ -143,6 +156,7 @@
   # --- 6. PAQUETES ---
   environment.systemPackages = with pkgs; [
     intel-gpu-tools 
+    libva-utils # vainfo para comprobar la ruta de vídeo
     lm_sensors
     ncdu
     tmux

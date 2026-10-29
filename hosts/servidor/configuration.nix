@@ -23,6 +23,18 @@
   networking.networkmanager.enable = true;
   networking.hostName = "atlas";
 
+  # Prioriza los servicios Docker permanentes frente a compilaciones del sistema.
+  nix.settings = {
+    max-jobs = 3;
+    cores = 2;
+  };
+
+  # Docker usa journald como backend; limita el espacio de los registros persistentes.
+  services.journald.extraConfig = ''
+    SystemMaxUse=1G
+    MaxRetentionSec=2week
+  '';
+
   # Red privada con el resto de máquinas (interfaz wt0).
   services.netbird.enable = true;
 
@@ -212,10 +224,6 @@ systemd.services.docker-arcane-postgres = {
       intel-media-driver
       vpl-gpu-rt
       intel-compute-runtime
-      mesa
-      linux-firmware
-      vulkan-loader
-      vulkan-tools
     ];
   };
 
@@ -246,6 +254,7 @@ systemd.services.docker-arcane-postgres = {
   environment.systemPackages = with pkgs; [
     vim htop ncdu iotop ethtool smartmontools pass gnupg docker-credential-helpers
     intel-gpu-tools # intel_gpu_top: verificar QSV/iGPU en jellyfin/immich
+    libva-utils # vainfo: comprobar VA-API antes de probar una transcodificación
     lazydocker # gestión TUI de los ~70 contenedores
   ];
 

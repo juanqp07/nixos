@@ -124,7 +124,7 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 
 ## ✅ Validación automática
 
-GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts en cada pull request y en los cambios que llegan a `main`. Es una comprobación de evaluación de Nix; no sustituye la compilación completa ni las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
+GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts y ejecuta `nix flake check --no-build --show-trace` en cada pull request y en los cambios que llegan a `main`. Son comprobaciones de evaluación; no sustituyen la compilación completa ni las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
 
