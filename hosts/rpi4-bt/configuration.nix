@@ -79,11 +79,11 @@
   # ------------------------------------------------------------
 
   # Logs en RAM para reducir escrituras sobre la microSD.
-  services.journald.settings.Journal = {
-    Storage = "volatile";
-    RuntimeMaxUse = "64M";
-    RuntimeKeepFree = "100M";
-  };
+  services.journald.extraConfig = ''
+    Storage=volatile
+    RuntimeMaxUse=64M
+    RuntimeKeepFree=100M
+  '';
 
   # ------------------------------------------------------------
   # NIX
