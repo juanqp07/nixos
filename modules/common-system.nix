@@ -40,14 +40,6 @@
   # ESTABILIDAD
   # ============================================================
 
-  # Límites explícitos para que el journal no crezca sin control.
-  # Palco conserva su almacenamiento volátil y sus límites más estrictos.
-  services.journald.settings.Journal = {
-    SystemMaxUse = lib.mkDefault "512M";
-    RuntimeMaxUse = lib.mkDefault "128M";
-    MaxRetentionSec = lib.mkDefault "2week";
-  };
-
   services.earlyoom = {
     enable = true;
     freeMemThreshold = 5;
