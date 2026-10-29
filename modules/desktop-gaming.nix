@@ -24,6 +24,10 @@
 
   services.netbird.enable = true;
 
+  # NetBird/WARP pueden crear rutas asimétricas o túneles; el modo loose
+  # mantiene la validación de origen sin exigir que la respuesta use la misma interfaz.
+  networking.firewall.checkReversePath = "loose";
+
   # SSH sigue disponible para administración remota, pero limitamos los
   # intentos fallidos y la duración de las sesiones de autenticación.
   services.fail2ban = {
