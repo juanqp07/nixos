@@ -7,6 +7,13 @@
 
   networking.hostName = "elytra";
 
+  # Limita compilaciones simultáneas para no agotar los 16 GiB al construir
+  # cierres grandes; permite paralelismo sin monopolizar el equipo portátil.
+  nix.settings = {
+    max-jobs = 4;
+    cores = 2;
+  };
+
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
 
