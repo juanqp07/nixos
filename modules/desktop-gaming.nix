@@ -34,6 +34,31 @@
     };
   };
 
+  # NetBird/WARP pueden crear rutas asimétricas; mantenemos validación de origen
+  # sin exigir que cada paquete vuelva por la misma interfaz.
+  networking.firewall.checkReversePath = "loose";
+
+  # SSH permanece habilitado para administración remota; bloquea intentos repetidos.
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    bantime = "1h";
+    jails.sshd = {
+      enabled = true;
+      filter = "sshd[mode=aggressive]";
+      settings = {
+        maxretry = 5;
+        findtime = "10m";
+      };
+    };
+  };
+
+  # Evita que los registros de escritorio ocupen disco sin límite.
+  services.journald.settings.Journal = {
+    SystemMaxUse = "512M";
+    MaxRetentionSec = "2week";
+  };
+
   # ============================================================
   # COMPATIBILIDAD CON CLINE CLI EN NIXOS
   # ============================================================
