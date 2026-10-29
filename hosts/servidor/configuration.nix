@@ -23,6 +23,13 @@
   networking.networkmanager.enable = true;
   networking.hostName = "atlas";
 
+  # Docker usa journald como backend; limita el espacio que pueden consumir
+  # los registros persistentes sin perder la información reciente.
+  services.journald.settings.Journal = {
+    SystemMaxUse = "1G";
+    MaxRetentionSec = "2week";
+  };
+
   # Prioriza los servicios 24/7 sobre compilaciones del sistema en el servidor.
   nix.settings = {
     max-jobs = 3;
