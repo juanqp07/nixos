@@ -96,7 +96,7 @@ Fuentes: [AMD P-State, documentación del kernel](https://www.kernel.org/doc/htm
 - La dependencia de Docker con `/mnt/datos` protege los bind mounts de datos cuando el disco no está montado.
 - El límite lógico de ZRAM configurado para este servidor no reserva toda esa RAM de forma inmediata. Aun así, hay que mirar `zramctl`, `free -h` y la carga de contenedores antes de aumentarlo o reducirlo.
 - Las actualizaciones preparan una generación usando la configuración y el `flake.lock` presentes en el checkout local. No descargan por sí mismas una nueva revisión del lockfile: para recibir actualizaciones de paquetes, hay que actualizar/revisar el lockfile y sincronizar el repositorio local del servidor.
-- La configuración actual declara `/mnt/datos`, pero no incluye una entrada para `/discoe`, aunque ese montaje se ha usado para datos de juegos. No se inventa una UUID: comprobar en Atlas `findmnt /discoe` y `lsblk -f`; si ese disco debe montarse automáticamente, declarar el UUID y tipo de FS reales en `hosts/servidor/configuration.nix`.
+- El único montaje de datos persistentes declarado para Atlas es `/mnt/datos`. No hay otro punto de montaje de datos pendiente de configurar; no se deben añadir entradas de almacenamiento que no correspondan a un dispositivo real.
 
 Fuentes: [Intel Graphics en NixOS](https://wiki.nixos.org/wiki/Intel_Graphics), [actualizaciones automáticas de NixOS](https://wiki.nixos.org/wiki/Automatic_system_upgrades), [restricciones de recursos de Docker](https://docs.docker.com/engine/containers/resource_constraints).
 
@@ -148,13 +148,13 @@ La prioridad es mantener cambios medibles, reversibles y específicos de cada us
 
 ## Resultados de diagnóstico en Atlas y Pico (29 de octubre de 2026)
 
-Se han revisado informes de ejecución real de ambos hosts. No deben confundirse con una prueba de rendimiento completa: en los dos casos `stress-ng` no estaba disponible para el script y las pruebas de CPU/RAM se omitieron.
+Los informes iniciales de ambos hosts no incluían pruebas de carga. Posteriormente se añadieron las pruebas dedicadas de tres minutos documentadas en la sección «Resultados de las pruebas stress-ng».
 
 ### Atlas
 
 - El sistema reporta 31 GiB de RAM y unos 21–23 GiB disponibles, ZRAM prácticamente sin uso, cero unidades de systemd fallidas y estado SMART `PASSED` en el NVMe y el SSD SATA detectados.
 - `vainfo` inicializa el controlador Intel `iHD` y enumera perfiles de vídeo. Esto confirma la ruta VA-API en el host, pero no una transcodificación real: el diagnóstico no encontró ningún contenedor cuyo nombre contuviera `jellyfin`.
-- `/discoe` no existe y el segundo enlace SATA está caído. No se agrega el montaje a NixOS sin confirmar que el disco esté físicamente presente y comprobar su UUID real.
+- El único montaje de datos de Atlas es `/mnt/datos`, correspondiente al SSD SATA detectado. El informe también registró el segundo enlace SATA sin conexión; por sí solo, eso no indica un fallo ni exige configurar otro montaje.
 - El contenedor `kigo-grafana` estaba usando aproximadamente 244 MiB de un límite de 256 MiB (95 %). Revisar su compose/stack por separado y considerar aumentar el límite si el uso se mantiene alto; esta definición no está en la configuración del host inspeccionada.
 - El contenedor `stepdaddylivehd` registró un rechazo de redirección a una IP interna por la protección SSRF de `curl_cffi`. No se recomienda desactivar la protección; hay que revisar la URL/redirección que recibe la aplicación.
 - CrowdSec informó que no encontraba algunos patrones de registros de adquisición, entre ellos el patrón configurado para Zoraxy. Comprobar rutas y montajes de logs en el stack antes de cambiar CrowdSec.
@@ -171,7 +171,7 @@ Se han revisado informes de ejecución real de ambos hosts. No deben confundirse
 ### Próximas validaciones pendientes
 
 1. Ejecutar las pruebas de CPU y RAM con `stress-ng` disponible en el entorno de ejecución; el informe actual no contiene resultados de carga.
-2. En Atlas, confirmar si el disco que debería alojar `/discoe` sigue conectado y medir temperaturas con `sensors`.
+2. En Atlas, revisar temperaturas con `sensors` y confirmar que `/mnt/datos` está montado correctamente.
 3. En Atlas, verificar en el stack correcto qué contenedor realiza la transcodificación y observar actividad de Intel GPU durante una transcodificación real.
 4. Después del reinicio de Pico, comprobar el estado RFDS desde `/sys/devices/system/cpu/vulnerabilities/reg_file_data_sampling`.
 
@@ -196,5 +196,5 @@ Pruebas de tres minutos en cada host, CPU y memoria por separado. Son verificaci
 
 ### Conclusión y próximos pasos
 
-Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las prioridades siguen siendo investigar el disco ausente `/discoe`, evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, verificar el estado de microcódigo tras desplegar la corrección.
+Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las siguientes tareas útiles son evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, verificar el estado de microcódigo después de actualizar y reiniciar.
 
