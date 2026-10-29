@@ -148,32 +148,48 @@
   environment.systemPackages =
     with pkgs;
     [
+      # Git y red
       git
-      wget
       curl
+      wget
+      rsync
+      dnsutils
+      openssl
+      mtr
+  
+      # Terminal y monitorización
       vim
+      fish
       btop
-      htop
       fastfetch
+      tmux
+  
+      # Archivos y búsqueda
+      ripgrep
+      fd
+      fzf
+      bat
+      tree
+      jq
+      file
+      ncdu
+  
+      # Administración y hardware
+      lsof
       pciutils
       lshw
       usbutils
-      dnsutils
-      openssl
+      lm_sensors
+  
+      # NixOS
+      nvd
+      nix-output-monitor
+  
+      # Diagnóstico y archivos comprimidos
+      stress-ng
       zip
       unzip
-      fish
-      ripgrep
-      fd
-      jq
-      bat
-      tree
-      direnv
-      lynis
-      nvd
-      stress-ng
     ]
-    # rar/unrar solo existen para x86_64-linux; en la Pi se usa unzip.
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
       rar
       unrar
