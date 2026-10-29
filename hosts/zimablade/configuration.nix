@@ -32,6 +32,12 @@
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "pico";
 
+  # Evita que el Celeron y la memoria limitada compitan con los contenedores.
+  nix.settings = {
+    max-jobs = 1;
+    cores = 1;
+  };
+
   # Red privada con el resto de máquinas (interfaz wt0).
   services.netbird.enable = true;
 
