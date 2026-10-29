@@ -126,6 +126,8 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 
 GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts en cada pull request y en los cambios que llegan a `main`. Es una comprobación de evaluación de Nix; no sustituye la compilación completa ni las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
 
+La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
+
 ## ⚠️ Notas de configuración
 * **Git y Flakes**: los archivos nuevos deben estar añadidos a Git para que un flake basado en Git pueda verlos. Añade solo los archivos necesarios (por ejemplo, `git add modules/nuevo-modulo.nix`); los alias `nix-up` y `nix-update` no deben preparar automáticamente todos tus cambios.
 * **NVIDIA**: `elytra` usa una RTX 5050 con PRIME offload; comprueba los controladores y el kernel en el hardware real antes de cambiar de rama.

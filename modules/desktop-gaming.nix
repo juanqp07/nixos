@@ -470,11 +470,8 @@
     # Se fuerza 1048576 para Proton y aplicaciones exigentes.
     "vm.max_map_count" = lib.mkForce 1048576;
 
-    # Con zram, swappiness alto es lo recomendado (el kernel admite hasta 200);
-    # mkForce porque common-system.nix lo deja en 10.
-    "vm.swappiness" = lib.mkForce 180;
-
-    "vm.page-cluster" = 0;
+    # vm.swappiness y vm.page-cluster se definen en el módulo común,
+    # ya que ambos equipos utilizan zram.
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
@@ -504,7 +501,13 @@
       "net.waterfox.waterfox"
     ];
 
-    update.onActivation = true;
+    # No hacer descargas durante cada nixos-rebuild switch: las activaciones
+    # siguen siendo previsibles y pueden funcionar sin conexión.
+    update.onActivation = false;
+    update.auto = {
+      enable = true;
+      onCalendar = "weekly";
+    };
 
     # No desinstala aplicaciones instaladas manualmente.
     uninstallUnmanaged = false;

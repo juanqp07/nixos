@@ -6,11 +6,10 @@
   networking.hostName = "titan";
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # mitigations=off: +5-15% en juegos en Ryzen. Solo máquina personal,
-  # nunca en servidores expuestos. Asumes riesgo Spectre/Meltdown.
-  # amd_pstate activo (mejor que acpi-cpufreq en Zen 2/3 con kernel latest).
+  # Mantener mitigaciones de CPU activadas: el aumento de rendimiento al
+  # desactivarlas depende de la carga y no justifica asumirlo sin benchmarks.
+  # amd_pstate activo usa el control CPPC/EPP de Ryzen cuando el firmware lo soporta.
   boot.kernelParams = [
-    "mitigations=off"
     "amd_pstate=active"
   ];
 

@@ -34,9 +34,8 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # mitigations=off: +5-15% en juegos en CPU Intel. Solo máquina personal,
-  # nunca en servidores expuestos. Asumes riesgo Spectre/Meltdown.
-  boot.kernelParams = [ "mitigations=off" ];
+  # Se conservan las mitigaciones de vulnerabilidades de CPU del kernel.
+  # Desactivarlas no garantiza más FPS y reduce la protección frente a ciertos ataques.
 
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
@@ -64,7 +63,8 @@
 
     nvidiaSettings = true;
 
-    # NVIDIA Production Branch
+    # Para gaming/hardware reciente: selector latest (elige la más nueva entre
+    # production y new_feature en nixpkgs; no significa exclusivamente production).
     branch = "latest";
 
     powerManagement = {

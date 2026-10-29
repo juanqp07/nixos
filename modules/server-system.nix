@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ ... }:
 
 {
   # ============================================================
@@ -30,10 +30,7 @@
     # Tiempo antes de reiniciar después de kernel panic.
     "kernel.panic" = 10;
 
-    # Con zram el swap es memoria comprimida (barato): swappiness 100 y sin readahead de swap.
-    # mkForce porque common-system.nix lo deja en 10.
-    "vm.swappiness" = lib.mkForce 100;
-    "vm.page-cluster" = 0;
+    # La política de zram (swappiness y page-cluster) está en common-system.nix.
 
     # SysRq disponible para recuperación manual.
     "kernel.sysrq" = 1;

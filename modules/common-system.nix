@@ -42,7 +42,11 @@
     # --- Memoria y Ficheros ---
     "fs.file-max" = 2097152;
     "fs.nr_open" = 1048576;
-    "vm.swappiness" = 10;
+    # Todos los hosts de este flake usan zram. 100 trata la memoria comprimida
+    # y la caché de archivos con coste relativo equivalente; afinarlo más exige medir.
+    "vm.swappiness" = 100;
+    # No hacer read-ahead de páginas de swap: zram no es un disco secuencial.
+    "vm.page-cluster" = 0;
     "vm.max_map_count" = 262144;
 
     # --- Conexiones ---
