@@ -7,6 +7,12 @@
 
   networking.hostName = "elytra";
 
+  # El portátil tiene 16 GiB; limita la memoria y el impacto interactivo durante compilaciones.
+  nix.settings = {
+    max-jobs = 4;
+    cores = 2;
+  };
+
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
 
