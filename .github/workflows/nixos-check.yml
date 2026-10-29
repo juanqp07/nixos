@@ -42,10 +42,10 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Check formatting
+      - name: Check flake outputs
         if: matrix.host == 'titan'
         run: |
-          nix fmt -- --check
+          nix flake check --no-build --show-trace
 
       - name: Evaluate system closure
         run: |
