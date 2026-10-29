@@ -87,7 +87,9 @@
   services.displayManager.sddm = {
     enable = true;
     theme = "breeze";
-    wayland.enable = true;
+    # RustDesk estándar no captura el greeter bajo Wayland. Esto afecta solo
+    # a SDDM; la sesión de Plasma puede seguir usando Wayland.
+    wayland.enable = lib.mkForce false;
   };
 
   services.desktopManager.plasma6.enable = true;
