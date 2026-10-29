@@ -145,3 +145,33 @@ Fuente: [documentación de sysctl de red del kernel](https://docs.kernel.org/net
 - **todos:** el workflow de GitHub Actions evalúa los cinco sistemas y ejecuta `nix flake check --no-build`, pero no construye toda la imagen ni sustituye las pruebas en cada máquina.
 
 La prioridad es mantener cambios medibles, reversibles y específicos de cada uso, no acumular parámetros que parecen rápidos pero carecen de evidencia sobre este hardware.
+
+## Resultados de diagnóstico en Atlas y Pico (29 de octubre de 2026)
+
+Se han revisado informes de ejecución real de ambos hosts. No deben confundirse con una prueba de rendimiento completa: en los dos casos `stress-ng` no estaba disponible para el script y las pruebas de CPU/RAM se omitieron.
+
+### Atlas
+
+- El sistema reporta 31 GiB de RAM y unos 21–23 GiB disponibles, ZRAM prácticamente sin uso, cero unidades de systemd fallidas y estado SMART `PASSED` en el NVMe y el SSD SATA detectados.
+- `vainfo` inicializa el controlador Intel `iHD` y enumera perfiles de vídeo. Esto confirma la ruta VA-API en el host, pero no una transcodificación real: el diagnóstico no encontró ningún contenedor cuyo nombre contuviera `jellyfin`.
+- `/discoe` no existe y el segundo enlace SATA está caído. No se agrega el montaje a NixOS sin confirmar que el disco esté físicamente presente y comprobar su UUID real.
+- El contenedor `kigo-grafana` estaba usando aproximadamente 244 MiB de un límite de 256 MiB (95 %). Revisar su compose/stack por separado y considerar aumentar el límite si el uso se mantiene alto; esta definición no está en la configuración del host inspeccionada.
+- El contenedor `stepdaddylivehd` registró un rechazo de redirección a una IP interna por la protección SSRF de `curl_cffi`. No se recomienda desactivar la protección; hay que revisar la URL/redirección que recibe la aplicación.
+- CrowdSec informó que no encontraba algunos patrones de registros de adquisición, entre ellos el patrón configurado para Zoraxy. Comprobar rutas y montajes de logs en el stack antes de cambiar CrowdSec.
+- Se añade `lm_sensors` a los paquetes del sistema para que el siguiente informe pueda recoger temperaturas con `sensors`.
+
+### Pico
+
+- El host mostró 14 GiB de memoria disponibles, sin uso de swap/ZRAM, seis contenedores en ejecución, cero unidades de systemd fallidas y sin errores de E/S ni de EXT4 coincidentes con los filtros del diagnóstico.
+- La raíz eMMC tiene aproximadamente 8,3 GiB libres (69 % usado). Mantener la poda semanal de Docker y la recolección Nix semanal; revisar espacio si se acerca al 80 %, en vez de borrar datos automáticamente sin inspección.
+- La temperatura de CPU leída en el momento del informe rondaba 52–53 °C. Es una única lectura cercana al arranque, no una prueba térmica bajo carga.
+- `lscpu` reportó `Reg file data sampling: Vulnerable: No microcode` para el Celeron N3450. Se habilita explícitamente `hardware.cpu.intel.updateMicrocode` para cargar el microcódigo Intel en el initrd. Después de desplegar y reiniciar, verificar `cat /sys/devices/system/cpu/vulnerabilities/reg_file_data_sampling`; si sigue indicando falta de microcódigo, revisar la versión de BIOS/firmware y el microcódigo disponible para esta plataforma.
+- Los avisos `ee1004` y `EDAC pnd2` aparecen en el arranque, pero el informe no muestra evidencia suficiente para atribuirles un fallo funcional. Se conservan sin añadir parámetros de kernel especulativos.
+
+### Próximas validaciones pendientes
+
+1. Ejecutar las pruebas de CPU y RAM con `stress-ng` disponible en el entorno de ejecución; el informe actual no contiene resultados de carga.
+2. En Atlas, confirmar si el disco que debería alojar `/discoe` sigue conectado y medir temperaturas con `sensors`.
+3. En Atlas, verificar en el stack correcto qué contenedor realiza la transcodificación y observar actividad de Intel GPU durante una transcodificación real.
+4. Después del reinicio de Pico, comprobar el estado RFDS desde `/sys/devices/system/cpu/vulnerabilities/reg_file_data_sampling`.
+
