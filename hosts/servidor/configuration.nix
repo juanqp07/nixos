@@ -224,10 +224,6 @@ systemd.services.docker-arcane-postgres = {
       intel-media-driver
       vpl-gpu-rt
       intel-compute-runtime
-      mesa
-      linux-firmware
-      vulkan-loader
-      vulkan-tools
     ];
   };
 
@@ -258,6 +254,7 @@ systemd.services.docker-arcane-postgres = {
   environment.systemPackages = with pkgs; [
     vim htop ncdu iotop ethtool smartmontools pass gnupg docker-credential-helpers
     intel-gpu-tools # intel_gpu_top: verificar QSV/iGPU en jellyfin/immich
+    libva-utils # vainfo: comprobar VA-API antes de probar una transcodificación
     lazydocker # gestión TUI de los ~70 contenedores
   ];
 
