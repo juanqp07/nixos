@@ -175,3 +175,26 @@ Se han revisado informes de ejecución real de ambos hosts. No deben confundirse
 3. En Atlas, verificar en el stack correcto qué contenedor realiza la transcodificación y observar actividad de Intel GPU durante una transcodificación real.
 4. Después del reinicio de Pico, comprobar el estado RFDS desde `/sys/devices/system/cpu/vulnerabilities/reg_file_data_sampling`.
 
+## Resultados de las pruebas stress-ng (29 de octubre de 2026)
+
+Pruebas de tres minutos en cada host, CPU y memoria por separado. Son verificaciones iniciales de estabilidad, no comparativas de rendimiento entre configuraciones.
+
+### Atlas
+
+- CPU: `stress-ng --cpu 4 --timeout 180s --metrics-brief`; 4 trabajadores, 1.214.422 operaciones reportadas, 6.746,76 ops/s en tiempo real, 0 fallos y métricas consideradas fiables por stress-ng. Pico observado de `x86_pkg_temp`: 79 °C durante la prueba.
+- Memoria: `stress-ng --vm 1 --vm-bytes 25% --timeout 180s --metrics-brief`; aproximadamente 3,62 GiB de memoria de prueba, 21.165.957 operaciones, 117.365,41 ops/s, 0 fallos y métricas fiables. Pico observado en el registro de temperatura: 90 °C; al terminar la prueba el sensor marcaba 66 °C.
+- Después de ambas pruebas había aproximadamente 22 GiB de RAM disponibles, zram prácticamente sin uso y los contenedores seguían en ejecución. Grafana continuaba alrededor del 95,5 % de su límite de 256 MiB.
+- Intel publica para el i5-1250P un Tjunction de 100 °C. El pico de 90 °C no equivale por sí solo a una avería ni demuestra throttling; sí deja menos margen térmico de lo deseable para asumir que toda carga sostenida será igual. Por ahora no se cambia gobernador, ventilación ni límites de potencia. Si este host trabaja de forma habitual bajo carga alta, repetir una sesión más larga mientras se registra frecuencia, temperatura y cualquier indicador de throttling.
+- Referencia de temperatura: [especificaciones oficiales Intel Core i5-1250P](https://www.intel.com/content/www/us/en/products/sku/226256/intel-core-i51250p-processor-12m-cache-up-to-4-40-ghz/specifications.html) y [explicación de Intel sobre Tjunction](https://www.intel.com/content/www/us/en/support/articles/000005597/processors.html).
+
+### Pico
+
+- CPU: `stress-ng --cpu 2 --timeout 180s --metrics-brief`; 2 trabajadores, 245.749 operaciones, 1.365,27 ops/s en tiempo real, 0 fallos y métricas fiables. Temperatura máxima observada aproximada: 57 °C.
+- Memoria: `stress-ng --vm 1 --vm-bytes 15% --timeout 180s --metrics-brief`; aproximadamente 2 GiB de memoria de prueba, 8.225.288 operaciones, 44.596,24 ops/s, 0 fallos y métricas fiables. Temperatura máxima observada aproximada: 57 °C.
+- Al finalizar seguían disponibles unos 14 GiB de RAM, sin uso apreciable de zram, y los seis contenedores del host seguían activos. No hay motivo basado en estas pruebas para aumentar la presión de carga en este Celeron.
+- El informe todavía muestra `Reg file data sampling: Vulnerable: No microcode`. La opción propuesta de actualización de microcódigo debe verificarse después de desplegar y reiniciar; el informe se generó antes de aplicar ese cambio.
+
+### Conclusión y próximos pasos
+
+Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las prioridades siguen siendo investigar el disco ausente `/discoe`, evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, verificar el estado de microcódigo tras desplegar la corrección.
+
