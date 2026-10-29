@@ -264,26 +264,15 @@
   # ============================================================
 
   environment.systemPackages = with pkgs; [
-    openvpn telegram-desktop
-    vesktop discord
-    onlyoffice-desktopeditors kdePackages.kate gedit vscode
-    vlc mpv yt-dlp ffmpeg
-    prismlauncher
-    distrobox lazydocker
-    kdePackages.xdg-desktop-portal-kde wl-clipboard
-    protonplus supersonic
-    antigravity-ide
-    kdePackages.kcalc
-    heroic rustdesk-flutter
-    lm_sensors
-    jetbrains.idea
-    feishin
-    lmstudio
-
-    # Navegadores.
+    # Comunicación, navegación y acceso remoto.
+    openvpn
+    telegram-desktop
+    vesktop
+    discord
     google-chrome
+    rustdesk-flutter
 
-    # Ofimática y edición.
+    # Ofimática e idiomas.
     onlyoffice-desktopeditors
     libreoffice
     hunspell
@@ -292,25 +281,25 @@
 
     # KDE y utilidades de escritorio.
     kdePackages.kate
+    gedit
     kdePackages.kcalc
     kdePackages.filelight
     kdePackages.partitionmanager
     kdePackages.xdg-desktop-portal-kde
     wl-clipboard
     libnotify
-    lm_sensors
 
-    # Multimedia.
+    # Audio, vídeo y multimedia.
     vlc
     mpv
     yt-dlp
     ffmpeg
-    supersonic
-    feishin
     streamlink
     gopeed
-    impression
+    supersonic
+    feishin
     musicpresence
+    impression
 
     # Gaming.
     prismlauncher
@@ -323,38 +312,33 @@
     protonup-qt
     protontricks
 
-    # Contenedores.
-    distrobox
-    lazydocker
-
-    # Desarrollo.
+    # Desarrollo y herramientas CLI.
     vscode
     antigravity-ide
     jetbrains.idea
     opencode
+    lmstudio
     bun
     android-tools
     bashInteractive
     go
     nodejs_24
-
-    # Android Studio se mantiene en Flatpak.
-    # Se evita descargar el tarball durante nixos-rebuild.
-
-    # Gestión de AppImage y utilidades.
-    gearlever
-    appimage-run
-
-    # Hardware y dispositivos.
-    openrgb-with-all-plugins
-    rpi-imager
-
-    # Compilación de Rust.
     rustc
     cargo
     rustfmt
     clippy
     stdenv.cc
+
+    # Contenedores y gestión de AppImage.
+    distrobox
+    lazydocker
+    gearlever
+    appimage-run
+
+    # Hardware, monitorización y dispositivos.
+    lm_sensors
+    openrgb-with-all-plugins
+    rpi-imager
   ];
 
 
