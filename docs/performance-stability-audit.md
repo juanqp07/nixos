@@ -18,11 +18,17 @@ El objetivo es limitar el impacto de las compilaciones locales en el escritorio,
 ### Autenticación SSH y límites de registros
 
 - SSH conserva la autenticación por contraseña para no arriesgar el acceso remoto antes de configurar y probar claves en todas las máquinas. Se limita a tres intentos por conexión y 30 segundos para completar la autenticación; root sigue sin poder iniciar sesión directamente.
-- Los escritorios incorporan Fail2ban para el jail SSH, ya que SSH está habilitado para administración remota.
+- Los escritorios incorporan Fail2ban para el jail SSH, ya que SSH está habilitado para administración remota. La autenticación por contraseña sigue habilitada conscientemente hasta verificar claves y acceso de recuperación en todas las máquinas.
 - Los registros persistentes tienen límites específicos: escritorios 512 MiB / 2 semanas, `atlas` 1 GiB / 2 semanas, `pico` 256 MiB / 1 semana. `palco` conserva journal volátil de 64 MiB para reducir escrituras en la microSD.
 - `pico` activa TRIM periódico, si el dispositivo de almacenamiento lo soporta.
 
 Estos límites impiden que los registros ocupen el disco de forma indefinida, pero las cuotas deben revisarse si una incidencia necesita más retención histórica.
+
+### Filtrado de ruta inversa y VPN
+
+La configuración común deja de imponer `rp_filter=1` en todas las interfaces. En su lugar, el firewall fija el modo por host: `atlas` y `pico` ya usan `checkReversePath = "loose"`, y el módulo de escritorio lo aplica a `elytra` y `titan`, que usan NetBird/WARP. `palco`, sin overlay VPN, conserva el valor predeterminado de NixOS.
+
+El modo estricto valida que el camino de respuesta use la misma interfaz; el modo loose mantiene la comprobación de que la dirección de origen sea alcanzable por alguna interfaz. El kernel recomienda loose para rutas asimétricas o configuraciones de red complejas, a cambio de una comprobación antispoofing menos estricta. Referencias: [documentación del kernel](https://docs.kernel.org/networking/ip-sysctl.html) y [opción de firewall de NixOS](https://nixos.org/manual/nixos/unstable/options.html#opt-networking.firewall.checkReversePath).
 
 
 ### Política común de memoria con zram
@@ -89,6 +95,7 @@ Fuentes: [AMD P-State, documentación del kernel](https://www.kernel.org/doc/htm
 - La dependencia de Docker con `/mnt/datos` protege los bind mounts de datos cuando el disco no está montado.
 - El límite lógico de ZRAM configurado para este servidor no reserva toda esa RAM de forma inmediata. Aun así, hay que mirar `zramctl`, `free -h` y la carga de contenedores antes de aumentarlo o reducirlo.
 - Las actualizaciones preparan una generación usando la configuración y el `flake.lock` presentes en el checkout local. No descargan por sí mismas una nueva revisión del lockfile: para recibir actualizaciones de paquetes, hay que actualizar/revisar el lockfile y sincronizar el repositorio local del servidor.
+- La configuración declara `/mnt/datos`, pero no declara el volumen que se ha venido usando como `/discoe`. No se añade una entrada inventando UUID: en Atlas hay que comprobar la fuente real con `findmnt /discoe` y `lsblk -f`, y después declarar su UUID/tipo de sistema de archivos si procede. Hasta entonces, esa unidad depende de montaje manual u otra configuración fuera de este flake.
 
 Fuentes: [Intel Graphics en NixOS](https://wiki.nixos.org/wiki/Intel_Graphics), [actualizaciones automáticas de NixOS](https://wiki.nixos.org/wiki/Automatic_system_upgrades), [restricciones de recursos de Docker](https://docs.docker.com/engine/containers/resource_constraints).
 
