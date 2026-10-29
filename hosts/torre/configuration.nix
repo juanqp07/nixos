@@ -4,6 +4,12 @@
 
   imports = [ ./hardware-configuration.nix ];
   networking.hostName = "titan";
+
+  # La torre tiene 32 GiB y más margen térmico: mayor paralelismo al compilar.
+  nix.settings = {
+    max-jobs = 6;
+    cores = 2;
+  };
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Mantener mitigaciones de CPU activadas: el aumento de rendimiento al
