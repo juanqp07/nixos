@@ -125,11 +125,11 @@ Fuentes: [PipeWire en NixOS, operación headless y latencia](https://wiki.nixos.
 
 ### Red: CAKE, BBR y buffers TCP
 
-El módulo común conserva los ajustes de red ya existentes en esta revisión, no porque se haya demostrado que sean óptimos, sino porque su efecto depende de la ruta, el router y la carga. CAKE sin límite de ancho de banda configurado no hace shaping al ritmo real del cuello de botella de la conexión. Para mejorar bufferbloat de forma efectiva, la disciplina y la tasa de shaping deben elegirse en el dispositivo que forma el cuello de botella (habitualmente el router) o validarse con pruebas de latencia bajo carga.
+La PR retira del perfil común los ajustes globales de rendimiento de red (`cake`, `bbr`, buffers TCP elevados, `tcp_fastopen` y colas de conexiones) porque no había medidas de la conexión que demostraran que beneficiaran a estos cinco hosts. Los valores por defecto del kernel son una base más predecible que imponer una política común a un portátil con VPN, una torre gaming, servidores Docker y una Pi de audio.
 
-No es correcto afirmar que BBR, CAKE, buffers de 16 MiB o una cola concreta mejoren por sí solos el ping de los juegos y el streaming en todas las redes.
+Esto no significa que CAKE o BBR sean malos: para reducir bufferbloat, la disciplina y la tasa de shaping deben elegirse donde está el cuello de botella (habitualmente el router) o validarse con pruebas de latencia bajo carga. No es correcto afirmar que BBR, CAKE o buffers de 16 MiB mejoren por sí solos el ping de juegos y streaming en todas las redes.
 
-Fuente: [documentación de sysctl de red del kernel](https://docs.kernel.org/admin-guide/sysctl/net.html).
+La validación de ruta inversa se define por host, en vez de forzar strict globalmente: el kernel recomienda loose cuando existe enrutamiento asimétrico o complejo, algo que puede aparecer con túneles VPN. Fuente: [documentación de sysctl de red del kernel](https://docs.kernel.org/networking/ip-sysctl.html).
 
 ### Kernel y scheduler en gaming
 
