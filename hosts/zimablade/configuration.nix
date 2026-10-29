@@ -9,6 +9,10 @@
   # NOTA: sin i915.enable_guc (Apollo Lake no tiene GuC/HuC, daba errores en dmesg).
   boot.kernelPackages = pkgs.linuxPackages;
 
+  # El diagnostico informa RFDS como vulnerable por falta de microcodigo.
+  # Cargar el microcodigo Intel durante el arranque; verificar tras reiniciar.
+  hardware.cpu.intel.updateMicrocode = true;
+
   zramSwap = {
     enable = true;
     algorithm = "lz4"; # más ligero que zstd para el Celeron
