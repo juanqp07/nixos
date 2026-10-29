@@ -158,6 +158,13 @@
 
   networking.hostName = "palco";
 
+  # Las imágenes se construyen principalmente desde Titan; limita el trabajo
+  # local si se ejecuta Nix en la Pi para no perjudicar la reproducción de audio.
+  nix.settings = {
+    max-jobs = 1;
+    cores = 1;
+  };
+
   networking.networkmanager.enable = true;
 
   # Evita que Wi-Fi entre en powersave.
