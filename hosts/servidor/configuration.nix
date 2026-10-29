@@ -29,6 +29,12 @@
     cores = 2;
   };
 
+  # Docker usa journald como backend; limita el espacio de los registros persistentes.
+  services.journald.settings.Journal = {
+    SystemMaxUse = "1G";
+    MaxRetentionSec = "2week";
+  };
+
   # Red privada con el resto de máquinas (interfaz wt0).
   services.netbird.enable = true;
 
