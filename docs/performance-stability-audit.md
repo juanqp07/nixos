@@ -1,9 +1,29 @@
 # Auditoría de rendimiento y estabilidad por host
 
-**Revisión:** 28 de octubre de 2026  
+**Revisión:** 29 de octubre de 2026  
 **Alcance:** revisión estática del flake y de sus cinco hosts. No se ha accedido a las máquinas en ejecución ni se han medido FPS, latencias, consumo, temperaturas, transcodificación o cortes de audio. Por eso este documento separa los ajustes respaldados por documentación de los que necesitan una prueba física.
 
 ## Cambios aplicados en esta revisión
+
+### Límites de construcción por host
+
+Se establecen límites del daemon de Nix según el hardware y el uso:
+- `elytra`: `max-jobs = 4`, `cores = 2`.
+- `titan`: `max-jobs = 6`, `cores = 2`.
+- `atlas`: `max-jobs = 3`, `cores = 2`.
+- `pico` y `palco`: `max-jobs = 1`, `cores = 1`.
+
+El objetivo es limitar el impacto de las compilaciones locales en el escritorio, los servicios del servidor y la reproducción de audio de la Pi. No son cifras universales de rendimiento: si se construyen grandes cierres de forma habitual, pueden ajustarse según memoria libre, temperatura y duración real de los builds.
+
+### Autenticación SSH y límites de registros
+
+- SSH conserva la autenticación por contraseña para no arriesgar el acceso remoto antes de configurar y probar claves en todas las máquinas. Se limita a tres intentos por conexión y 30 segundos para completar la autenticación; root sigue sin poder iniciar sesión directamente.
+- Los escritorios incorporan Fail2ban para el jail SSH, ya que SSH está habilitado para administración remota.
+- Los registros persistentes tienen límites específicos: escritorios 512 MiB / 2 semanas, `atlas` 1 GiB / 2 semanas, `pico` 256 MiB / 1 semana. `palco` conserva journal volátil de 64 MiB para reducir escrituras en la microSD.
+- `pico` activa TRIM periódico, si el dispositivo de almacenamiento lo soporta.
+
+Estos límites impiden que los registros ocupen el disco de forma indefinida, pero las cuotas deben revisarse si una incidencia necesita más retención histórica.
+
 
 ### Política común de memoria con zram
 
