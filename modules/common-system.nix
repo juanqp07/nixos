@@ -99,6 +99,8 @@
   # que puedan perderse. Root no debe autenticarse directamente por SSH.
   services.openssh.settings.PasswordAuthentication = lib.mkDefault true;
   services.openssh.settings.PermitRootLogin = lib.mkDefault "no";
+  services.openssh.settings.MaxAuthTries = lib.mkDefault 3;
+  services.openssh.settings.LoginGraceTime = lib.mkDefault "30s";
 
   # direnv + nix-direnv: activa devShells al hacer `cd` (sin esto el
   # paquete direnv solo no integra el shell).
