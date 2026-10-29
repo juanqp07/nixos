@@ -7,6 +7,11 @@
 
   networking.hostName = "elytra";
 
+  # RustDesk puede acceder al greeter de login usando X11; la captura de la
+  # pantalla de login con Wayland no está soportada por el cliente estándar.
+  # Esto solo cambia SDDM: Plasma puede seguir iniciando una sesión Wayland.
+  services.displayManager.sddm.wayland.enable = lib.mkForce false;
+
   # El portátil tiene 16 GiB; limita la memoria y el impacto interactivo durante compilaciones.
   nix.settings = {
     max-jobs = 4;
