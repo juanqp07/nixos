@@ -38,6 +38,12 @@
     cores = 1;
   };
 
+  # Límite de registros ajustado al almacenamiento de la ZimaBlade.
+  services.journald.settings.Journal = {
+    SystemMaxUse = "256M";
+    MaxRetentionSec = "1week";
+  };
+
   # Red privada con el resto de máquinas (interfaz wt0).
   services.netbird.enable = true;
 
@@ -123,6 +129,7 @@
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
   services.thermald.enable = true; 
+  services.fstrim.enable = true;
   services.smartd.enable = false;
 
   nix.gc = {
