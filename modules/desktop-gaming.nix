@@ -24,6 +24,16 @@
 
   services.netbird.enable = true;
 
+  systemd.services.rustdesk = {
+    description = "RustDesk";
+    after = [ "network.target" "systemd-user-sessions.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
+      Restart = "on-failure";
+    };
+  };
+
   # ============================================================
   # COMPATIBILIDAD CON CLINE CLI EN NIXOS
   # ============================================================
@@ -38,7 +48,6 @@
       ln -sfn "${pkgs.bashInteractive}/bin/bash" /bin/bash
     '';
   };
-
 
   # ============================================================
   # ENTORNO GRÁFICO (Plasma 6)
