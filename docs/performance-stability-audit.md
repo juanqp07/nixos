@@ -1,6 +1,6 @@
 # Auditoría de rendimiento y estabilidad por host
 
-**Revisión:** 28 de octubre de 2026  
+**Revisión:** 29 de octubre de 2026  
 **Alcance:** revisión estática del flake y de sus cinco hosts. No se ha accedido a las máquinas en ejecución ni se han medido FPS, latencias, consumo, temperaturas, transcodificación o cortes de audio. Por eso este documento separa los ajustes respaldados por documentación de los que necesitan una prueba física.
 
 ## Cambios aplicados en esta revisión
@@ -37,6 +37,27 @@ Esto corrige la elección del runtime de cómputo. No demuestra por sí solo que
 
 Fuentes: [notas de lanzamiento de NixOS](https://nixos.org/manual/nixos/unstable/release-notes), [Intel Compute Runtime: plataformas legacy](https://github.com/intel/compute-runtime#legacy-platforms).
 
+### Límites de recursos y estabilidad compartida
+
+- **Compilaciones Nix:** presupuesto específico: `elytra` 4 trabajos × 2 cores, `titan` 6 × 2, `atlas` 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. El objetivo es que los builds no desplacen el uso principal de cada máquina. Se puede afinar según duración, memoria libre y temperatura real.
+- **SSH:** `MaxAuthTries = 3` y `LoginGraceTime = 30s`. La contraseña y la prohibición de acceso SSH directo como root se mantienen para no perder la administración remota antes de desplegar y comprobar claves en todos los hosts.
+- **Escritorios:** Fail2ban para el servicio SSH y registros persistentes limitados a 512 MiB/2 semanas.
+- **Atlas:** registros limitados a 1 GiB/2 semanas (Docker usa journald como backend).
+- **Pico:** registros limitados a 256 MiB/1 semana y TRIM periódico para dispositivos que lo soporten.
+- **Palco:** se mantienen el quantum de PipeWire, los perfiles Bluetooth y el DSP. Se han corregido los comentarios: la cadena configurada es compresor → limitador; el comentario anterior afirmaba que había un HPF de 45 Hz que no estaba presente. También se ajusta la descripción del nivel del jack para reflejar el 100 % que ya configuraba el servicio.
+- **Escritorio:** se han eliminado declaraciones repetidas de paquetes del perfil global sin quitar aplicaciones distintas.
+
+### Red: parámetros conservadores y rutas VPN
+
+El módulo común deja de imponer `cake`, `bbr`, buffers TCP de 16 MiB, `tcp_fastopen` y colas de conexiones elevadas. No se había medido que esos valores beneficiaran a estos equipos. Los valores por defecto del kernel son una base más predecible entre un portátil con VPN, una torre gaming, dos servidores y una Pi de audio.
+
+La ruta inversa se configura por host y no globalmente:
+- `elytra` y `titan` usan `checkReversePath = "loose"` por NetBird/WARP y posibles rutas asimétricas.
+- `atlas` y `pico` ya usan modo loose para NetBird.
+- `palco`, sin VPN overlay, conserva la política por defecto de NixOS.
+
+El modo loose valida que la dirección origen sea alcanzable por alguna interfaz, pero no exige que la ruta inversa coincida con la interfaz de entrada. Es apropiado para redes con rutas asimétricas, aunque menos estricto que el filtro de ruta inversa estricto. Fuentes: [documentación del kernel](https://docs.kernel.org/networking/ip-sysctl.html) y [opción de firewall de NixOS](https://nixos.org/manual/nixos/unstable/options.html#opt-networking.firewall.checkReversePath).
+
 ## Decisiones por host
 
 ### `elytra` — portátil, Intel + RTX 5050 Laptop
@@ -69,6 +90,7 @@ Fuentes: [AMD P-State, documentación del kernel](https://www.kernel.org/doc/htm
 - La dependencia de Docker con `/mnt/datos` protege los bind mounts de datos cuando el disco no está montado.
 - El límite lógico de ZRAM configurado para este servidor no reserva toda esa RAM de forma inmediata. Aun así, hay que mirar `zramctl`, `free -h` y la carga de contenedores antes de aumentarlo o reducirlo.
 - Las actualizaciones preparan una generación usando la configuración y el `flake.lock` presentes en el checkout local. No descargan por sí mismas una nueva revisión del lockfile: para recibir actualizaciones de paquetes, hay que actualizar/revisar el lockfile y sincronizar el repositorio local del servidor.
+- La configuración actual declara `/mnt/datos`, pero no incluye una entrada para `/discoe`, aunque ese montaje se ha usado para datos de juegos. No se inventa una UUID: comprobar en Atlas `findmnt /discoe` y `lsblk -f`; si ese disco debe montarse automáticamente, declarar el UUID y tipo de FS reales en `hosts/servidor/configuration.nix`.
 
 Fuentes: [Intel Graphics en NixOS](https://wiki.nixos.org/wiki/Intel_Graphics), [actualizaciones automáticas de NixOS](https://wiki.nixos.org/wiki/Automatic_system_upgrades), [restricciones de recursos de Docker](https://docs.docker.com/engine/containers/resource_constraints).
 
@@ -98,11 +120,11 @@ Fuentes: [PipeWire en NixOS, operación headless y latencia](https://wiki.nixos.
 
 ### Red: CAKE, BBR y buffers TCP
 
-El módulo común conserva los ajustes de red ya existentes en esta revisión, no porque se haya demostrado que sean óptimos, sino porque su efecto depende de la ruta, el router y la carga. CAKE sin límite de ancho de banda configurado no hace shaping al ritmo real del cuello de botella de la conexión. Para mejorar bufferbloat de forma efectiva, la disciplina y la tasa de shaping deben elegirse en el dispositivo que forma el cuello de botella (habitualmente el router) o validarse con pruebas de latencia bajo carga.
+Se han retirado los ajustes globales de rendimiento de red no medidos (`cake`, `bbr`, buffers TCP elevados, `tcp_fastopen` y colas de conexiones). No se afirma que CAKE o BBR sean malos: su efecto depende del router, la ruta y la carga. Para mejorar bufferbloat, la disciplina y la tasa de shaping deben elegirse donde está el cuello de botella (habitualmente el router) y validarse con latencia bajo carga.
 
-No es correcto afirmar que BBR, CAKE, buffers de 16 MiB o una cola concreta mejoren por sí solos el ping de los juegos y el streaming en todas las redes.
+No es correcto afirmar que BBR, CAKE o buffers de 16 MiB mejoren por sí solos el ping de juegos y streaming en todas las redes.
 
-Fuente: [documentación de sysctl de red del kernel](https://docs.kernel.org/admin-guide/sysctl/net.html).
+Fuente: [documentación de sysctl de red del kernel](https://docs.kernel.org/networking/ip-sysctl.html).
 
 ### Kernel y scheduler en gaming
 
@@ -114,6 +136,6 @@ Fuente: [documentación de sysctl de red del kernel](https://docs.kernel.org/adm
 - **atlas:** `systemctl status docker`, `findmnt /mnt/datos`, `zramctl`, `vainfo` y `intel_gpu_top` durante una transcodificación.
 - **pico:** `vainfo`; `clinfo` solo si se necesita OpenCL; revisar registros de Docker y espacio libre.
 - **palco:** reproducir varias pistas durante un periodo largo; comprobar `wpctl status`, registros de PipeWire/WirePlumber y errores de Bluetooth. No bajar quantum hasta confirmar que hay margen.
-- **todos:** el workflow de GitHub Actions evalúa los cinco sistemas, pero no construye toda la imagen ni sustituye las pruebas en cada máquina.
+- **todos:** el workflow de GitHub Actions evalúa los cinco sistemas y ejecuta `nix flake check --no-build`, pero no construye toda la imagen ni sustituye las pruebas en cada máquina.
 
 La prioridad es mantener cambios medibles, reversibles y específicos de cada uso, no acumular parámetros que parecen rápidos pero carecen de evidencia sobre este hardware.
