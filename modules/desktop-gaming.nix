@@ -54,10 +54,10 @@
   };
 
   # Evita que los registros de escritorio ocupen disco sin límite.
-  services.journald.settings.Journal = {
-    SystemMaxUse = "512M";
-    MaxRetentionSec = "2week";
-  };
+  services.journald.extraConfig = ''
+    SystemMaxUse=512M
+    MaxRetentionSec=2week
+  '';
 
   # ============================================================
   # COMPATIBILIDAD CON CLINE CLI EN NIXOS
