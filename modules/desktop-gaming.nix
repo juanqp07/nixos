@@ -24,6 +24,28 @@
 
   services.netbird.enable = true;
 
+  # SSH sigue disponible para administración remota, pero limitamos los
+  # intentos fallidos y la duración de las sesiones de autenticación.
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    bantime = "1h";
+    jails.sshd = {
+      enabled = true;
+      filter = "sshd[mode=aggressive]";
+      settings = {
+        maxretry = 5;
+        findtime = "10m";
+      };
+    };
+  };
+
+  # Evita que los registros de escritorio crezcan sin límite.
+  services.journald.settings.Journal = {
+    SystemMaxUse = "512M";
+    MaxRetentionSec = "2week";
+  };
+
   # ============================================================
   # COMPATIBILIDAD CON CLINE CLI EN NIXOS
   # ============================================================
