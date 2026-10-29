@@ -21,48 +21,32 @@
   # ============================================================
 
   boot.kernel.sysctl = {
-    # --- Rendimiento de Red ---
-    "net.core.default_qdisc" = "cake";
-    "net.ipv4.tcp_congestion_control" = "bbr";
-    "net.core.rmem_max" = 16777216;
-    "net.core.wmem_max" = 16777216;
-    "net.ipv4.tcp_rmem" = "4096 87380 16777216";
-    "net.ipv4.tcp_wmem" = "4096 65536 16777216";
-    "net.ipv4.tcp_fastopen" = 3;
-
-    # --- Seguridad de Red ---
+    # Hardening de red; los parámetros de rendimiento se dejan en los valores
+    # del kernel hasta que una medición de la carga justifique un perfil específico.
     "net.ipv6.conf.all.forwarding" = 0;
-    "net.ipv4.icmp_echo_ignore_all" = 0;
     "net.ipv4.conf.all.rp_filter" = 1;
     "net.ipv4.conf.default.rp_filter" = 1;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.all.accept_source_route" = 0;
 
-    # --- Memoria y Ficheros ---
-    "fs.file-max" = 2097152;
-    "fs.nr_open" = 1048576;
-    # Todos los hosts de este flake usan zram. 100 trata la memoria comprimida
-    # y la caché de archivos con coste relativo equivalente; afinarlo más exige medir.
+    # ZRAM común a los cinco hosts: afinar el coste relativo exige medir carga y presión de RAM.
     "vm.swappiness" = 100;
-    # No hacer read-ahead de páginas de swap: zram no es un disco secuencial.
     "vm.page-cluster" = 0;
     "vm.max_map_count" = 262144;
-
-    # --- Conexiones ---
-    "net.core.somaxconn" = 8192;
-    "net.ipv4.tcp_max_syn_backlog" = 8192;
-
-    # --- Streaming ---
-    "net.ipv4.tcp_slow_start_after_idle" = 0;
-
-    # --- MTU ---
-    "net.ipv4.tcp_mtu_probing" = 1;
   };
 
   # ============================================================
   # ESTABILIDAD
   # ============================================================
+
+  # Límites explícitos para que el journal no crezca sin control.
+  # Palco conserva su almacenamiento volátil y sus límites más estrictos.
+  services.journald.settings.Journal = {
+    SystemMaxUse = lib.mkDefault "512M";
+    RuntimeMaxUse = lib.mkDefault "128M";
+    MaxRetentionSec = lib.mkDefault "2week";
+  };
 
   services.earlyoom = {
     enable = true;
@@ -144,6 +128,11 @@
     ];
 
     auto-optimise-store = true;
+
+    # Evita sobrecargar equipos modestos con demasiadas compilaciones simultáneas.
+    # Cada host puede ajustar estos límites según CPU y RAM.
+    max-jobs = lib.mkDefault 2;
+    cores = lib.mkDefault 1;
 
     allowed-users = [
       "@wheel"
