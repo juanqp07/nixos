@@ -42,6 +42,11 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
+      - name: Check formatting
+        if: matrix.host == 'titan'
+        run: |
+          nix fmt -- --check
+
       - name: Evaluate system closure
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
