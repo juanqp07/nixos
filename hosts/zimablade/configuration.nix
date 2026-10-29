@@ -32,6 +32,13 @@
   # --- 3. RED Y SEGURIDAD ---
   networking.hostName = "pico";
 
+  # El root y los registros persistentes tienen una política más ajustada
+  # por el almacenamiento limitado de la ZimaBlade.
+  services.journald.settings.Journal = {
+    SystemMaxUse = "256M";
+    MaxRetentionSec = "1week";
+  };
+
   # Evita que las compilaciones compitan con Docker en el Celeron y su RAM limitada.
   nix.settings = {
     max-jobs = 1;
@@ -123,6 +130,7 @@
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
   services.thermald.enable = true; 
+  services.fstrim.enable = true;
   services.smartd.enable = false;
 
   nix.gc = {
