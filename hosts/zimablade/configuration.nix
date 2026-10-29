@@ -9,8 +9,10 @@
   # NOTA: sin i915.enable_guc (Apollo Lake no tiene GuC/HuC, daba errores en dmesg).
   boot.kernelPackages = pkgs.linuxPackages;
 
-  # El diagnostico informa RFDS como vulnerable por falta de microcodigo.
-  # Cargar el microcodigo Intel durante el arranque; verificar tras reiniciar.
+  # Cargar el microcodigo Intel disponible al inicio; esto no garantiza una
+  # mitigacion para cada vulnerabilidad. En el Celeron N3450, la revision
+  # disponible es 0x48, pero el kernel sigue reportando RFDS sin mitigar:
+  # no forzar el estado "Mitigation" sin una correccion confirmada por Intel.
   hardware.cpu.intel.updateMicrocode = true;
 
   zramSwap = {
