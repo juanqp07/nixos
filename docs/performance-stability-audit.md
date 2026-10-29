@@ -37,6 +37,12 @@ Esto corrige la elección del runtime de cómputo. No demuestra por sí solo que
 
 Fuentes: [notas de lanzamiento de NixOS](https://nixos.org/manual/nixos/unstable/release-notes), [Intel Compute Runtime: plataformas legacy](https://github.com/intel/compute-runtime#legacy-platforms).
 
+### Diagnóstico gráfico en servidores ligeros
+
+En `atlas` y `pico`, los paquetes de GPU extra se centran en los runtimes de vídeo/cómputo necesarios. Se quitan de `hardware.graphics.extraPackages` paquetes genéricos o de diagnóstico que no son controladores extra (Mesa base, firmware, Vulkan loader/tools), y se añade `libva-utils` a las herramientas de sistema para que `vainfo` esté disponible en ambos hosts. Esto reduce la mezcla entre bibliotecas de ejecución y herramientas CLI sin cambiar el perfil de transcodificación.
+
+La presencia de `vainfo` no garantiza que el contenedor tenga acceso a `/dev/dri`: hay que ejecutar la prueba en el host y dentro del contenedor que hace la transcodificación cuando corresponda.
+
 ### Límites de recursos y estabilidad compartida
 
 - **Compilaciones Nix:** presupuesto específico: `elytra` 4 trabajos × 2 cores, `titan` 6 × 2, `atlas` 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. El objetivo es que los builds no desplacen el uso principal de cada máquina. Se puede afinar según duración, memoria libre y temperatura real.
