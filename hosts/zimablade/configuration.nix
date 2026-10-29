@@ -156,6 +156,7 @@
   # --- 6. PAQUETES ---
   environment.systemPackages = with pkgs; [
     intel-gpu-tools 
+    libva-utils # vainfo para comprobar la ruta de vídeo
     lm_sensors
     ncdu
     tmux
