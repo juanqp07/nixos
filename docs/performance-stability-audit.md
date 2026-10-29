@@ -75,6 +75,7 @@ El modo loose valida que la dirección origen sea alcanzable por alguna interfaz
 - Se conserva el kernel más reciente como decisión orientada a hardware gaming reciente, no porque se haya demostrado que dé más FPS. El kernel LTS predeterminado de NixOS es una alternativa razonable si aparecen regresiones; no se cambia sin una prueba con el controlador NVIDIA instalado.
 - Los parámetros específicos de Wi-Fi `rtw89` se conservan porque son ajustes de estabilidad ya presentes en la configuración. No se han medido su impacto en batería.
 - GameMode y `scx_cosmos` quedan habilitados. `scx_cosmos` se describe upstream como scheduler generalista y listo para producción, pero eso no prueba que supere al scheduler del kernel en cada juego.
+- RustDesk ya tiene un servicio systemd habilitado en `multi-user.target`. Para intentar permitir acceso al greeter después de arrancar, SDDM usa X11 en Elytra; esta opción solo cambia el servidor gráfico de la pantalla de login y no obliga a que la sesión de Plasma sea X11. RustDesk estándar no soporta captura del greeter Wayland. El acceso real antes de iniciar sesión queda pendiente de validarse tras reiniciar el equipo y comprobar el servicio y la contraseña permanente de RustDesk.
 
 Fuentes: [NixOS NVIDIA](https://wiki.nixos.org/wiki/NVIDIA), [NixOS kernel](https://wiki.nixos.org/wiki/Linux_kernel), [scx_cosmos](https://sched-ext.com/docs/scheds/rust/scx_cosmos), [sched_ext en el kernel](https://docs.kernel.org/scheduler/sched-ext.html).
 
