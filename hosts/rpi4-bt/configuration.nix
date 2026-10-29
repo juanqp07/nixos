@@ -158,6 +158,12 @@
 
   networking.hostName = "palco";
 
+  # La Pi es un appliance de audio; las imágenes se construyen preferentemente desde Titan.
+  nix.settings = {
+    max-jobs = 1;
+    cores = 1;
+  };
+
   networking.networkmanager.enable = true;
 
   # Evita que Wi-Fi entre en powersave.
