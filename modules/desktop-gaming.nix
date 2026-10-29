@@ -84,6 +84,11 @@
     variant = "";
   };
 
+  # RustDesk estándar no captura el greeter de SDDM bajo Wayland.
+  # Usar X11 aquí permite intentar el acceso antes de iniciar sesión;
+  # la sesión de Plasma puede seguir siendo Wayland.
+  services.displayManager.sddm.wayland.enable = lib.mkForce false;
+
   services.displayManager.sddm = {
     enable = true;
     theme = "breeze";
