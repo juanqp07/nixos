@@ -48,6 +48,7 @@ La presencia de `vainfo` no garantiza que el contenedor tenga acceso a `/dev/dri
 - **Compilaciones Nix:** presupuesto específico: `elytra` 4 trabajos × 2 cores, `titan` 6 × 2, `atlas` 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. El objetivo es que los builds no desplacen el uso principal de cada máquina. Se puede afinar según duración, memoria libre y temperatura real.
 - **SSH:** `MaxAuthTries = 3` y `LoginGraceTime = 30s`. La contraseña y la prohibición de acceso SSH directo como root se mantienen para no perder la administración remota antes de desplegar y comprobar claves en todos los hosts.
 - **Escritorios:** Fail2ban para el servicio SSH y registros persistentes limitados a 512 MiB/2 semanas.
+- **RustDesk en los escritorios:** el servicio systemd ya se habilita en `multi-user.target`. SDDM usa X11 tanto en Elytra como en Titan para intentar permitir el acceso previo al inicio de sesión; solo cambia el greeter y la sesión de Plasma puede seguir usando Wayland. RustDesk estándar no soporta capturar el greeter Wayland. El acceso real antes de iniciar sesión queda pendiente de validarse tras reiniciar físicamente ambos equipos y comprobar el servicio y la contraseña permanente de RustDesk.
 - **Atlas:** registros limitados a 1 GiB/2 semanas (Docker usa journald como backend).
 - **Pico:** registros limitados a 256 MiB/1 semana y TRIM periódico para dispositivos que lo soporten.
 - **Palco:** se mantienen el quantum de PipeWire, los perfiles Bluetooth y el DSP. Se han corregido los comentarios: la cadena configurada es compresor → limitador; el comentario anterior afirmaba que había un HPF de 45 Hz que no estaba presente. También se ajusta la descripción del nivel del jack para reflejar el 100 % que ya configuraba el servicio.
@@ -75,7 +76,7 @@ El modo loose valida que la dirección origen sea alcanzable por alguna interfaz
 - Se conserva el kernel más reciente como decisión orientada a hardware gaming reciente, no porque se haya demostrado que dé más FPS. El kernel LTS predeterminado de NixOS es una alternativa razonable si aparecen regresiones; no se cambia sin una prueba con el controlador NVIDIA instalado.
 - Los parámetros específicos de Wi-Fi `rtw89` se conservan porque son ajustes de estabilidad ya presentes en la configuración. No se han medido su impacto en batería.
 - GameMode y `scx_cosmos` quedan habilitados. `scx_cosmos` se describe upstream como scheduler generalista y listo para producción, pero eso no prueba que supere al scheduler del kernel en cada juego.
-- RustDesk ya tiene un servicio systemd habilitado en `multi-user.target`. Para intentar permitir acceso al greeter después de arrancar, SDDM usa X11 en Elytra; esta opción solo cambia el servidor gráfico de la pantalla de login y no obliga a que la sesión de Plasma sea X11. RustDesk estándar no soporta captura del greeter Wayland. El acceso real antes de iniciar sesión queda pendiente de validarse tras reiniciar el equipo y comprobar el servicio y la contraseña permanente de RustDesk.
+
 
 Fuentes: [NixOS NVIDIA](https://wiki.nixos.org/wiki/NVIDIA), [NixOS kernel](https://wiki.nixos.org/wiki/Linux_kernel), [scx_cosmos](https://sched-ext.com/docs/scheds/rust/scx_cosmos), [sched_ext en el kernel](https://docs.kernel.org/scheduler/sched-ext.html).
 
