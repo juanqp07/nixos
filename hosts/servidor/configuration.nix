@@ -23,6 +23,12 @@
   networking.networkmanager.enable = true;
   networking.hostName = "atlas";
 
+  # Prioriza los servicios 24/7 sobre compilaciones del sistema en el servidor.
+  nix.settings = {
+    max-jobs = 3;
+    cores = 2;
+  };
+
   # Red privada con el resto de máquinas (interfaz wt0).
   services.netbird.enable = true;
 
