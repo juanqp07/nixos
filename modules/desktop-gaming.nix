@@ -74,26 +74,11 @@
     variant = "";
   };
 
-  # Budgie en NixOS recomienda LightDM; la integración y la prueba de
-  # NixOS utilizan este display manager. LightDM muestra el greeter en X11.
-  # Plasma sigue disponible como sesión, aunque LightDM sustituye a SDDM.
-  services.displayManager.sddm.enable = lib.mkForce false;
-  services.xserver.displayManager.lightdm.enable = true;
+  # KDE Plasma 6 como único entorno gráfico, con SDDM como gestor de inicio.
+  services.displayManager.sddm.enable = true;
+  services.xserver.displayManager.lightdm.enable = lib.mkForce false;
 
   services.desktopManager.plasma6.enable = true;
-
-  # Budgie 10 para probarlo junto a Plasma; ambos aparecen como sesiones en SDDM.
-  # NixOS configura labwc como compositor Wayland predeterminado de Budgie.
-  services.desktopManager.budgie.enable = true;
-
-  # labwc también registra una sesión independiente que solo inicia el compositor,
-  # sin el panel, Raven ni el menú de Budgie. La renombramos para distinguirla
-  # claramente en SDDM y evitar confundirla con la sesión completa "Budgie Desktop".
-  programs.labwc.package = pkgs.labwc.overrideAttrs (old: {
-    postInstall = (old.postInstall or "") + ''
-      substituteInPlace "$out/share/wayland-sessions/labwc.desktop" --replace-fail "Name=labwc" "Name=Labwc (solo compositor)" --replace-fail "Comment=A wayland stacking compositor" "Comment=Solo compositor; para el escritorio completo elige Budgie Desktop"
-    '';
-  });
 
   programs.kdeconnect.enable = true;
 
@@ -291,11 +276,6 @@
     kdePackages.xdg-desktop-portal-kde
     wl-clipboard
     libnotify
-
-    # Utilidades complementarias para Budgie.
-    copyq
-    satty
-    pavucontrol
 
     # Audio, vídeo y multimedia.
     vlc
