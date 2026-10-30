@@ -74,17 +74,11 @@
     variant = "";
   };
 
-  services.displayManager.sddm = {
-    enable = true;
-    theme = "breeze";
-    # RustDesk estándar no captura el greeter bajo Wayland. Esto afecta solo
-    # a SDDM; la sesión de Plasma puede seguir usando Wayland.
-    wayland.enable = lib.mkForce false;
-
-    # SDDM 0.21 activa qtvirtualkeyboard por defecto si está instalado.
-    # Plasma lo aporta para su teclado táctil, pero no debe abrirse en el greeter.
-    settings.General.InputMethod = "";
-  };
+  # Budgie en NixOS recomienda LightDM; la integración y la prueba de
+  # NixOS utilizan este display manager. LightDM muestra el greeter en X11.
+  # Plasma sigue disponible como sesión, aunque LightDM sustituye a SDDM.
+  services.displayManager.sddm.enable = lib.mkForce false;
+  services.xserver.displayManager.lightdm.enable = true;
 
   services.desktopManager.plasma6.enable = true;
 
