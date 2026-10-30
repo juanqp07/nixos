@@ -80,6 +80,10 @@
     # RustDesk estándar no captura el greeter bajo Wayland. Esto afecta solo
     # a SDDM; la sesión de Plasma puede seguir usando Wayland.
     wayland.enable = lib.mkForce false;
+
+    # SDDM 0.21 activa qtvirtualkeyboard por defecto si está instalado.
+    # Plasma lo aporta para su teclado táctil, pero no debe abrirse en el greeter.
+    settings.General.InputMethod = "";
   };
 
   services.desktopManager.plasma6.enable = true;
@@ -87,6 +91,15 @@
   # Budgie 10 para probarlo junto a Plasma; ambos aparecen como sesiones en SDDM.
   # NixOS configura labwc como compositor Wayland predeterminado de Budgie.
   services.desktopManager.budgie.enable = true;
+
+  # labwc también registra una sesión independiente que solo inicia el compositor,
+  # sin el panel, Raven ni el menú de Budgie. La renombramos para distinguirla
+  # claramente en SDDM y evitar confundirla con la sesión completa "Budgie Desktop".
+  programs.labwc.package = pkgs.labwc.overrideAttrs (old: {
+    postInstall = (old.postInstall or "") + ''
+      substituteInPlace "$out/share/wayland-sessions/labwc.desktop" --replace-fail "Name=labwc" "Name=Labwc (solo compositor)" --replace-fail "Comment=A wayland stacking compositor" "Comment=Solo compositor; para el escritorio completo elige Budgie Desktop"
+    '';
+  });
 
   programs.kdeconnect.enable = true;
 
