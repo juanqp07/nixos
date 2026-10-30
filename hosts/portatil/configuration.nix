@@ -192,6 +192,7 @@
     smartmontools
     pciutils
     usbutils
+    cardwire
 
     # Portátil
     brightnessctl
