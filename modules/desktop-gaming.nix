@@ -84,6 +84,10 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # Budgie 10 para probarlo junto a Plasma; ambos aparecen como sesiones en SDDM.
+  # NixOS configura labwc como compositor Wayland predeterminado de Budgie.
+  services.desktopManager.budgie.enable = true;
+
   programs.kdeconnect.enable = true;
 
 
