@@ -24,16 +24,6 @@
 
   services.netbird.enable = true;
 
-  systemd.services.rustdesk = {
-    description = "RustDesk";
-    after = [ "network.target" "systemd-user-sessions.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
-      Restart = "on-failure";
-    };
-  };
-
   # NetBird/WARP pueden crear rutas asimétricas; mantenemos validación de origen
   # sin exigir que cada paquete vuelva por la misma interfaz.
   networking.firewall.checkReversePath = "loose";
