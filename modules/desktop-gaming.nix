@@ -285,6 +285,11 @@
     wl-clipboard
     libnotify
 
+    # Utilidades complementarias para Budgie.
+    copyq
+    satty
+    pavucontrol
+
     # Audio, vídeo y multimedia.
     vlc
     mpv
