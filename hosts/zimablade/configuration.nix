@@ -42,6 +42,10 @@
   nix.settings = {
     max-jobs = 1;
     cores = 1;
+
+    # Permite que juan reciba cierres Nix compilados en Elytra/Titan.
+    # trusted-users equivale a root: juan ya pertenece al grupo wheel.
+    trusted-users = [ "root" "juan" ];
   };
 
   # Límite de registros ajustado al almacenamiento de la ZimaBlade.
