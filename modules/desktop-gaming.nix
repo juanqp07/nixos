@@ -551,4 +551,25 @@
       });
     })
   ];
+
+  # ============================================================
+  # DESPLIEGUE REMOTO DE SERVIDORES (desde Elytra o Titan)
+  # Compila en el equipo que invoca el alias y activa el resultado
+  # en el servidor por SSH. No usar --build-host: el destino no compila.
+  # ============================================================
+
+  environment.shellAliases = {
+    nix-up-atlas =
+      "pushd ~/nixos > /dev/null && "
+      + "echo '--- 🚀 Desplegando Atlas desde este equipo ---' && "
+      + "nixos-rebuild switch --flake .#atlas --target-host juan@atlas --use-remote-sudo && "
+      + "popd > /dev/null";
+
+    nix-up-pico =
+      "pushd ~/nixos > /dev/null && "
+      + "echo '--- 🚀 Desplegando Pico desde este equipo ---' && "
+      + "nixos-rebuild switch --flake .#pico --target-host juan@pico --use-remote-sudo && "
+      + "popd > /dev/null";
+  };
+
 }
