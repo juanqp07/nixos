@@ -576,13 +576,13 @@
     nix-up-atlas =
       "pushd ~/nixos > /dev/null && "
       + "echo '--- 🚀 Desplegando Atlas desde este equipo ---' && "
-      + "nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo && "
+      + "nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --ask-sudo-password && "
       + "popd > /dev/null";
 
     nix-up-pico =
       "pushd ~/nixos > /dev/null && "
       + "echo '--- 🚀 Desplegando Pico desde este equipo ---' && "
-      + "nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo && "
+      + "nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password && "
       + "popd > /dev/null";
   };
 
