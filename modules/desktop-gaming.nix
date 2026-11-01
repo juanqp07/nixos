@@ -88,6 +88,14 @@
 
   programs.kdeconnect.enable = true;
 
+  # Descubrimiento de dispositivos locales (Chromecast, Google Cast, etc.).
+  # Este módulo se importa tanto en Elytra como en Titan.
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
+
 
   # ============================================================
   # SONIDO Y BLUETOOTH
