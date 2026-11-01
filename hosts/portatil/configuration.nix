@@ -43,6 +43,11 @@
   # Se conservan las mitigaciones de vulnerabilidades de CPU del kernel.
   # Desactivarlas no garantiza más FPS y reduce la protección frente a ciertos ataques.
 
+  boot.kernelParams = [
+    "nvidia-drm.fbdev=1"
+    "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+  ];
+
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   # ============================================================
@@ -75,11 +80,11 @@
 
     powerManagement = {
       enable = true;
-      finegrained = false;
+      finegrained = true;
       kernelSuspendNotifier = true;
     };
 
-    dynamicBoost.enable = true;
+    dynamicBoost.enable = false;
 
     prime = {
       offload = {
@@ -109,6 +114,7 @@
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
+    LIBVA_DRIVER_NAME = "iHD";
   };
 
   # ============================================================

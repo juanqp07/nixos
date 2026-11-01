@@ -14,8 +14,14 @@
     "udev.log_priority=3"
   ];
 
+  boot.loader.timeout = 0;
+
   services.cloudflare-warp.enable = true;
   boot.plymouth.enable = true;
+
+  # Acelerar arranque: no esperar a que la red esté online ni a udev-settle.
+  systemd.services.NetworkManager-wait-online.enable = false;
+  systemd.services.systemd-udev-settle.enable = false;
 
   # ESP de 1 GB: limita las generaciones en /boot para que no se llene (kernel latest + initrd con firmware GPU).
   boot.loader.systemd-boot.configurationLimit = 8;
