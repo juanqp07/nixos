@@ -96,6 +96,10 @@
     openFirewall = true;
   };
 
+  # Stremio: el Chromecast recibe el vídeo desde el servidor local del PC.
+  # 11470 = HTTP y 12470 = HTTPS. No configurar port forwarding en el router.
+  networking.firewall.allowedTCPPorts = [ 11470 12470 ];
+
 
   # ============================================================
   # SONIDO Y BLUETOOTH
