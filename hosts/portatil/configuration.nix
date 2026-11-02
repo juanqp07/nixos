@@ -13,18 +13,19 @@
     cores = 2;
   };
 
-  # Kilo y sus procesos auxiliares se ejecutan fuera del scope de Konsole.
-  # MemoryHigh aplica presión/reclaim por encima de 8 GiB, sin un límite duro
-  # que mate compilaciones o agentes. CPU/IOWeight ceden prioridad bajo contención.
-  systemd.user.slices."app-kilo".sliceConfig = {
-    CPUWeight = 80;
-    IOWeight = 80;
-    MemoryHigh = "8G";
+  # Gestión global de memoria para Elytra.
+  # common-system.nix conserva los valores generales de los demás hosts (5 %).
+  # En este portátil, empezar en 10 % permite que earlyoom envíe SIGTERM con
+  # más margen; los umbrales SIGKILL implícitos quedan en el 5 %.
+  services.earlyoom = {
+    freeMemThreshold = lib.mkForce 10;
+    freeSwapThreshold = lib.mkForce 10;
   };
 
-  # Usa `kilo-isolated` en lugar de `kilo` para iniciar el CLI en su propio cgroup.
-  environment.shellAliases.kilo-isolated =
-    "systemd-run --user --scope --collect --slice=app-kilo.slice -- kilo";
+  # desktop-gaming.nix aplica -s 700 a ambos equipos de escritorio.
+  # En Elytra se usa el modo automático/general de scx_cosmos (sin flags
+  # de perfil gaming); no se modifica el módulo compartido ni Titan.
+  services.scx.extraArgs = lib.mkForce [ ];
 
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
