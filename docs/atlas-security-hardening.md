@@ -11,7 +11,7 @@ La configuración queda declarada, pero no se aplica al servidor hasta desplegar
 - La restricción se instala en `DOCKER-USER`, ya que los puertos publicados por Docker pueden saltarse las reglas normales de INPUT de NixOS.
 - No se filtran los puertos públicos de Zoraxy (80/443), SSH (22), RustDesk, Syncthing ni Minecraft (25565).
 
-La lista protegida incluye DNS/AdGuard (53), IPFS RPC (5553), CrowdSec LAPI (8019), Gluetun API/proxies (8001, 1800, 8888), Zoraxy Admin (8000), Arcane (3552), paneles de administración y puertos HTTP directos de aplicaciones. Los paneles siguen accesibles desde la LAN/NetBird; desde Internet se deben usar los dominios servidos por Zoraxy. IPFS RPC, CrowdSec LAPI y Gluetun Control quedan únicamente en bridges Docker.
+La lista protegida incluye DNS/AdGuard (53), IPFS RPC (5553), CrowdSec LAPI (8019), Gluetun API/proxies (8001, 1800, 8888), Zoraxy Admin (8000), Arcane (3552), paneles de administración y puertos HTTP directos de aplicaciones. Los paneles siguen accesibles desde la LAN/NetBird. Según indicas, no están publicados mediante redirecciones del router hacia Internet; el filtro DOCKER-USER queda como segunda barrera para los puertos directos. IPFS RPC, CrowdSec LAPI y Gluetun Control quedan únicamente en bridges Docker.
 
 La regla IPv6 permite NetBird, bridges Docker y direcciones ULA (`fc00::/7`). Los clientes LAN que solo tengan IPv6 global deberán entrar por IPv4 o NetBird para acceder directamente a los paneles.
 
@@ -21,56 +21,31 @@ La regla IPv6 permite NetBird, bridges Docker y direcciones ULA (`fc00::/7`). Lo
 
 CrowdSec ya tiene registrado el bouncer `zoraxy-crowdsec-bouncer`. Los registros del 29/10/2026 muestran consultas `GET /v1/decisions/stream` con HTTP 200 cada 10 segundos. Por tanto, la comunicación bouncer → LAPI ya funciona.
 
-El problema observado es distinto: CrowdSec informa de que no encuentra archivos para:
+El Compose que has compartido ya monta el directorio de logs de Zoraxy en CrowdSec en modo de solo lectura y en la misma ruta interna:
 
-```text
-/opt/zoraxy/log/zr_*.log
-```
+- Host: `/mnt/datos/AppData/zoraxy/log/`
+- Contenedor CrowdSec: `/opt/zoraxy/log/`
 
-Ese path existe (o se espera que exista) dentro de Zoraxy, pero no está montado en el contenedor CrowdSec. Sin logs y parser, CrowdSec no genera decisiones nuevas a partir del tráfico de Zoraxy.
+Por tanto, no hay que añadir otro volumen ni sustituir la ruta por `/var/log/zoraxy`. La advertencia `No matching files for pattern /opt/zoraxy/log/zr_*.log` indica que, en el momento de iniciar la adquisición, el patrón no encontró ningún fichero. Hay que comprobar si el directorio del host está vacío, si Zoraxy está generando archivos con otro nombre o si CrowdSec inició antes del primer log.
 
-### 2. Averiguar la ruta persistente real de los logs
+### 2. Comprobaciones necesarias
 
-En Atlas, ejecutar:
-
-```bash
-docker exec zoraxy sh -lc 'find /opt/zoraxy -type f -name "zr_*.log" 2>/dev/null'
-docker inspect zoraxy --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
-```
-
-Identificar el directorio del host que contiene los archivos `zr_*.log`. No crear una ruta vacía: debe ser el directorio real donde Zoraxy está escribiendo los logs.
-
-En el proyecto Compose de CrowdSec, añadir un bind mount de solo lectura. Sustituir `HOST_LOG_DIR` por la ruta `Source` real obtenida con `docker inspect`:
-
-```yaml
-services:
-  crowdsec:
-    volumes:
-      - HOST_LOG_DIR:/var/log/zoraxy:ro
-```
-
-Mantener los volúmenes actuales de datos y configuración de CrowdSec. No montar el socket Docker completo en CrowdSec solo para leer estos logs.
-
-### 3. Corregir el acquisition
-
-En el archivo de adquisición de Zoraxy dentro de CrowdSec (normalmente `/etc/crowdsec/acquis.d/zoraxy.yaml`), usar el destino del bind mount:
+En Atlas, comparar el contenido del directorio de logs del host con lo que ve CrowdSec dentro de su contenedor, y revisar el contenido de `/etc/crowdsec/acquis.d/zoraxy.yaml`. La adquisición correcta para el montaje actual es:
 
 ```yaml
 filenames:
-  - /var/log/zoraxy/zr_*.log
+  - /opt/zoraxy/log/zr_*.log
 labels:
   type: zoraxy
 ```
 
-Eliminar la adquisición antigua que apunta a `/opt/zoraxy/log/zr_*.log` para no mantener una fuente rota en paralelo.
+No crear una ruta alternativa ni duplicar el bind mount. Una vez que existan ficheros que coincidan con el patrón, comprobar `cscli metrics show acquisition` para verificar que aumentan las líneas leídas.
 
-Instalar la colección que incluye el parser `Raithmir/zoraxy-logs` y los escenarios HTTP:
+### 3. Colección y parser
 
-```bash
-docker exec crowdsec cscli collections install Raithmir/zoraxy
-```
+Tu Compose ya declara `COLLECTIONS: "Raithmir/zoraxy"`, así que la colección se instala mediante la variable de entorno de CrowdSec. No hay que instalarla manualmente otra vez si ya figura en `cscli collections list`. Esta colección incorpora el parser de Zoraxy y escenarios HTTP genéricos. El parser requiere el formato de logs de Zoraxy 3.2.0 o posterior.
 
-La colección/parser está pensado para el formato de logs de Zoraxy 3.2.0 o posterior. Comprobar la versión de Zoraxy antes de actualizar el parser. Aplicar los cambios recreando o reiniciando el contenedor CrowdSec según cómo se gestione ese proyecto en Arcane.
+Si CrowdSec lee líneas pero no las parsea, el siguiente paso es revisar una línea real del log con `cscli explain` y confirmar que coincide con el formato esperado por el parser.
 
 ### 4. Mantener la API LAPI solo en la red Docker
 
