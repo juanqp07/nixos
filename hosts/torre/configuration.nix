@@ -136,5 +136,8 @@
   # el kernel puede marcarse como alterado, como con cualquier modo overdrive).
   hardware.amdgpu.overdrive.enable = true;
 
+  # GameMode necesita este grupo para autorizar cambios temporales de governor y split-lock.
+  users.users.juan.extraGroups = [ "gamemode" ];
+
   system.stateVersion = "25.11"; 
 }
