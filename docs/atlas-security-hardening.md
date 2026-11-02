@@ -6,11 +6,12 @@ La configuración queda declarada, pero no se aplica al servidor hasta desplegar
 ## Qué cambia en Atlas
 
 - Arcane deja de montar `/var/run/docker.sock` directamente. Usa `wollomatic/socket-proxy` con el socket montado en solo lectura, sin capabilities y con allowlist de operaciones Docker.
-- Se bloquea el acceso externo directo a los puertos publicados de aplicaciones, paneles y APIs que deben entrar por Zoraxy. Se mantienen accesibles desde la LAN `192.168.1.0/24`, NetBird (`wt0`) y los bridges Docker (para el tráfico del proxy y las comunicaciones entre contenedores).
+- Se bloquea el acceso directo a los puertos publicados de aplicaciones y paneles desde Internet. Los paneles siguen accesibles desde la LAN `192.168.1.0/24` y NetBird (`wt0`); los bridges Docker conservan el acceso del proxy y de las comunicaciones internas.
+- Las APIs administrativas de IPFS RPC (5553), CrowdSec LAPI (8019) y Gluetun Control (8001) quedan accesibles solo desde bridges Docker, no desde Internet, LAN ni NetBird.
 - La restricción se instala en `DOCKER-USER`, ya que los puertos publicados por Docker pueden saltarse las reglas normales de INPUT de NixOS.
 - No se filtran los puertos públicos de Zoraxy (80/443), SSH (22), RustDesk, Syncthing ni Minecraft (25565).
 
-La lista protegida incluye DNS/AdGuard (53), IPFS RPC (5553), CrowdSec LAPI (8019), Gluetun API/proxies (8001, 1800, 8888), Zoraxy Admin (8000), Arcane (3552), paneles de administración y puertos HTTP directos de aplicaciones. Los paneles siguen accesibles desde la LAN/NetBird; desde Internet se deben usar los dominios servidos por Zoraxy.
+La lista protegida incluye DNS/AdGuard (53), IPFS RPC (5553), CrowdSec LAPI (8019), Gluetun API/proxies (8001, 1800, 8888), Zoraxy Admin (8000), Arcane (3552), paneles de administración y puertos HTTP directos de aplicaciones. Los paneles siguen accesibles desde la LAN/NetBird; desde Internet se deben usar los dominios servidos por Zoraxy. IPFS RPC, CrowdSec LAPI y Gluetun Control quedan únicamente en bridges Docker.
 
 La regla IPv6 permite NetBird, bridges Docker y direcciones ULA (`fc00::/7`). Los clientes LAN que solo tengan IPv6 global deberán entrar por IPv4 o NetBird para acceder directamente a los paneles.
 
@@ -88,6 +89,24 @@ ports:
 ```
 
 El puerto 8080 debe quedar accesible solo entre contenedores de la red. El plugin de Zoraxy no necesita el puerto host 8019.
+
+En los proyectos Compose gestionados por Arcane, eliminar también estos mapeos del host (no basta con ocultarlos en el router):
+
+```yaml
+# IPFS/Kubo: quitar
+ports:
+  - "5553:5001"
+
+# CrowdSec: quitar
+ports:
+  - "8019:8080"
+
+# Gluetun: quitar
+ports:
+  - "8001:8000"
+```
+
+Mantener los puertos internos de los contenedores y las redes Docker necesarias. Los servicios que deban consultar estas API deben hacerlo por nombre de contenedor dentro de la red correspondiente. En particular, el plugin debe usar `http://crowdsec:8080`, no el puerto host 8019.
 
 ### 5. Configuración del plugin instalado en Zoraxy
 
