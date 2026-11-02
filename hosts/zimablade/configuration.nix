@@ -137,6 +137,61 @@
     "d /var/lib/dockge/stacks 0755 juan users -"
   ];
 
+  # --- DOCKER: RESTRINGIR EL PANEL DE DOCKGE A LAN Y NETBIRD ---
+  # Dockge publica TCP/5001 para administración. Esta regla de DOCKER-USER
+  # añade una segunda barrera si alguien crea accidentalmente un port-forward.
+  # El acceso desde la LAN y NetBird se conserva; no se publica el puerto en WAN.
+  systemd.services.docker-published-ports-private = {
+    description = "Restrict direct access to Pico Dockge";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "docker.service" ];
+    after = [ "docker.service" ];
+    partOf = [ "docker.service" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    script = ''
+      set -eu
+
+      IPTABLES=${pkgs.iptables}/bin/iptables
+      CHAIN="PICO-DOCKGE-PRIVATE"
+
+      $IPTABLES -w -N "$CHAIN" 2>/dev/null || true
+      $IPTABLES -w -F "$CHAIN"
+
+      # Mantener las respuestas de conexiones ya establecidas.
+      $IPTABLES -w -A "$CHAIN" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+
+      # Dockge solo es accesible desde la LAN de confianza o NetBird.
+      $IPTABLES -w -A "$CHAIN" -i wt0 -j RETURN
+      $IPTABLES -w -A "$CHAIN" -s 192.168.1.0/24 -j RETURN
+
+      # Bloquear conexiones nuevas al puerto publicado desde el resto de redes.
+      $IPTABLES -w -A "$CHAIN" -p tcp -m conntrack --ctstate NEW --ctorigdstport 5001 -j DROP
+      $IPTABLES -w -A "$CHAIN" -j RETURN
+
+      $IPTABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || \
+        $IPTABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+
+      # Equivalente para puertos publicados por IPv6, si Docker creó la cadena.
+      IP6TABLES=${pkgs.iptables}/bin/ip6tables
+      if $IP6TABLES -w -S DOCKER-USER >/dev/null 2>&1; then
+        $IP6TABLES -w -N "$CHAIN" 2>/dev/null || true
+        $IP6TABLES -w -F "$CHAIN"
+        $IP6TABLES -w -A "$CHAIN" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -i wt0 -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -s fc00::/7 -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -p tcp -m conntrack --ctstate NEW --ctorigdstport 5001 -j DROP
+        $IP6TABLES -w -A "$CHAIN" -j RETURN
+        $IP6TABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || \
+          $IP6TABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+      fi
+    '';
+  };
+
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
   services.thermald.enable = true; 
   services.fstrim.enable = true;
