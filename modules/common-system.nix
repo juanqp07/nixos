@@ -200,6 +200,9 @@
   # ============================================================
 
   environment.shellAliases = {
+    # Imprime las versiones de kernel configuradas en todos los hosts del flake.
+    kernels = "bash ~/nixos/scripts/kernel-versions.sh";
+
     # Compara lo arrancado (/run/booted-system) con lo recién aplicado
     # (/run/current-system). Kernel, módulos, initrd y systemd piden reinicio;
     # apps y servicios se recargan solos con el switch.
