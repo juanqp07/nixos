@@ -330,10 +330,7 @@
     bashInteractive
     go
     nodejs_24
-    rustc
-    cargo
-    rustfmt
-    clippy
+    rustup
     stdenv.cc
 
     # Contenedores y gestión de AppImage.
