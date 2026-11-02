@@ -108,12 +108,21 @@
   # Preparar las bibliotecas y garantizar que juan pueda escribir en ellas.
   # tmpfiles se ejecuta después de montar los sistemas de archivos locales.
   systemd.tmpfiles.rules = [
+    # Crear los directorios si faltan.
     "d /mnt/juegos 0775 juan users -"
     "d /mnt/juegos/Games 0775 juan users -"
     "d /mnt/juegos/Games/Steam 0775 juan users -"
     "d /mnt/juegos/Games/Heroic 0775 juan users -"
     "d /mnt/juegos/Downloads 0775 juan users -"
     "d /mnt/juegos/Data 0775 juan users -"
+
+    # Corregir también propietario y permisos si los directorios ya existían.
+    "z /mnt/juegos 0775 juan users -"
+    "z /mnt/juegos/Games 0775 juan users -"
+    "z /mnt/juegos/Games/Steam 0775 juan users -"
+    "z /mnt/juegos/Games/Heroic 0775 juan users -"
+    "z /mnt/juegos/Downloads 0775 juan users -"
+    "z /mnt/juegos/Data 0775 juan users -"
   ];
 
 
