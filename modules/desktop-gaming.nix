@@ -319,7 +319,10 @@
     protontricks
 
     # Desarrollo y herramientas CLI.
-    gnumake
+    rustc
+    cargo
+    rustfmt
+    clippy
     vscode
     antigravity-ide
     jetbrains.idea
