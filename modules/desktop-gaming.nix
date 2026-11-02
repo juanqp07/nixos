@@ -88,6 +88,9 @@
 
   programs.kdeconnect.enable = true;
 
+  # Montaje automático de unidades extraíbles (USB, incluida PS Vita con VitaShell).
+  services.udisks2.enable = true;
+
   # Descubrimiento de dispositivos locales (Chromecast, Google Cast, etc.).
   # Este módulo se importa tanto en Elytra como en Titan.
   services.avahi = {
