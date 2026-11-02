@@ -97,7 +97,9 @@
       kernelSuspendNotifier = true;
     };
 
-    # El firmware/controlador confirma soporte de Notebook Dynamic Boost.\n    # Redistribuye presupuesto CPU/GPU bajo carga; no implica ahorro en reposo.\n    dynamicBoost.enable = true;
+    # El firmware/controlador confirma soporte de Notebook Dynamic Boost.
+    # Redistribuye presupuesto CPU/GPU bajo carga; no implica ahorro en reposo.
+    dynamicBoost.enable = true;
 
     prime = {
       offload = {
