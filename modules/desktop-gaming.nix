@@ -180,6 +180,7 @@
       "libvirtd"
       "uinput"
       "render"
+      "gamemode" # Permite a GameMode aplicar governor, split-lock y renice sin fallos de autorización.
     ];
   };
 
