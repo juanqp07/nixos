@@ -319,6 +319,7 @@
     protontricks
 
     # Desarrollo y herramientas CLI.
+    gnumake
     vscode
     antigravity-ide
     jetbrains.idea
