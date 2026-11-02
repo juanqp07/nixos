@@ -97,6 +97,13 @@
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
+
+    # Publicación mDNS explícita con las opciones actuales de Avahi.
+    settings.publish = {
+      "disable-publishing" = false;
+      disable-user-service-publishing = false;
+      publish-addresses = true;
+    };
   };
 
   # Stremio: el Chromecast recibe el vídeo desde el servidor local del PC.
