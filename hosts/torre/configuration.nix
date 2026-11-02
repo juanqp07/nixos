@@ -96,14 +96,25 @@
   };
 
   # ---------------------------------------------------------
-  # 5. MONTAR NVME
+  # 5. SSD DE JUEGOS (1 TB, ext4)
   # ---------------------------------------------------------
-    
-  fileSystems."/mnt/nvme" = {
-    device = "/dev/disk/by-uuid/a8f2e7ba-5fe6-473d-82f6-ce00fae06297";
+
+  fileSystems."/mnt/juegos" = {
+    device = "/dev/disk/by-uuid/c1e5373f-923c-4cad-98fa-187a01897700";
     fsType = "ext4";
-    options = [ "defaults" "nofail" "noatime" "x-systemd.automount" "x-systemd.device-timeout=5" ];
+    options = [ "defaults" "noatime" ];
   };
+
+  # Preparar las bibliotecas y garantizar que juan pueda escribir en ellas.
+  # tmpfiles se ejecuta después de montar los sistemas de archivos locales.
+  systemd.tmpfiles.rules = [
+    "d /mnt/juegos 0775 juan users -"
+    "d /mnt/juegos/Games 0775 juan users -"
+    "d /mnt/juegos/Games/Steam 0775 juan users -"
+    "d /mnt/juegos/Games/Heroic 0775 juan users -"
+    "d /mnt/juegos/Downloads 0775 juan users -"
+    "d /mnt/juegos/Data 0775 juan users -"
+  ];
 
 
   # ---------------------------------------------------------
