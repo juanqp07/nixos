@@ -13,6 +13,20 @@
     cores = 2;
   };
 
+  # Gestión global de memoria para Elytra.
+  # common-system.nix conserva los valores generales de los demás hosts (5 %).
+  # En este portátil, empezar en 10 % permite que earlyoom envíe SIGTERM con
+  # más margen; los umbrales SIGKILL implícitos quedan en el 5 %.
+  services.earlyoom = {
+    freeMemThreshold = lib.mkForce 10;
+    freeSwapThreshold = lib.mkForce 10;
+  };
+
+  # desktop-gaming.nix aplica -s 700 a ambos equipos de escritorio.
+  # En Elytra se usa el modo automático/general de scx_cosmos (sin flags
+  # de perfil gaming); no se modifica el módulo compartido ni Titan.
+  services.scx.extraArgs = lib.mkForce [ ];
+
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
 
@@ -84,7 +98,9 @@
       kernelSuspendNotifier = true;
     };
 
-    dynamicBoost.enable = false;
+    # El firmware/controlador confirma soporte de Notebook Dynamic Boost.
+    # Redistribuye presupuesto CPU/GPU bajo carga; no implica ahorro en reposo.
+    dynamicBoost.enable = true;
 
     prime = {
       offload = {
