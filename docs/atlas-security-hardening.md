@@ -63,10 +63,10 @@ labels:
 
 Eliminar la adquisición antigua que apunta a `/opt/zoraxy/log/zr_*.log` para no mantener una fuente rota en paralelo.
 
-Instalar la colección que proporciona el parser de Zoraxy y los escenarios HTTP:
+Instalar la colección que incluye el parser `Raithmir/zoraxy-logs` y los escenarios HTTP:
 
 ```bash
-docker exec crowdsec cscli collections install Raithmir/zoraxy-logs
+docker exec crowdsec cscli collections install Raithmir/zoraxy
 ```
 
 La colección/parser está pensado para el formato de logs de Zoraxy 3.2.0 o posterior. Comprobar la versión de Zoraxy antes de actualizar el parser. Aplicar los cambios recreando o reiniciando el contenedor CrowdSec según cómo se gestione ese proyecto en Arcane.
