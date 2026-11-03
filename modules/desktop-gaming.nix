@@ -289,7 +289,6 @@
     rustdesk-flutter
 
     # Ofimática e idiomas.
-    onlyoffice-desktopeditors
     libreoffice
     hunspell
     hunspellDicts.es_ES
@@ -528,6 +527,7 @@
 
     packages = [
       "com.stremio.Stremio"
+      "org.onlyoffice.desktopeditors"
       "dev.fredol.open-tv"
       "io.github.ryubing.Ryujinx"
       "com.google.AndroidStudio"
