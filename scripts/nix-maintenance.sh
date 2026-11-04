@@ -132,10 +132,12 @@ apply_generation() {
 
 run_update() {
   check_lock_clean
-  printf '\n--- Actualizando todos los inputs del flake ---\n'
+  printf '\\n--- Actualizando todos los inputs del flake ---\\n'
   nix flake update
-  printf '\n--- Cambios en flake.lock ---\n'
+  printf '\\n--- Cambios en flake.lock ---\\n'
   show_lock_diff
+  # Refresh option values after updating inputs; NixOS defaults may have changed.
+  OPERATION="$(get_operation)"
 }
 
 run_build_apply() {
@@ -162,24 +164,27 @@ run_build_apply() {
 
 run_maintenance() {
   local automatic="$1"
+  local reboot_status=0
 
-  printf '\n========== MANTENIMIENTO NIXOS: %s ==========\n' "$HOST"
-  printf 'Estrategia de aplicación declarada: %s\n' "$OPERATION"
+  printf '\\n========== MANTENIMIENTO NIXOS: %s ==========\\n' "$HOST"
 
-  printf '\n--- Estado previo de reinicio ---\n'
-  bash "$SCRIPT_DIR/nix-reboot-check.sh" || {
-    status=$?
-    [[ "$status" -eq 2 ]] && die "No se pudo verificar el estado previo de reinicio."
-    [[ "$status" -eq 1 ]] && die "Falló la comprobación previa de reinicio."
-  }
+  printf '\\n--- Estado previo de reinicio ---\\n'
+  bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
+  case "$reboot_status" in
+    0) ;;
+    1) die "Falló la comprobación previa de reinicio." ;;
+    2) die "No se pudo verificar el estado previo de reinicio." ;;
+    *) die "La comprobación de reinicio terminó con el código $reboot_status." ;;
+  esac
 
-  printf '\n--- Generaciones actuales ---\n'
+  printf '\\n--- Generaciones actuales ---\\n'
   sudo nixos-rebuild list-generations
 
   run_update
-  run_build_apply "$automatic" yes yes
+  printf 'Estrategia de aplicación declarada: %s\\n' "$OPERATION"
+  run_build_apply "$automatic" yes
 
-  printf '\n========== MANTENIMIENTO FINALIZADO: %s ==========\n' "$HOST"
+  printf '\\n========== MANTENIMIENTO FINALIZADO: %s ==========\\n' "$HOST"
 }
 
 usage() {
