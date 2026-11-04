@@ -171,7 +171,7 @@ run_maintenance() {
   sudo nixos-rebuild list-generations
 
   run_update
-  run_build_apply "$automatic"
+  run_build_apply "$automatic" yes
 
   printf '\n========== MANTENIMIENTO FINALIZADO: %s ==========\n' "$HOST"
 }
