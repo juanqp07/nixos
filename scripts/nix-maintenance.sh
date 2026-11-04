@@ -28,12 +28,18 @@ if ! nix eval --raw ".#nixosConfigurations.$HOST.config.networking.hostName" >/d
   die "El host '$HOST' no existe o no se puede evaluar en flake.nix."
 fi
 
+get_operation() {
+  local operation
+  operation="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
+    die "No se pudo evaluar system.autoUpgrade.operation para $HOST."
+  case "$operation" in
+    switch|boot) printf '%s' "$operation" ;;
+    *) die "Operación de despliegue no reconocida para $HOST: '$operation'." ;;
+  esac
+}
+
 # NixOS defaults system.autoUpgrade.operation to "switch" when not set.
-OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")"
-case "$OPERATION" in
-  switch|boot) ;;
-  *) die "Operación de despliegue no reconocida para $HOST: '$OPERATION'." ;;
-esac
+OPERATION="$(get_operation)"
 
 confirm() {
   local prompt="$1"
