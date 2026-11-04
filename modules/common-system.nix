@@ -207,53 +207,25 @@
   # ============================================================
 
   environment.shellAliases = {
-    # Imprime las versiones de kernel configuradas en todos los hosts del flake.
+    # Consulta las versiones de kernel configuradas en todos los hosts.
     kernels = "bash ~/nixos/scripts/kernel-versions.sh";
 
-    # Compara lo arrancado (/run/booted-system) con lo recién aplicado
-    # (/run/current-system). Kernel, módulos, initrd y systemd piden reinicio;
-    # apps y servicios se recargan solos con el switch.
-    # Una sola línea (sin salto final): en fish el alias añade ` $argv` al final
-    # y un salto de línea lo dejaba como comando vacío (error 123).
-    # Se invoca con `sh -c` para que funcione igual en bash y fish.
-    nix-reboot-check = "sh -c 'for p in kernel kernel-modules initrd systemd; do a=$(readlink /run/booted-system/$p 2>/dev/null); b=$(readlink /run/current-system/$p 2>/dev/null); if [ \"$a\" != \"$b\" ]; then echo \"🔁 Reinicio necesario: cambio en $p\"; R=1; fi; done; if [ \"$R\" = \"1\" ]; then true; else echo \"✅ Sin reinicio necesario\"; fi'";
+    # Detecta cambios de kernel/initrd/systemd pendientes de activar al arrancar.
+    nix-reboot-check = "bash ~/nixos/scripts/nix-reboot-check.sh";
 
-    # nix-up: reconstruye con el lock ACTUAL (seguro, sin update).
-    # No prepara archivos automáticamente: evita incluir accidentalmente
-    # modificaciones ajenas a Nix en el índice de Git.
-    nix-up =
-      "pushd ~/nixos > /dev/null && "
-      + "echo '--- 🏗️ Construyendo ---' && "
-      + "sudo nixos-rebuild build --flake .#${config.networking.hostName} && "
-      + "echo '--- 📋 Diferencias ---' && "
-      + "nvd diff /run/current-system result && "
-      + "echo '--- 🚀 Aplicando ---' && "
-      + "sudo nixos-rebuild switch --flake .#${config.networking.hostName} && "
-      + "echo '--- 🔁 Reinicio ---' && "
-      + "nix-reboot-check && "
-      + "popd > /dev/null";
+    # Actualiza todos los inputs, construye, muestra diferencias y pide confirmación.
+    nix-update = "bash ~/nixos/scripts/nix-maintenance.sh update";
 
-    # nix-update: actualiza el catálogo (flake update) y luego aplica.
-    # Si el update trae un tarball roto, vuelve con
-    # `git checkout -- flake.lock` y luego `nix-up`.
-    nix-update =
-      "pushd ~/nixos > /dev/null && "
-      + "echo '--- 🔄 Actualizando ---' && "
-      + "nix flake update && "
-      + "echo '--- 🏗️ Construyendo ---' && "
-      + "sudo nixos-rebuild build --flake .#${config.networking.hostName} && "
-      + "echo '--- 📋 Diferencias ---' && "
-      + "nvd diff /run/current-system result && "
-      + "echo '--- 🚀 Aplicando ---' && "
-      + "sudo nixos-rebuild switch --flake .#${config.networking.hostName} && "
-      + "echo '--- 🔁 Reinicio ---' && "
-      + "nix-reboot-check && "
-      + "popd > /dev/null";
+    # Construye y aplica usando el flake.lock existente, sin actualizar inputs.
+    nix-apply-locked = "bash ~/nixos/scripts/nix-maintenance.sh apply";
 
-    nix-full-maintenance = "nix-up && nix-clean";
+    # Limpia generaciones según nix.gc.options declaradas para el host actual.
+    nix-clean = "bash ~/nixos/scripts/nix-maintenance.sh clean";
 
-    nix-clean =
-      "sudo nix-collect-garbage --delete-older-than 30d && "
-      + "nix-store --optimise";
+    # Lista las generaciones del perfil del sistema.
+    nix-generations = "sudo nixos-rebuild list-generations";
+
+    # Deduplicación completa manual; auto-optimise-store sigue cubriendo nuevas rutas.
+    nix-optimise = "sudo nix-store --optimise";
   };
 }
