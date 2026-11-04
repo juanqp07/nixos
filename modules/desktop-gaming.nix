@@ -349,6 +349,7 @@
     bashInteractive
     go
     nodejs_24
+    mkdocs
     rustup
     stdenv.cc
 
