@@ -134,23 +134,23 @@ run_update() {
 
 run_build_apply() {
   local automatic="$1"
+  local include_clean="$2"
   build_and_show
 
-  if [[ "$automatic" == "yes" ]]; then
-    clean_generations yes
-    apply_generation
-  else
-    if confirm "¿Aplicar la limpieza de generaciones antiguas ahora?"; then
+  if [[ "$include_clean" == "yes" ]]; then
+    if [[ "$automatic" == "yes" ]]; then
+      clean_generations yes
+    elif confirm "¿Aplicar la limpieza de generaciones antiguas ahora?"; then
       clean_generations yes
     else
-      printf 'Limpieza omitida.\n'
+      printf 'Limpieza omitida.\\n'
     fi
+  fi
 
-    if confirm "¿Aplicar la nueva generación en $HOST?"; then
-      apply_generation
-    else
-      printf 'Aplicación cancelada. La configuración construida permanece en /nix/store.\n'
-    fi
+  if [[ "$automatic" == "yes" ]] || confirm "¿Aplicar la nueva generación en $HOST?"; then
+    apply_generation
+  else
+    printf 'Aplicación cancelada. La configuración construida permanece en /nix/store.\\n'
   fi
 }
 
@@ -171,7 +171,7 @@ run_maintenance() {
   sudo nixos-rebuild list-generations
 
   run_update
-  run_build_apply "$automatic" yes
+  run_build_apply "$automatic" yes yes
 
   printf '\n========== MANTENIMIENTO FINALIZADO: %s ==========\n' "$HOST"
 }
@@ -210,7 +210,7 @@ case "${1:-}" in
   update)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
     run_update
-    run_build_apply no
+    run_build_apply no no
     ;;
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
