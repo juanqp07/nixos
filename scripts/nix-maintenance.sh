@@ -87,6 +87,16 @@ get_gc_args() {
 clean_generations() {
   local automatic="$1"
   local gc_options
+
+  # With operation=boot, the selected profile can already point to a newer
+  # generation while the old one is still running. Do not prune in that state.
+  if [[ "$OPERATION" == "boot" && -e /run/booted-system && -e /nix/var/nix/profiles/system ]]; then
+    if [[ "$(readlink -f /run/booted-system)" != "$(readlink -f /nix/var/nix/profiles/system)" ]]; then
+      printf 'Limpieza omitida: hay una generación pendiente de reinicio; se conserva el sistema que sigue arrancado.\\n'
+      return 0
+    fi
+  fi
+
   gc_options="$(get_gc_args)"
 
   printf '\n--- Limpieza de generaciones en %s ---\n' "$HOST"
