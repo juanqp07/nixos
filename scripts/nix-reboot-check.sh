@@ -17,6 +17,7 @@ NEXT="/nix/var/nix/profiles/system"
 }
 
 needs_reboot=0
+unverified=0
 
 for component in kernel kernel-modules initrd systemd; do
   booted_component="$BOOTED/$component"
@@ -24,6 +25,7 @@ for component in kernel kernel-modules initrd systemd; do
 
   if [[ ! -e "$booted_component" || ! -e "$next_component" ]]; then
     printf 'Aviso: no se pudo comparar el componente %s.\n' "$component"
+    unverified=1
     continue
   fi
 
@@ -38,6 +40,11 @@ done
 
 if (( needs_reboot )); then
   exit 0
+fi
+
+if (( unverified )); then
+  echo "No se pudo verificar todos los componentes; revisa los avisos anteriores." >&2
+  exit 2
 fi
 
 echo "Sin cambios de kernel, módulos, initrd o systemd pendientes de reinicio."
