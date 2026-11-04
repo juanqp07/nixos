@@ -81,7 +81,7 @@ case "${1:-}" in
     build_and_apply
     ;;
   clean)
-    printf '%s\n' '--- Leyendo política de GC declarada para %s ---' "$HOST"
+    printf '%s\n' "--- Leyendo política de GC declarada para $HOST ---"
     gc_options="$(nix eval --raw ".#nixosConfigurations.$HOST.config.nix.gc.options")" ||
       die "No se pudo evaluar nix.gc.options para $HOST."
 
