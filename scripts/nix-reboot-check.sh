@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# Compare reboot-sensitive components of the booted system with the
-# system profile selected for the next boot (including operation = "boot").
+# Check reboot requirements against the system profile selected for next boot.
+# In "boot" mode, the full generation is pending until the next restart.
+# In "switch" mode, only reboot-sensitive components require a restart.
 
 set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd "$FLAKE_DIR"
 
 BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
@@ -15,6 +20,28 @@ NEXT="/nix/var/nix/profiles/system"
   echo "Error: no existe $NEXT; no se puede identificar la generación seleccionada." >&2
   exit 1
 }
+
+HOST="$(hostname -s)"
+OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")"
+
+if [[ "$OPERATION" == "boot" ]]; then
+  booted_system="$(readlink -f "$BOOTED")"
+  next_system="$(readlink -f "$NEXT")"
+
+  if [[ "$booted_system" != "$next_system" ]]; then
+    printf 'Reinicio pendiente: hay una nueva generación preparada para el próximo arranque.\n'
+    printf 'Arrancada: %s\nSiguiente: %s\n' "$booted_system" "$next_system"
+    exit 0
+  fi
+
+  echo "No hay una nueva generación pendiente de activar en el próximo arranque."
+  exit 0
+fi
+
+if [[ "$OPERATION" != "switch" ]]; then
+  printf 'Error: operación de despliegue no reconocida: %s\n' "$OPERATION" >&2
+  exit 2
+fi
 
 needs_reboot=0
 unverified=0

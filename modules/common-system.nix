@@ -210,10 +210,13 @@
     # Consulta las versiones de kernel configuradas en todos los hosts.
     kernels = "bash ~/nixos/scripts/kernel-versions.sh";
 
-    # Detecta cambios de kernel/initrd/systemd pendientes de activar al arrancar.
+    # Comprueba reinicios según la estrategia switch/boot del host.
     nix-reboot-check = "bash ~/nixos/scripts/nix-reboot-check.sh";
 
-    # Actualiza todos los inputs, construye, muestra diferencias y pide confirmación.
+    # Mantenimiento completo: interactivo o automático con -y.
+    nix-maintain = "bash ~/nixos/scripts/nix-maintenance.sh maintain";
+
+    # Actualiza todos los inputs, construye y pregunta antes de aplicar.
     nix-update = "bash ~/nixos/scripts/nix-maintenance.sh update";
 
     # Construye y aplica usando el flake.lock existente, sin actualizar inputs.
