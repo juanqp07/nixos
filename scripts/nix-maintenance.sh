@@ -215,7 +215,7 @@ case "${1:-}" in
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
     printf '%s\n' '--- Usando las revisiones existentes en flake.lock ---'
-    run_build_apply no
+    run_build_apply no no
     ;;
   clean)
     shift
