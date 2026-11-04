@@ -349,6 +349,8 @@
     bashInteractive
     go
     nodejs_24
+    python3
+    python3Packages.pip
     mkdocs
     rustup
     stdenv.cc
