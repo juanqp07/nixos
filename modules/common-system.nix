@@ -163,14 +163,14 @@
       dnsutils
       openssl
       mtr
-  
+
       # Terminal y monitorización
       vim
       fish
       btop
       fastfetch
       tmux
-  
+
       # Archivos y búsqueda
       ripgrep
       fd
@@ -180,26 +180,26 @@
       jq
       file
       ncdu
-  
+
       # Administración y hardware
       lsof
       pciutils
       lshw
       usbutils
       lm_sensors
-  
+
       # NixOS
       nvd
       nix-output-monitor
-  
+
       # Diagnóstico y archivos comprimidos
       stress-ng
       zip
       unzip
+      unar
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
       rar
-      unrar
     ];
 
   # ============================================================
