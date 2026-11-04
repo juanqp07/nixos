@@ -86,6 +86,13 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # Fastfetch solo en terminales locales; no interrumpir sesiones SSH.
+  programs.fish.interactiveShellInit = lib.mkAfter ''
+    if not set -q SSH_CONNECTION; and not set -q SSH_TTY
+      fastfetch
+    end
+  '';
+
   programs.kdeconnect.enable = true;
 
   # Montaje automático de unidades extraíbles (USB, incluida PS Vita con VitaShell).
