@@ -47,9 +47,6 @@ build_and_apply() {
   printf '\n--- Construyendo %s ---\n' "$HOST"
   sudo nixos-rebuild build --flake ".#$HOST" -L
 
-  [[ -e result ]] || die "La construcción terminó sin crear ./result."
-  [[ -x result/bin/switch-to-configuration ]] || die "La salida construida no contiene switch-to-configuration."
-
   printf '\n--- Diferencias respecto al sistema actual ---\n'
   nvd diff /run/current-system result
 
@@ -58,8 +55,9 @@ build_and_apply() {
   case "$answer" in
     s|S|si|SI|sí|Sí|sÍ|SÍ)
       printf '\n--- Aplicando generación construida ---\n'
-      # Reutiliza exactamente el resultado ya comparado, sin reconstruir.
-      sudo ./result/bin/switch-to-configuration switch
+      # nixos-rebuild switch registra la generación y actualiza el cargador
+      # de arranque; la salida ya construida se reutiliza desde el almacén.
+      sudo nixos-rebuild switch --flake ".#$HOST" -L
       printf '\n--- Comprobación de reinicio ---\n'
       bash "$SCRIPT_DIR/nix-reboot-check.sh"
       ;;
