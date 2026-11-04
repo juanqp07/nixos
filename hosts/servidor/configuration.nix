@@ -242,16 +242,25 @@ virtualisation.oci-containers.containers = {
       "--read-only"
       "--cap-drop=ALL"
       "--security-opt=no-new-privileges:true"
+      # The healthcheck verifies that the Docker Unix socket is reachable.
+      # Avoid probing it every 2 seconds; allow a short startup grace period.
       "--health-cmd=./healthcheck"
-      "--health-interval=2s"
+      "--health-start-period=15s"
+      "--health-interval=30s"
       "--health-timeout=5s"
-      "--health-retries=15"
+      "--health-retries=3"
     ];
   };
 
   arcane = {
     image = "ghcr.io/getarcaneapp/manager:latest";
     autoStart = true;
+
+    # NixOS owns the Arcane container lifecycle and upgrades. Prevent Arcane's
+    # automatic updater from replacing a container managed by oci-containers.
+    labels = {
+      "com.getarcaneapp.arcane.updater" = "false";
+    };
 
     ports = [
       "3552:3552"
