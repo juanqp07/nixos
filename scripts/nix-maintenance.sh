@@ -92,7 +92,7 @@ clean_generations() {
   # generation while the old one is still running. Do not prune in that state.
   if [[ "$OPERATION" == "boot" && -e /run/booted-system && -e /nix/var/nix/profiles/system ]]; then
     if [[ "$(readlink -f /run/booted-system)" != "$(readlink -f /nix/var/nix/profiles/system)" ]]; then
-      printf 'Limpieza omitida: hay una generación pendiente de reinicio; se conserva el sistema que sigue arrancado.\\n'
+      printf 'Limpieza omitida: hay una generación pendiente de reinicio; se conserva el sistema que sigue arrancado.\n'
       return 0
     fi
   fi
