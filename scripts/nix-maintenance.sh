@@ -132,9 +132,9 @@ apply_generation() {
 
 run_update() {
   check_lock_clean
-  printf '\n--- Actualizando todos los inputs del flake ---\\n'
+  printf '\n--- Actualizando todos los inputs del flake ---\n'
   nix flake update
-  printf '\n--- Cambios en flake.lock ---\\n'
+  printf '\n--- Cambios en flake.lock ---\n'
   show_lock_diff
   # Refresh option values after updating inputs; NixOS defaults may have changed.
   OPERATION="$(get_operation)"
@@ -151,14 +151,14 @@ run_build_apply() {
     elif confirm "¿Aplicar la limpieza de generaciones antiguas ahora?"; then
       clean_generations yes
     else
-      printf 'Limpieza omitida.\\n'
+      printf 'Limpieza omitida.\n'
     fi
   fi
 
   if [[ "$automatic" == "yes" ]] || confirm "¿Aplicar la nueva generación en $HOST?"; then
     apply_generation
   else
-    printf 'Aplicación cancelada. La configuración construida permanece en /nix/store.\\n'
+    printf 'Aplicación cancelada. La configuración construida permanece en /nix/store.\n'
   fi
 }
 
@@ -166,9 +166,9 @@ run_maintenance() {
   local automatic="$1"
   local reboot_status=0
 
-  printf '\n========== MANTENIMIENTO NIXOS: %s ==========\\n' "$HOST"
+  printf '\n========== MANTENIMIENTO NIXOS: %s ==========\n' "$HOST"
 
-  printf '\n--- Estado previo de reinicio ---\\n'
+  printf '\n--- Estado previo de reinicio ---\n'
   bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
   case "$reboot_status" in
     0) ;;
@@ -177,14 +177,14 @@ run_maintenance() {
     *) die "La comprobación de reinicio terminó con el código $reboot_status." ;;
   esac
 
-  printf '\n--- Generaciones actuales ---\\n'
+  printf '\n--- Generaciones actuales ---\n'
   sudo nixos-rebuild list-generations
 
   run_update
-  printf 'Estrategia de aplicación declarada: %s\\n' "$OPERATION"
+  printf 'Estrategia de aplicación declarada: %s\n' "$OPERATION"
   run_build_apply "$automatic" yes
 
-  printf '\n========== MANTENIMIENTO FINALIZADO: %s ==========\\n' "$HOST"
+  printf '\n========== MANTENIMIENTO FINALIZADO: %s ==========\n' "$HOST"
 }
 
 usage() {
