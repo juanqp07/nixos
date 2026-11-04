@@ -94,7 +94,14 @@
     ];
   };
 
-  programs.fish.enable = true;
+  programs.fish = {
+    enable = true;
+
+    # Oculta el saludo predeterminado en todas las sesiones interactivas.
+    interactiveShellInit = ''
+      set -g fish_greeting
+    '';
+  };
 
   # SSH con contraseña se mantiene deliberadamente para no depender de claves
   # que puedan perderse. Root no debe autenticarse directamente por SSH.
