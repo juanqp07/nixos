@@ -571,6 +571,16 @@
   # ============================================================
 
   nixpkgs.overlays = [
+    # Workaround temporal para OpenCode 2.2.5 con Bun 1.4.4.
+    # NixOS/nixpkgs#582675 ya está fusionado, pero la corrección aún no
+    # ha llegado a nixos-unstable. Retirar este override cuando llegue.
+    (final: prev: {
+      opencode = prev.opencode.overrideAttrs (old: {
+        node_modules = old.node_modules.overrideAttrs (_: {
+          outputHash = "sha256-prx9dX7kUvs/E3zopkaPk5LXh3xJAy5sZeum/W8L7cA=";
+        });
+      });
+    })
     (final: prev: {
       gearlever = prev.gearlever.overridePythonAttrs (old: {
         makeWrapperArgs = [
