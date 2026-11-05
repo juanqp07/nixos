@@ -40,7 +40,7 @@ nix flake lock
 git diff -- flake.lock
 git add flake.lock
 git commit -m "chore: lock Home Manager inputs"
-`
+```
 
 ## 🚀 Cómo aplicar cambios
 
