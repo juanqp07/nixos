@@ -9,7 +9,7 @@ FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
 die() {
-  printf 'Error: %s\n' "$*" >&2
+  printf '❌ Error: %s\n' "$*" >&2
   exit 1
 }
 
@@ -44,7 +44,7 @@ OPERATION="$(get_operation)"
 confirm() {
   local prompt="$1"
   local answer
-  if ! read -r -p "$prompt [s/N] " answer; then
+  if ! read -r -p "❓ $prompt [s/N] " answer; then
     answer=""
   fi
   case "$answer" in
@@ -55,7 +55,7 @@ confirm() {
 
 show_lock_diff() {
   if git diff --quiet HEAD -- flake.lock; then
-    printf 'No hay cambios en flake.lock.\n'
+    printf 'ℹ️  No hay cambios en flake.lock.\n'
   else
     git --no-pager diff HEAD -- flake.lock
   fi
@@ -92,59 +92,63 @@ clean_generations() {
   # generation while the old one is still running. Do not prune in that state.
   if [[ "$OPERATION" == "boot" && -e /run/booted-system && -e /nix/var/nix/profiles/system ]]; then
     if [[ "$(readlink -f /run/booted-system)" != "$(readlink -f /nix/var/nix/profiles/system)" ]]; then
-      printf 'Limpieza omitida: hay una generación pendiente de reinicio; se conserva el sistema que sigue arrancado.\n'
+      printf '⏭️  Limpieza omitida: hay una generación pendiente de reinicio; se conserva el sistema que sigue arrancado.\n'
       return 0
     fi
   fi
 
   gc_options="$(get_gc_args)"
 
-  printf '\n--- Limpieza de generaciones en %s ---\n' "$HOST"
-  printf 'Política declarada: %s\n' "$gc_options"
-  printf 'La generación activa se conserva; las generaciones antiguas que cumplan el periodo pueden dejar de servir para rollback.\n'
+  printf '\n🧹 --- Limpieza de generaciones en %s ---\n' "$HOST"
+  printf '📋 Política declarada: %s\n' "$gc_options"
+  printf '⚠️  La generación activa se conserva; las generaciones antiguas que cumplan el periodo pueden dejar de servir para rollback.\n'
 
   if [[ "$automatic" != "yes" ]] && ! confirm "¿Eliminar generaciones antiguas según esta política?"; then
-    printf 'Limpieza omitida.\n'
+    printf '⏭️  Limpieza omitida.\n'
     return 0
   fi
 
   read -r -a GC_ARGS <<< "$gc_options"
   sudo nix-collect-garbage "${GC_ARGS[@]}"
+  printf '✅ Limpieza de generaciones completada.\n'
 }
 
 build_and_show() {
-  printf '\n--- Construyendo configuración de %s ---\n' "$HOST"
+  printf '\n🏗️  --- Construyendo configuración de %s ---\n' "$HOST"
   sudo nixos-rebuild build --flake ".#$HOST" -L
+  printf '✅ Construcción completada.\n'
 
-  printf '\n--- Diferencias de paquetes y versiones (NVD) ---\n'
+  printf '\n📦 --- Diferencias de paquetes y versiones (NVD) ---\n'
   nvd diff /run/current-system result
 
-  printf '\n--- Simulación de activación (sin aplicar cambios) ---\n'
+  printf '\n🧪 --- Simulación de activación (sin aplicar cambios) ---\n'
   sudo nixos-rebuild dry-activate --flake ".#$HOST" -L
+  printf '✅ Simulación completada; todavía no se ha aplicado ningún cambio.\n'
 }
 
 apply_generation() {
-  printf '\n--- Aplicando según la política de %s ---\n' "$HOST"
+  printf '\n🚀 --- Aplicando según la política de %s ---\n' "$HOST"
   case "$OPERATION" in
     switch)
-      printf 'Operación: switch (activa ahora la configuración).\n'
+      printf '🔀 Operación: switch (activa ahora la configuración).\n'
       sudo nixos-rebuild switch --flake ".#$HOST" -L
       ;;
     boot)
-      printf 'Operación: boot (prepara la generación para el próximo arranque; no reinicia).\n'
+      printf '🔁 Operación: boot (prepara la generación para el próximo arranque; no reinicia).\n'
       sudo nixos-rebuild boot --flake ".#$HOST" -L
       ;;
   esac
 
-  printf '\n--- Comprobación de reinicio/activación pendiente ---\n'
+  printf '\n🔎 --- Comprobación de reinicio/activación pendiente ---\n'
   bash "$SCRIPT_DIR/nix-reboot-check.sh"
 }
 
 run_update() {
   check_lock_clean
-  printf '\n--- Actualizando todos los inputs del flake ---\n'
+  printf '\n🔄 --- Actualizando todos los inputs del flake ---\n'
   nix flake update
-  printf '\n--- Cambios en flake.lock ---\n'
+  printf '✅ Inputs del flake actualizados.\n'
+  printf '\n🧾 --- Cambios en flake.lock ---\n'
   show_lock_diff
   # Refresh option values after updating inputs; NixOS defaults may have changed.
   OPERATION="$(get_operation)"
@@ -168,7 +172,7 @@ run_build_apply() {
   if [[ "$automatic" == "yes" ]] || confirm "¿Aplicar la nueva generación en $HOST?"; then
     apply_generation
   else
-    printf 'Aplicación cancelada. La configuración construida permanece en /nix/store.\n'
+    printf '⏭️  Aplicación cancelada. La configuración construida permanece en /nix/store.\n'
   fi
 }
 
@@ -176,9 +180,9 @@ run_maintenance() {
   local automatic="$1"
   local reboot_status=0
 
-  printf '\n========== MANTENIMIENTO NIXOS: %s ==========\n' "$HOST"
+  printf '\n🛠️  ========== MANTENIMIENTO NIXOS: %s ==========\n' "$HOST"
 
-  printf '\n--- Estado previo de reinicio ---\n'
+  printf '\n🔎 --- Estado previo de reinicio ---\n'
   bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
   case "$reboot_status" in
     0) ;;
@@ -187,14 +191,14 @@ run_maintenance() {
     *) die "La comprobación de reinicio terminó con el código $reboot_status." ;;
   esac
 
-  printf '\n--- Generaciones actuales ---\n'
+  printf '\n🗂️  --- Generaciones actuales ---\n'
   sudo nixos-rebuild list-generations
 
   run_update
-  printf 'Estrategia de aplicación declarada: %s\n' "$OPERATION"
+  printf '📌 Estrategia de aplicación declarada: %s\n' "$OPERATION"
   run_build_apply "$automatic" yes
 
-  printf '\n========== MANTENIMIENTO FINALIZADO: %s ==========\n' "$HOST"
+  printf '\n🎉 ========== MANTENIMIENTO FINALIZADO: %s ==========\n' "$HOST"
 }
 
 usage() {
@@ -235,7 +239,7 @@ case "${1:-}" in
     ;;
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    printf '%s\n' '--- Usando las revisiones existentes en flake.lock ---'
+    printf '%s\n' '🔒 --- Usando las revisiones existentes en flake.lock ---'
     run_build_apply no no
     ;;
   clean)
