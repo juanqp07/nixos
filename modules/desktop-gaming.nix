@@ -92,12 +92,11 @@
     discover
   ];
 
-  # Fastfetch solo en terminales locales; no interrumpir sesiones SSH.
-  programs.fish.interactiveShellInit = lib.mkAfter ''
-    if not set -q SSH_CONNECTION; and not set -q SSH_TTY
-      fastfetch
-    end
-  '';
+  # Preferencias y alias personales del escritorio gestionados por Home Manager.
+  # Este módulo solo se añade a Elytra y Titan desde el Flake.
+  home-manager.users.juan.imports = [
+    ../home/juan/desktop.nix
+  ];
 
   programs.kdeconnect.enable = true;
 
@@ -607,25 +606,5 @@
       });
     })
   ];
-
-  # ============================================================
-  # DESPLIEGUE REMOTO DE SERVIDORES (desde Elytra o Titan)
-  # Compila en el equipo que invoca el alias y activa el resultado
-  # en el servidor por SSH. No usar --build-host: el destino no compila.
-  # ============================================================
-
-  environment.shellAliases = {
-    nix-up-atlas =
-      "pushd ~/nixos > /dev/null && "
-      + "echo '--- 🚀 Desplegando Atlas desde este equipo ---' && "
-      + "nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --ask-sudo-password && "
-      + "popd > /dev/null";
-
-    nix-up-pico =
-      "pushd ~/nixos > /dev/null && "
-      + "echo '--- 🚀 Desplegando Pico desde este equipo ---' && "
-      + "nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password && "
-      + "popd > /dev/null";
-  };
 
 }
