@@ -94,14 +94,8 @@
     ];
   };
 
-  programs.fish = {
-    enable = true;
-
-    # Oculta el saludo predeterminado en todas las sesiones interactivas.
-    interactiveShellInit = ''
-      set -g fish_greeting
-    '';
-  };
+  # Fish es el shell del sistema; las preferencias personales viven en Home Manager.
+  programs.fish.enable = true;
 
   # SSH con contraseña se mantiene deliberadamente para no depender de claves
   # que puedan perderse. Root no debe autenticarse directamente por SSH.
@@ -202,33 +196,4 @@
       rar
     ];
 
-  # ============================================================
-  # ALIAS DE MANTENIMIENTO
-  # ============================================================
-
-  environment.shellAliases = {
-    # Consulta las versiones de kernel configuradas en todos los hosts.
-    kernels = "bash ~/nixos/scripts/kernel-versions.sh";
-
-    # Comprueba reinicios según la estrategia switch/boot del host.
-    nix-reboot-check = "bash ~/nixos/scripts/nix-reboot-check.sh";
-
-    # Mantenimiento completo: interactivo o automático con -y.
-    nix-maintain = "bash ~/nixos/scripts/nix-maintenance.sh maintain";
-
-    # Actualiza todos los inputs, construye y pregunta antes de aplicar.
-    nix-update = "bash ~/nixos/scripts/nix-maintenance.sh update";
-
-    # Construye y aplica usando el flake.lock existente, sin actualizar inputs.
-    nix-apply-locked = "bash ~/nixos/scripts/nix-maintenance.sh apply";
-
-    # Limpia generaciones según nix.gc.options declaradas para el host actual.
-    nix-clean = "bash ~/nixos/scripts/nix-maintenance.sh clean";
-
-    # Lista las generaciones del perfil del sistema.
-    nix-generations = "sudo nixos-rebuild list-generations";
-
-    # Deduplicación completa manual; auto-optimise-store sigue cubriendo nuevas rutas.
-    nix-optimise = "sudo nix-store --optimise";
-  };
 }
