@@ -183,6 +183,37 @@
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;
 
+  # RustDesk: acceso desatendido desde el arranque.
+  # SDDM usa X11 para mostrar la pantalla de login; la sesión de Plasma
+  # sigue pudiendo iniciarse en Wayland normalmente.
+  services.displayManager.sddm.wayland.enable = false;
+
+  systemd.services.rustdesk = {
+    description = "RustDesk remote desktop service";
+    after = [
+      "network.target"
+      "systemd-user-sessions.service"
+      "display-manager.service"
+    ];
+    wants = [ "display-manager.service" ];
+    wantedBy = [ "graphical.target" ];
+
+    # RustDesk puede invocar herramientas privilegiadas a través de sudo.
+    environment.PATH = "/run/wrappers/bin:/run/current-system/sw/bin";
+
+    serviceConfig = {
+      Type = "simple";
+      User = "root";
+      ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
+      ExecStop = "${pkgs.procps}/bin/pkill -f \"rustdesk --\"";
+      Restart = "on-failure";
+      RestartSec = "5s";
+      KillMode = "mixed";
+      TimeoutStopSec = "30s";
+      LimitNOFILE = 100000;
+    };
+  };
+
   # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
   # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
   networking.firewall = {
