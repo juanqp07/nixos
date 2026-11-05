@@ -7,6 +7,18 @@
     # Canal estable para los servidores (atlas, pico): solo correcciones y seguridad.
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";
 
+    # Home Manager para hosts que siguen nixpkgs-unstable.
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Home Manager alineado con nixos-26.05 para los servidores.
+    home-manager-stable = {
+      url = "github:nix-community/home-manager/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs-stable";
+    };
+
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     nix-flatpak.url =
@@ -15,10 +27,10 @@
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";    
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, home-manager, home-manager-stable, ... }@inputs:
     let
       # pkgsInput: nixpkgs (unstable) o nixpkgs-stable según el equipo.
-      mkHost = pkgsInput: hostName: system: extraModules:
+      mkHost = pkgsInput: homeManagerInput: hostName: system: extraModules:
         pkgsInput.lib.nixosSystem {
           inherit system;
 
@@ -28,31 +40,33 @@
 
           modules = [
             ./modules/common-system.nix
+            homeManagerInput.nixosModules.home-manager
+            ./modules/home-manager.nix
             ./hosts/${hostName}/configuration.nix
           ] ++ extraModules;
         };
     in
     {
   nixosConfigurations = {
-    elytra = mkHost nixpkgs "portatil" "x86_64-linux" [
+    elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
     ];
 
-    titan = mkHost nixpkgs "torre" "x86_64-linux" [
+    titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
     ];
 
-    atlas = mkHost nixpkgs-stable "servidor" "x86_64-linux" [
+    atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
       ./modules/server-system.nix
     ];
 
-    pico = mkHost nixpkgs-stable "zimablade" "x86_64-linux" [
+    pico = mkHost nixpkgs-stable home-manager-stable "zimablade" "x86_64-linux" [
       ./modules/server-system.nix
     ];
 
-    palco = mkHost nixpkgs "rpi4-bt" "aarch64-linux" [
+    palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
       nixos-hardware.nixosModules.raspberry-pi-4
       "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
       ./modules/palco-audio.nix
