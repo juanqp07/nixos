@@ -183,34 +183,31 @@
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;
 
-  # RustDesk: acceso desatendido desde el arranque.
-  # SDDM usa X11 para mostrar la pantalla de login; la sesión de Plasma
-  # sigue pudiendo iniciarse en Wayland normalmente.
+  # RustDesk: servicio de sistema disponible antes del inicio de sesión.
+  # SDDM usa X11 para permitir captura/control de la pantalla de login;
+  # la sesión de KDE Plasma puede seguir usando Wayland.
   services.displayManager.sddm.wayland.enable = false;
 
   systemd.services.rustdesk = {
-    description = "RustDesk remote desktop service";
+    description = "RustDesk";
+    requires = [ "network.target" ];
     after = [
       "network.target"
       "systemd-user-sessions.service"
-      "display-manager.service"
     ];
-    wants = [ "display-manager.service" ];
-    wantedBy = [ "graphical.target" ];
-
-    # RustDesk puede invocar herramientas privilegiadas a través de sudo.
-    environment.PATH = "/run/wrappers/bin:/run/current-system/sw/bin";
+    wantedBy = [ "multi-user.target" ];
 
     serviceConfig = {
       Type = "simple";
-      User = "root";
       ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
       ExecStop = "${pkgs.procps}/bin/pkill -f \"rustdesk --\"";
-      Restart = "on-failure";
-      RestartSec = "5s";
+      PIDFile = "/run/rustdesk.pid";
       KillMode = "mixed";
       TimeoutStopSec = "30s";
+      User = "root";
       LimitNOFILE = 100000;
+      Restart = "on-failure";
+      RestartSec = "5s";
     };
   };
 
