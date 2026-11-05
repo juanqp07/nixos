@@ -86,6 +86,12 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # Discover se instala automáticamente al habilitar Flatpak/fwupd en Plasma.
+  # No lo necesitamos: las aplicaciones Flatpak se gestionan declarativamente.
+  environment.plasma6.excludePackages = with pkgs.kdePackages; [
+    discover
+  ];
+
   # Fastfetch solo en terminales locales; no interrumpir sesiones SSH.
   programs.fish.interactiveShellInit = lib.mkAfter ''
     if not set -q SSH_CONNECTION; and not set -q SSH_TTY
@@ -544,6 +550,7 @@
       "com.github.sdv43.whaler"
       "io.github.dvlv.boxbuddyrs"
       "net.waterfox.waterfox"
+      "io.github.totoshko88.RustConn"
     ];
 
     # No hacer descargas durante cada nixos-rebuild switch: las activaciones
