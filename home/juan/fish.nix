@@ -28,8 +28,8 @@
       # Limpia generaciones según la política declarada para el host actual.
       nix-clean = "bash ~/nixos/scripts/nix-maintenance.sh clean";
 
-      # Lista las generaciones del perfil del sistema.
-      nix-generations = "sudo nixos-rebuild list-generations";
+      # Muestra solo el número, fecha y generación actual.
+      nix-generations = "sudo nix-env --profile /nix/var/nix/profiles/system --list-generations";
 
       # Deduplicación completa manual; auto-optimise-store sigue cubriendo nuevas rutas.
       nix-optimise = "sudo nix-store --optimise";
