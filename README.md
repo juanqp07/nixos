@@ -11,13 +11,36 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `servidor/` (atlas): i5-1250P + 32GB RAM (Docker, sin entorno gráfico).
     * `zimablade/` (pico): Intel Celeron N3450 (Apollo Lake) (ZimaBlade, Docker/Dockge).
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
-* **modules/**: Módulos compartidos.
+* **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
+    * `home-manager.nix`: Integración de Home Manager con NixOS.
+* **home/juan/**: Configuración personal compartida con Home Manager.
+    * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
+    * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
+    * `desktop.nix`: Fastfetch y alias de despliegue exclusivos de Elytra y Titan.
 
 ---
+
+## 🏠 Home Manager
+
+Home Manager está integrado como módulo de NixOS: los cambios del entorno personal se aplican junto con `nixos-rebuild switch`.
+
+- `elytra`, `titan` y `palco` utilizan Home Manager `master`, siguiendo `nixpkgs-unstable`.
+- `atlas` y `pico` utilizan `release-26.05`, siguiendo `nixpkgs-stable`.
+- Las preferencias comunes de Fish y los alias personales se mantienen en `home/juan/`; Fastfetch y los alias de despliegue solo se cargan en los equipos de escritorio.
+- Hardware, servicios, permisos, aplicaciones de sistema y configuración de Plasma continúan en los módulos de NixOS.
+
+Después de incorporar los nuevos inputs por primera vez, ejecuta `nix flake lock` desde la raíz del repositorio y revisa/añade el `flake.lock` resultante antes de desplegar:
+
+```bash
+nix flake lock
+git diff -- flake.lock
+git add flake.lock
+git commit -m "chore: lock Home Manager inputs"
+`
 
 ## 🚀 Cómo aplicar cambios
 
