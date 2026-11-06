@@ -200,12 +200,9 @@
     ];
     wantedBy = [ "multi-user.target" ];
 
-    # RustDesk necesita el sudo de NixOS en PATH para lanzar su proceso
-    # de captura como el usuario activo (incluido el greeter de SDDM).
-    # Sobrescribe el PATH predeterminado de systemd para que RustDesk
-    # encuentre el wrapper sudo de NixOS al iniciar la captura en SDDM.
-    environment.PATH = lib.mkForce
-      "/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin";
+    # Añade los wrappers setuid de NixOS al PATH sin sustituir el
+    # defaultPath que systemd configura automáticamente.
+    path = [ "/run/wrappers" ];
 
     serviceConfig = {
       Type = "simple";
