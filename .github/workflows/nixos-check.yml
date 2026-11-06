@@ -46,10 +46,14 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Validate privacy helper syntax
+      - name: Validate shell and privacy helper syntax
         if: matrix.host == 'elytra'
         run: |
-          bash -n scripts/rustdesk-privacy.sh
+          for script in scripts/*.sh; do
+            bash -n "$script"
+            echo "Syntax OK: $script"
+          done
+
           python3 - <<'PY'
           import ast
           from pathlib import Path
