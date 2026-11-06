@@ -116,15 +116,12 @@ automatic_on() {
   fi
 
   if is_active; then
-    # If the watcher has a live authenticated portal session but the mode
-    # marker was lost (for example after a watcher restart), recover it as
-    # automatic. Otherwise preserve an externally started service as manual.
-    if [[ "$(mode)" != "auto" ]]; then
-      if [[ -s "$SESSIONS_FILE" ]]; then
-        write_mode auto
-      else
-        write_mode manual
-      fi
+    # An active unit with no recorded automatic ownership may have been
+    # started manually through systemctl or by an earlier login session.
+    # Never claim ownership of it: the watcher must not stop external/manual
+    # privacy when the portal session closes.
+    if [[ "$(mode)" != "auto" && "$(mode)" != "manual" ]]; then
+      write_mode manual
     fi
     return 0
   fi
