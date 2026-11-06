@@ -36,9 +36,10 @@ let
       grep -a -qF 'libEGL.so.1' "$drmtap"
       grep -a -qF 'eglCreateImageKHR' "$drmtap"
 
-      # The upstream package builds without the unused privileged helper.
-      if grep -a -qF 'drmtap-helper' "$drmtap"; then
-        echo "Unexpected privileged drmtap helper in the bundled library" >&2
+      # Match the upstream assertion that the unused privileged helper path
+      # and its socketpair transport are absent from the library.
+      if grep -a -qF 'socketpair' "$drmtap" || grep -a -qF '/usr/libexec/drmtap-helper' "$drmtap"; then
+        echo "Unexpected privileged drmtap helper path in the bundled library" >&2
         exit 1
       fi
       runHook postInstall
