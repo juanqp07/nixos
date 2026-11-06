@@ -8,75 +8,12 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
-# Identidad visual de la herramienta. Los colores solo se activan en terminales TTY.
-C_RESET=""
-C_BOLD=""
-C_DIM=""
-C_CYAN=""
-C_BLUE=""
-C_GREEN=""
-C_YELLOW=""
-C_RED=""
-if [[ -t 1 && ! -v NO_COLOR && -v TERM && "$TERM" != "dumb" ]]; then
-  C_RESET=$'\e[0m'
-  C_BOLD=$'\e[1m'
-  C_DIM=$'\e[2m'
-  C_CYAN=$'\e[36m'
-  C_BLUE=$'\e[34m'
-  C_GREEN=$'\e[32m'
-  C_YELLOW=$'\e[33m'
-  C_RED=$'\e[31m'
-fi
-
-banner() {
-  local mode="$1"
-  printf '\n%b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b\n' "$C_CYAN" "$C_RESET"
-  printf '  %bN I X O S%b  %b/ SYSTEM CARE%b\n' "$C_BOLD" "$C_RESET" "$C_CYAN$C_BOLD" "$C_RESET"
-  printf '  %s  ·  %s\n' "$HOST" "$(date '+%d/%m/%Y · %H:%M')"
-  printf '  %b%s%b\n' "$C_DIM" "$mode" "$C_RESET"
-  printf '%b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b\n' "$C_CYAN" "$C_RESET"
-}
-
-section() {
-  local number="$1"
-  local title="$2"
-  local subtitle="$3"
-  printf '\n%b%s  %s%b\n' "$C_CYAN$C_BOLD" "$number" "$title" "$C_RESET"
-  printf '   %b%s%b\n' "$C_DIM" "$subtitle" "$C_RESET"
-}
-
-format_duration() {
-  local seconds="$1"
-  if (( seconds >= 3600 )); then
-    printf '%dh %02dm %02ds' "$((seconds / 3600))" "$(((seconds % 3600) / 60))" "$((seconds % 60))"
-  elif (( seconds >= 60 )); then
-    printf '%dm %02ds' "$((seconds / 60))" "$((seconds % 60))"
-  else
-    printf '%ds' "$seconds"
-  fi
-}
-
-print_summary() {
-  local elapsed="$1"
-  local result="$2"
-  printf '\n%b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b\n' "$C_GREEN" "$C_RESET"
-  printf '  %b✓  MANTENIMIENTO COMPLETADO%b\n' "$C_GREEN$C_BOLD" "$C_RESET"
-  printf '  %bEquipo%b       %s\n' "$C_BOLD" "$C_RESET" "$HOST"
-  printf '  %bDuración%b     %s\n' "$C_BOLD" "$C_RESET" "$(format_duration "$elapsed")"
-  printf '  %bResultado%b    %s\n' "$C_BOLD" "$C_RESET" "$result"
-  printf '%b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%b\n' "$C_GREEN" "$C_RESET"
-}
-
-note() {
-  printf '  %bℹ%b %s\n' "$C_CYAN" "$C_RESET" "$*"
-}
-
-warning() {
-  printf '  %b!%b %s\n' "$C_YELLOW" "$C_RESET" "$*"
-}
+# Estilo común para KDE Plasma, Konsole y sesiones SSH.
+# shellcheck source=scripts/terminal-style.sh
+source "$SCRIPT_DIR/terminal-style.sh"
 
 die() {
-  printf '%b✖ Error:%b %s\n' "$C_RED$C_BOLD" "$C_RESET" "$*" >&2
+  term_error "$*"
   exit 1
 }
 
@@ -111,7 +48,8 @@ OPERATION="$(get_operation)"
 confirm() {
   local prompt="$1"
   local answer
-  if ! read -r -p "❓ $prompt [s/N] " answer; then
+  printf '%b  ?%b  %s [s/N] ' "$TERM_STYLE_WARNING$TERM_STYLE_BOLD" "$TERM_STYLE_RESET" "$prompt"
+  if ! read -r answer; then
     answer=""
   fi
   case "$answer" in
@@ -129,18 +67,18 @@ run_step() {
 
   log_file="$(mktemp)" || die "No se pudo crear un archivo temporal para registrar la operación."
   started_at="$(date +%s)"
-  printf '  %b›%b %s\n' "$C_BLUE" "$C_RESET" "$description"
+  term_step "$description"
 
   if "$@" >"$log_file" 2>&1; then
     finished_at="$(date +%s)"
     elapsed="$((finished_at - started_at))"
     rm -f "$log_file"
-    printf '  %b✓%b Completado %b· %s%b\n' "$C_GREEN" "$C_RESET" "$C_DIM" "$(format_duration "$elapsed")" "$C_RESET"
+    term_success "Completado · $(format_duration "$elapsed")"
   else
     status=$?
-    printf '  %b✖%b %s %b(código %s)%b\n' "$C_RED" "$C_RESET" "$description" "$C_DIM" "$status" "$C_RESET" >&2
+    term_error "$description (código $status)"
     if [[ -s "$log_file" ]]; then
-      printf 'Detalle del error (últimas 20 líneas):\n' >&2
+      term_info "Detalle del error (últimas 20 líneas):"
       tail -n 20 "$log_file" >&2 || true
     fi
     rm -f "$log_file"
@@ -215,8 +153,8 @@ apply_generation() {
       ;;
   esac
 
-  printf '  %b◇%b Verificando el estado de reinicio...\n' "$C_CYAN" "$C_RESET"
-  bash "$SCRIPT_DIR/nix-reboot-check.sh"
+  term_step "Verificando el estado de reinicio"
+  NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
 }
 
 run_update() {
@@ -266,8 +204,8 @@ run_maintenance() {
   banner "$mode_label"
 
   section "01" "COMPROBACIONES" "Revisando el estado de arranque"
-  printf '  %b◇%b Comprobando si hay un reinicio pendiente...\n' "$C_CYAN" "$C_RESET"
-  bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
+  term_step "Comprobando si hay un reinicio pendiente"
+  NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
   case "$reboot_status" in
     0) ;;
     1) die "Falló la comprobación de reinicio." ;;

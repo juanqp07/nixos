@@ -7,35 +7,43 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
+# Estilo común de la suite de administración.
+# shellcheck source=scripts/terminal-style.sh
+source "$SCRIPT_DIR/terminal-style.sh"
+
+HOST="$(hostname -s)"
+if [[ "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
+  term_banner "Comprobación de reinicio" "$HOST"
+fi
+
 BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
 
 [[ -e "$BOOTED" ]] || {
-  echo "❌ Error: no se puede identificar el sistema que está arrancado." >&2
+  term_error "No se puede identificar el sistema que está arrancado."
   exit 1
 }
 [[ -e "$NEXT" ]] || {
-  echo "❌ Error: no se puede identificar la generación seleccionada." >&2
+  term_error "No se puede identificar la generación seleccionada."
   exit 1
 }
 
-HOST="$(hostname -s)"
 if ! OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
-  echo "❌ Error: no se pudo consultar la estrategia de actualización del host." >&2
+  term_error "No se pudo consultar la estrategia de actualización del host."
   exit 2
 fi
 
 if [[ "$OPERATION" == "boot" ]]; then
   if [[ "$(readlink -f "$BOOTED")" != "$(readlink -f "$NEXT")" ]]; then
-    echo "🔁 Reinicio pendiente: hay una nueva generación preparada."
+    term_warning "Reinicio pendiente: hay una nueva generación preparada."
   else
-    echo "✅ No hay ningún reinicio pendiente."
+    term_success "No hay ningún reinicio pendiente."
   fi
   exit 0
 fi
 
 if [[ "$OPERATION" != "switch" ]]; then
-  printf '❌ Error: estrategia de actualización no reconocida: %s\n' "$OPERATION" >&2
+  term_error "Estrategia de actualización no reconocida: $OPERATION"
   exit 2
 fi
 
@@ -57,13 +65,13 @@ for component in kernel kernel-modules initrd systemd; do
 done
 
 if (( ${#changed_components[@]} > 0 )); then
-  printf '🔁 Reinicio necesario: cambios en %s.\n' "${changed_components[*]}"
+  term_warning "Reinicio necesario: cambios en ${changed_components[*]}."
   exit 0
 fi
 
 if (( unverified )); then
-  echo "⚠️  No se pudo comprobar si hace falta reiniciar." >&2
+  term_warning "No se pudo comprobar si hace falta reiniciar."
   exit 2
 fi
 
-echo "✅ No es necesario reiniciar."
+term_success "No es necesario reiniciar."
