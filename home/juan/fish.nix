@@ -24,13 +24,15 @@
         if test "$result" -eq 0
           set_color --bold brgreen
           printf '  ✓ '
+          set_color normal
+          printf '%s completado\n' "$message"
         else
           set_color --bold brred
           printf '  ✕ '
+          set_color normal
+          printf '%s (código %s)\n' "$message" "$result"
         end
-        set_color normal
-        printf '%s\n' "$message"
-      end
+      endd
 
       function __kigo_alias_run --description "Ejecuta un comando con cabecera y resultado"
         set -l title "$argv[1]"
@@ -59,14 +61,14 @@
       nix-generations = {
         description = "Muestra el historial de generaciones de NixOS";
         body = ''
-          __kigo_alias_run "Historial de generaciones" "Consulta completada" sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
+          __kigo_alias_run "Historial de generaciones" "Consulta de generaciones" sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
         '';
       };
 
       nix-optimise = {
         description = "Deduplica el almacén Nix";
         body = ''
-          __kigo_alias_run "Optimización del almacén Nix" "Optimización completada" sudo nix-store --optimise
+          __kigo_alias_run "Optimización del almacén Nix" "Optimización del almacén" sudo nix-store --optimise
         '';
       };
     };
