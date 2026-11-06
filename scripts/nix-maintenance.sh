@@ -13,7 +13,7 @@ cd "$FLAKE_DIR"
 source "$SCRIPT_DIR/terminal-style.sh"
 
 die() {
-  printf '❌ Error: %s\n' "$*" >&2
+  term_error "$*"
   exit 1
 }
 
@@ -65,16 +65,16 @@ run_step() {
   shift
 
   log_file="$(mktemp)" || die "No se pudo crear un archivo temporal para registrar la operación."
-  printf '▶ %s...\n' "$description"
+  term_step "$description"
 
   if "$@" >"$log_file" 2>&1; then
     rm -f "$log_file"
-    printf '✅ %s completado.\n' "$description"
+    term_success "$description completado"
   else
     status=$?
-    printf '❌ %s (código %s).\n' "$description" "$status" >&2
+    term_error "$description (código $status)"
     if [[ -s "$log_file" ]]; then
-      printf 'Detalle del error (últimas 20 líneas):\n' >&2
+      term_info "Detalle del error (últimas 20 líneas):"
       tail -n 20 "$log_file" >&2 || true
     fi
     rm -f "$log_file"
@@ -113,7 +113,7 @@ clean_generations() {
   # En modo boot no se borran generaciones mientras la nueva siga pendiente.
   if [[ "$OPERATION" == "boot" && -e /run/booted-system && -e /nix/var/nix/profiles/system ]]; then
     if [[ "$(readlink -f /run/booted-system)" != "$(readlink -f /nix/var/nix/profiles/system)" ]]; then
-      printf '⏭️  Limpieza omitida: hay una generación pendiente de reinicio.\n'
+      term_skip "Limpieza omitida: hay una generación pendiente de reinicio."
       return 0
     fi
   fi
@@ -123,7 +123,7 @@ clean_generations() {
 
   if [[ "$automatic" != "yes" ]] &&
     ! confirm "¿Limpiar las generaciones antiguas según la política del sistema?"; then
-    printf '⏭️  Limpieza omitida.\n'
+    term_skip "Limpieza omitida."
     return 0
   fi
 
@@ -133,7 +133,7 @@ clean_generations() {
 build_and_show() {
   run_step "Construyendo la configuración de $HOST" sudo nixos-rebuild build --flake ".#$HOST"
   run_step "Comprobando la activación sin aplicar cambios" sudo nixos-rebuild dry-activate --flake ".#$HOST"
-  printf 'ℹ️  La configuración está construida; todavía no se ha aplicado.\n'
+  term_info "Configuración construida; todavía no se ha aplicado."
 }
 
 apply_generation() {
@@ -146,7 +146,7 @@ apply_generation() {
       ;;
   esac
 
-  printf '🔎 Comprobando si hace falta reiniciar...\n'
+  term_step "Comprobando si hace falta reiniciar"
   bash "$SCRIPT_DIR/nix-reboot-check.sh"
 }
 
@@ -168,14 +168,14 @@ run_build_apply() {
     elif confirm "¿Limpiar las generaciones antiguas ahora?"; then
       clean_generations yes
     else
-      printf '⏭️  Limpieza omitida.\n'
+      term_skip "Limpieza omitida."
     fi
   fi
 
   if [[ "$automatic" == "yes" ]] || confirm "¿Aplicar la nueva configuración en $HOST?"; then
     apply_generation
   else
-    printf '⏭️  Aplicación cancelada. No se ha cambiado el sistema.\n'
+    term_skip "Aplicación cancelada. No se ha cambiado el sistema."
   fi
 }
 
@@ -195,10 +195,11 @@ run_maintenance() {
   esac
 
   run_update
-  printf '📌 La configuración se aplicará mediante: %s\n' "$OPERATION"
+  term_info "Estrategia de activación: $OPERATION"
   run_build_apply "$automatic" yes
 
-  printf '\n🎉 Mantenimiento finalizado · %s\n' "$HOST"
+  term_rule
+  term_success "Mantenimiento finalizado en $HOST"
 }
 
 usage() {
@@ -238,7 +239,7 @@ case "${1:-}" in
     ;;
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    printf '🔒 Usando las versiones existentes en flake.lock.\n'
+    term_banner "Aplicación bloqueada" "$HOST · usando flake.lock"
     run_build_apply no no
     ;;
   clean)
