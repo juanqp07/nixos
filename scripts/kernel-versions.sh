@@ -16,7 +16,7 @@ if ! command -v nix >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! hosts="$(nix eval --raw --apply 'attrs: builtins.concatStringsSep "\\n" (builtins.attrNames attrs)' .#nixosConfigurations 2>/dev/null)"; then
+if ! hosts="$(nix eval --raw --apply 'attrs: builtins.concatStringsSep "\n" (builtins.attrNames attrs)' .#nixosConfigurations 2>/dev/null)"; then
   term_error "No se pudieron evaluar las configuraciones NixOS de $FLAKE_DIR."
   exit 1
 fi
