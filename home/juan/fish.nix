@@ -4,35 +4,73 @@
   programs.fish = {
     enable = true;
 
-    # Ocultar el saludo predeterminado en sesiones interactivas del usuario.
+    # Saludo propio: limpio y compatible con Konsole/KDE y sesiones SSH.
+    # Fish gestiona automáticamente los colores según las capacidades del terminal.
     interactiveShellInit = ''
       set -g fish_greeting
+
+      function __kigo_alias_header --description "Cabecera visual de los alias personales"
+        set_color --bold brblue
+        printf '\\n╭─ NIXOS / %s\\n' "$argv[1]"
+        set_color normal
+        set_color brblack
+        printf '╰────────────────────────────────────────────────────\\n'
+        set_color normal
+      end
+
+      function __kigo_alias_result --description "Resultado visual de un alias"
+        set -l result "$argv[1]"
+        set -l message "$argv[2]"
+        if test "$result" -eq 0
+          set_color --bold brgreen
+          printf '  ✓ '
+        else
+          set_color --bold brred
+          printf '  ✕ '
+        end
+        set_color normal
+        printf '%s\\n' "$message"
+      end
+
+      function __kigo_alias_run --description "Ejecuta un comando con cabecera y resultado"
+        set -l title "$argv[1]"
+        set -l message "$argv[2]"
+        set -e argv[1..2]
+
+        __kigo_alias_header "$title"
+        command $argv
+        set -l result $status
+        __kigo_alias_result "$result" "$message"
+        return $result
+      end
     '';
 
+    # Los comandos de mantenimiento comparten el estilo Bash de scripts/terminal-style.sh.
     shellAliases = {
-      # Consulta las versiones de kernel configuradas en todos los hosts.
       kernels = "bash ~/nixos/scripts/kernel-versions.sh";
-
-      # Comprueba reinicios según la estrategia switch/boot del host.
       nix-reboot-check = "bash ~/nixos/scripts/nix-reboot-check.sh";
-
-      # Mantenimiento completo: interactivo o automático con -y.
       nix-maintain = "bash ~/nixos/scripts/nix-maintenance.sh maintain";
-
-      # Actualiza todos los inputs, construye y pregunta antes de aplicar.
       nix-update = "bash ~/nixos/scripts/nix-maintenance.sh update";
-
-      # Construye y aplica usando el flake.lock existente, sin actualizar inputs.
       nix-apply-locked = "bash ~/nixos/scripts/nix-maintenance.sh apply";
-
-      # Limpia generaciones según la política declarada para el host actual.
       nix-clean = "bash ~/nixos/scripts/nix-maintenance.sh clean";
+    };
 
-      # Muestra solo el número, fecha y generación actual.
-      nix-generations = "sudo nix-env --profile /nix/var/nix/profiles/system --list-generations";
+    functions = {
+      nix-generations = {
+        description = "Muestra el historial de generaciones de NixOS";
+        body = ''
+          __kigo_alias_run "Historial de generaciones" "Consulta completada" \\
+            sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
+        '';
+      };
 
-      # Deduplicación completa manual; auto-optimise-store sigue cubriendo nuevas rutas.
-      nix-optimise = "sudo nix-store --optimise";
+      nix-optimise = {
+        description = "Deduplica el almacén Nix";
+        body = ''
+          __kigo_alias_run "Optimización del almacén Nix" "Optimización completada" \\
+            sudo nix-store --optimise
+        '';
+      };
     };
   };
 }
