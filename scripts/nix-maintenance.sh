@@ -48,7 +48,8 @@ OPERATION="$(get_operation)"
 confirm() {
   local prompt="$1"
   local answer
-  if ! read -r -p "❓ $prompt [s/N] " answer; then
+  printf '%b  ?%b  %s [s/N] ' "$TERM_STYLE_WARNING$TERM_STYLE_BOLD" "$TERM_STYLE_RESET" "$prompt"
+  if ! read -r answer; then
     answer=""
   fi
   case "$answer" in
@@ -147,7 +148,7 @@ apply_generation() {
   esac
 
   term_step "Comprobando si hace falta reiniciar"
-  bash "$SCRIPT_DIR/nix-reboot-check.sh"
+  NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
 }
 
 run_update() {
@@ -188,7 +189,7 @@ run_maintenance() {
   term_banner "Mantenimiento" "$HOST · modo $mode_label"
 
   term_step "Comprobando el estado del sistema"
-  bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
+  NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
   case "$reboot_status" in
     0) ;;
     1) die "Falló la comprobación de reinicio." ;;
