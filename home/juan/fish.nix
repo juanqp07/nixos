@@ -59,16 +59,14 @@
       nix-generations = {
         description = "Muestra el historial de generaciones de NixOS";
         body = ''
-          __kigo_alias_run "Historial de generaciones" "Consulta completada" \\
-            sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
+          __kigo_alias_run "Historial de generaciones" "Consulta completada" sudo nix-env --profile /nix/var/nix/profiles/system --list-generations
         '';
       };
 
       nix-optimise = {
         description = "Deduplica el almacén Nix";
         body = ''
-          __kigo_alias_run "Optimización del almacén Nix" "Optimización completada" \\
-            sudo nix-store --optimise
+          __kigo_alias_run "Optimización del almacén Nix" "Optimización completada" sudo nix-store --optimise
         '';
       };
     };
