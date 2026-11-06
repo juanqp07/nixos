@@ -17,7 +17,7 @@ Los paneles de administración de Atlas y Pico no están redirigidos desde el ro
 
 ### Arcane y Docker socket
 
-Arcane accede al Docker Engine de Atlas a través de `wollomatic/socket-proxy:1.13.2`, en la red privada `arcane-net`. Arcane utiliza `DOCKER_HOST=tcp://docker-socket-proxy:2375`; el proxy monta el socket del host en solo lectura y aplica una allowlist por método HTTP y ruta.
+Arcane accede al Docker Engine de Atlas a través de `wollomatic/socket-proxy:1.13.2`, en la red privada `arcane-net`. Arcane utiliza `DOCKER_HOST=tcp://arcane-docker-proxy:2375`, usando el nombre DNS del propio contenedor administrado por `oci-containers` en lugar de un alias adicional; el proxy monta el socket del host en solo lectura y aplica una allowlist por método HTTP y ruta.
 
 El proxy no publica puertos en el host ni está conectado a `staticnet` o `warpnet`. Solo acepta clientes identificados como `arcane` y `arcane-upgrader`; no se permite un rango de subred completo. El contenedor se ejecuta con filesystem de solo lectura, sin capabilities, con `no-new-privileges`, límite de memoria de 64 MiB y límite de procesos.
 
@@ -116,7 +116,7 @@ Esta rama es una propuesta de configuración; no ejecuta cambios remotos en los 
 2. Construir y revisar la generación antes de activar:
    `sudo nixos-rebuild build --flake .#atlas`.
 3. Tras desplegar en una ventana de mantenimiento, comprobar `sudo iptables -vnL DOCKER-USER` y, si procede, `sudo ip6tables -vnL DOCKER-USER`.
-4. Verificar que `arcane-docker-proxy` está `healthy`, que Arcane conecta a `docker-socket-proxy:2375` y probar listado, logs, inicio/parada, stacks, imágenes y builds.
+4. Verificar que `arcane-docker-proxy` está `healthy`, que Arcane conecta a `arcane-docker-proxy:2375` y probar listado, logs, inicio/parada, stacks, imágenes y builds.
 5. Asociar el plugin CrowdSec a los tags Dynamic Capture necesarios y comprobar las métricas por hostname.
 
 ### Pico
