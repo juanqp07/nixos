@@ -94,6 +94,12 @@
     ];
   };
 
+  # Mostrar asteriscos al introducir contraseñas en las solicitudes de sudo.
+  # Afecta a todos los hosts que importan este módulo común.
+  security.sudo.extraConfig = ''
+    Defaults pwfeedback
+  '';
+
   # Fish es el shell del sistema; las preferencias personales viven en Home Manager.
   programs.fish.enable = true;
 
