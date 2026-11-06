@@ -7,7 +7,7 @@
 
 | Equipo | Estado | Cambios de esta rama |
 |---|---|---|
-| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy para Arcane y política DOCKER-USER para puertos publicados. |
+| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket Docker directo para Arcane y política DOCKER-USER para puertos publicados. |
 | Pico (ZimaBlade) | Ya tiene NetBird, Fail2ban, rotación de logs y poda Docker. | Restringir el puerto publicado de Dockge (5001) a LAN/NetBird. |
 | Titan | Ya está en el flake como host NixOS. La SSD de juegos y Avahi se corrigieron en PR #18. | No se cambian kernel, AMDGPU, scheduler ni ajustes de overdrive sin pruebas físicas. |
 
@@ -17,9 +17,11 @@ Los paneles de administración de Atlas y Pico no están redirigidos desde el ro
 
 ### Arcane y Docker socket
 
-Arcane deja de recibir directamente `/var/run/docker.sock`. En su lugar usa `wollomatic/socket-proxy` sobre la red privada `arcane-net`, con métodos y rutas Docker permitidos explícitamente. El socket está montado en el proxy y Arcane conecta a `tcp://docker-socket-proxy:2375`.
+Arcane monta directamente `/var/run/docker.sock` y utiliza `DOCKER_HOST=unix:///var/run/docker.sock`. Se elimina el contenedor intermedio `wollomatic/socket-proxy` y su endpoint TCP en `arcane-net`.
 
-El proxy debe validarse después del despliegue con las operaciones reales de Arcane (listar contenedores, consultar logs, iniciar/detener stacks e imágenes). No se ha cambiado el montaje directo del socket en Zoraxy: es independiente del cambio de Arcane y requiere identificar qué endpoints Docker necesita la versión instalada de Zoraxy antes de sustituirlo.
+**Implicación de seguridad:** el acceso directo al socket Docker equivale, en la práctica, a privilegios administrativos sobre el host. El acceso a Arcane debe limitarse a usuarios de confianza y su panel no debe exponerse sin autenticación y controles de acceso adecuados. El montaje `:ro` del socket no sustituye un proxy de API ni limita las operaciones Docker.
+
+La red privada `arcane-net` se conserva para que Arcane pueda comunicarse con PostgreSQL. El montaje directo del socket en Zoraxy es independiente y no se modifica.
 
 ### Acceso a puertos publicados por Docker
 
@@ -106,7 +108,7 @@ Esta rama es una propuesta de configuración; no ejecuta cambios remotos en los 
 2. Construir y revisar la generación antes de activar:
    `sudo nixos-rebuild build --flake .#atlas`.
 3. Tras desplegar en una ventana de mantenimiento, comprobar `sudo iptables -vnL DOCKER-USER` y, si procede, `sudo ip6tables -vnL DOCKER-USER`.
-4. Probar las operaciones reales de Arcane a través del socket proxy.
+4. Probar las operaciones reales de Arcane mediante el socket Unix local (listar contenedores, consultar logs y gestionar stacks).
 5. Asociar el plugin CrowdSec a los tags Dynamic Capture necesarios y comprobar las métricas por hostname.
 
 ### Pico
