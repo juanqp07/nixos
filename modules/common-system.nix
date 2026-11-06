@@ -112,6 +112,16 @@
   };
 
   # ============================================================
+  # SUDO / TERMINAL
+  # ============================================================
+
+  # Muestra un asterisco por carácter al introducir la contraseña de sudo.
+  # Es una preferencia visual; no cambia la autenticación ni SSH.
+  security.sudo.extraConfig = ''
+    Defaults pwfeedback
+  '';
+
+  # ============================================================
   # NIX
   # ============================================================
 
