@@ -418,7 +418,7 @@
     '';
   };
 
-
+  systemd.services.docker-arcane = {
     requires = [
       "arcane-network.service"
       "arcane-proxy-ready.service"
