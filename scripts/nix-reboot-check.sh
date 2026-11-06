@@ -12,6 +12,9 @@ cd "$FLAKE_DIR"
 source "$SCRIPT_DIR/terminal-style.sh"
 
 HOST="$(hostname -s)"
+if [[ "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
+  term_banner "Comprobación de reinicio" "$HOST"
+fi
 
 BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
