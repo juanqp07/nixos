@@ -2,14 +2,26 @@
 
 let
   privacyGrabber = ../scripts/rustdesk-privacy-grabber.py;
+  privacyMonitor = ../scripts/rustdesk-privacy-monitor.py;
 
   privacyCli = pkgs.writeShellApplication {
     name = "rustdesk-privacy";
     runtimeInputs = [
       pkgs.systemd
       pkgs.libnotify
+      pkgs.util-linux
     ];
     text = builtins.readFile ../scripts/rustdesk-privacy.sh;
+  };
+
+  privacyMonitorCli = pkgs.writeShellApplication {
+    name = "rustdesk-privacy-watcher";
+    runtimeInputs = [
+      pkgs.dbus
+      pkgs.systemd
+      privacyCli
+    ];
+    text = "${pkgs.python3}/bin/python3 ${privacyMonitor}";
   };
 in
 {
@@ -36,7 +48,6 @@ in
 
       TimeoutStartSec = "30s";
       TimeoutStopSec = "10s";
-      RuntimeMaxSec = "12h";
       Restart = "no";
       UMask = "0077";
 
@@ -88,5 +99,22 @@ in
           --key _launch \
           "Ctrl+Alt+P,none,Privacidad de RustDesk"
       '';
+
+    systemd.user.services.rustdesk-privacy-watcher = {
+      Unit = {
+        Description = "Automatic RustDesk privacy session watcher";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+
+      Service = {
+        Type = "simple";
+        ExecStart = "${privacyMonitorCli}/bin/rustdesk-privacy-watcher";
+        Restart = "on-failure";
+        RestartSec = "3s";
+      };
+
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
   };
 }
