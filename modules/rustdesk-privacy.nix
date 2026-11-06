@@ -99,5 +99,22 @@ in
           --key _launch \
           "Ctrl+Alt+P,none,Privacidad de RustDesk"
       '';
+
+    systemd.user.services.rustdesk-privacy-watcher = {
+      Unit = {
+        Description = "Automatic RustDesk privacy session watcher";
+        After = [ "graphical-session.target" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+
+      Service = {
+        Type = "simple";
+        ExecStart = "${privacyMonitorCli}/bin/rustdesk-privacy-watcher";
+        Restart = "on-failure";
+        RestartSec = 3;
+      };
+
+      Install.WantedBy = [ "graphical-session.target" ];
+    };
   };
 }
