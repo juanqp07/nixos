@@ -16,6 +16,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
+    * `rustdesk-privacy.nix`: modo privacidad para RustDesk, exclusivo de Elytra.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
@@ -25,6 +26,10 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `desktop.nix`: Fastfetch y alias de despliegue exclusivos de Elytra y Titan.
 
 ---
+
+## 🛡️ Privacidad remota en Elytra
+
+El comando `rustdesk-privacy on|off|toggle|status` apaga la retroiluminación del panel y bloquea los dispositivos físicos de entrada sin capturar los dispositivos virtuales que RustDesk usa para el control remoto. Atajo KDE previsto: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
 
 ## 🏠 Home Manager
 
