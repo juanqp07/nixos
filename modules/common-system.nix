@@ -94,6 +94,12 @@
     ];
   };
 
+  # Mostrar asteriscos al introducir contraseñas en las solicitudes de sudo.
+  # Afecta a todos los hosts que importan este módulo común.
+  security.sudo.extraConfig = ''
+    Defaults pwfeedback
+  '';
+
   # Fish es el shell del sistema; las preferencias personales viven en Home Manager.
   programs.fish.enable = true;
 
@@ -110,16 +116,6 @@
     enable = true;
     nix-direnv.enable = true;
   };
-
-  # ============================================================
-  # SUDO / TERMINAL
-  # ============================================================
-
-  # Muestra un asterisco por carácter al introducir la contraseña de sudo.
-  # Es una preferencia visual; no cambia la autenticación ni SSH.
-  security.sudo.extraConfig = ''
-    Defaults pwfeedback
-  '';
 
   # ============================================================
   # NIX

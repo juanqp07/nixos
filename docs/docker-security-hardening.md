@@ -1,13 +1,13 @@
 # Endurecimiento Docker y CrowdSec: Atlas, Pico y Titan
 
-**Revisión:** 2 de noviembre de 2026  
+**Revisión:** 6 de noviembre de 2026
 **Alcance:** cambios declarativos en NixOS y comprobaciones del stack CrowdSec/Zoraxy en Atlas. Esta documentación no implica que se hayan desplegado las generaciones NixOS en Atlas o Pico.
 
 ## Resumen por equipo
 
 | Equipo | Estado | Cambios de esta rama |
 |---|---|---|
-| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy para Arcane y política DOCKER-USER para puertos publicados. |
+| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados. |
 | Pico (ZimaBlade) | Ya tiene NetBird, Fail2ban, rotación de logs y poda Docker. | Restringir el puerto publicado de Dockge (5001) a LAN/NetBird. |
 | Titan | Ya está en el flake como host NixOS. La SSD de juegos y Avahi se corrigieron en PR #18. | No se cambian kernel, AMDGPU, scheduler ni ajustes de overdrive sin pruebas físicas. |
 
@@ -17,9 +17,19 @@ Los paneles de administración de Atlas y Pico no están redirigidos desde el ro
 
 ### Arcane y Docker socket
 
-Arcane deja de recibir directamente `/var/run/docker.sock`. En su lugar usa `wollomatic/socket-proxy` sobre la red privada `arcane-net`, con métodos y rutas Docker permitidos explícitamente. El socket está montado en el proxy y Arcane conecta a `tcp://docker-socket-proxy:2375`.
+Arcane accede al Docker Engine de Atlas a través de `wollomatic/socket-proxy:1.13.2`, en la red privada `arcane-net`. Arcane utiliza `DOCKER_HOST=tcp://docker-socket-proxy:2375`; el proxy monta el socket del host en solo lectura y aplica una allowlist por método HTTP y ruta.
 
-El proxy debe validarse después del despliegue con las operaciones reales de Arcane (listar contenedores, consultar logs, iniciar/detener stacks e imágenes). No se ha cambiado el montaje directo del socket en Zoraxy: es independiente del cambio de Arcane y requiere identificar qué endpoints Docker necesita la versión instalada de Zoraxy antes de sustituirlo.
+El proxy no publica puertos en el host ni está conectado a `staticnet` o `warpnet`. Solo acepta clientes identificados como `arcane` y `arcane-upgrader`; no se permite un rango de subred completo. El contenedor se ejecuta con filesystem de solo lectura, sin capabilities, con `no-new-privileges`, límite de memoria de 64 MiB y límite de procesos.
+
+Antes de iniciar Arcane, la unidad `arcane-proxy-ready` espera hasta 180 segundos a que el healthcheck Docker del proxy alcance `healthy`. Si pasa a `unhealthy` o agota el tiempo, muestra los últimos logs y bloquea el arranque de Arcane. Esto cubre una limitación de `oci-containers.dependsOn`: NixOS añade `After/Requires`, pero no espera al estado de salud del contenedor.
+
+La allowlist sigue la integración oficial de Arcane e incluye las rutas necesarias para consultar contenedores, eventos, imágenes, redes, volúmenes, builds, registros y operaciones de gestión. Se mantienen bloqueados los métodos y endpoints que no están expresamente declarados. No se debe sustituir por `allowGET=.*`, `allowPOST=.*` ni publicar el puerto 2375 fuera de la red privada.
+
+El helper temporal de actualización de Arcane requiere el alias `arcane-upgrader` en `-allowfrom`. La versión actual de Arcane debe crear ese alias; tras cambiar una instalación antigua, recrear el contenedor Arcane una vez para que las futuras autoactualizaciones puedan conectar.
+
+La red `arcane-net` se conserva para Arcane, el proxy y PostgreSQL. El montaje directo del socket en Zoraxy es independiente y no se modifica.
+
+**Límite de seguridad:** el proxy reduce la superficie de API disponible, pero Arcane sigue necesitando operaciones de alto impacto (por ejemplo, crear contenedores, ejecutar procesos y eliminar recursos). Solo usuarios de plena confianza deben administrar Arcane y su panel debe permanecer restringido a LAN/NetBird.
 
 ### Acceso a puertos publicados por Docker
 
@@ -106,7 +116,7 @@ Esta rama es una propuesta de configuración; no ejecuta cambios remotos en los 
 2. Construir y revisar la generación antes de activar:
    `sudo nixos-rebuild build --flake .#atlas`.
 3. Tras desplegar en una ventana de mantenimiento, comprobar `sudo iptables -vnL DOCKER-USER` y, si procede, `sudo ip6tables -vnL DOCKER-USER`.
-4. Probar las operaciones reales de Arcane a través del socket proxy.
+4. Verificar que `arcane-docker-proxy` está `healthy`, que Arcane conecta a `docker-socket-proxy:2375` y probar listado, logs, inicio/parada, stacks, imágenes y builds.
 5. Asociar el plugin CrowdSec a los tags Dynamic Capture necesarios y comprobar las métricas por hostname.
 
 ### Pico

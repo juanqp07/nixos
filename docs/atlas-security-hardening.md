@@ -1,11 +1,10 @@
 # Endurecimiento de red y acceso Docker en Atlas
 
-Este documento acompaña los cambios NixOS de la rama `security/atlas-docker-hardening`.
-La configuración queda declarada, pero no se aplica al servidor hasta desplegar la generación nueva.
+Este documento describe el endurecimiento de red y acceso Docker de Atlas declarado en NixOS. Los cambios deben desplegarse en el servidor mediante una generación nueva.
 
 ## Qué cambia en Atlas
 
-- Arcane deja de montar `/var/run/docker.sock` directamente. Usa `wollomatic/socket-proxy` con el socket montado en solo lectura, sin capabilities y con allowlist de operaciones Docker.
+- Arcane utiliza `wollomatic/socket-proxy:1.13.2`, con socket del host montado en solo lectura, allowlist por método/ruta y clientes `arcane`/`arcane-upgrader`. El proxy no publica el puerto 2375 ni se conecta a redes externas.
 - Se bloquea el acceso directo a los puertos publicados de aplicaciones y paneles desde redes no confiables. Los paneles siguen accesibles desde la LAN `192.168.1.0/24` y NetBird (`wt0`); los bridges Docker conservan el acceso de Zoraxy y las comunicaciones internas.
 - Las APIs administrativas de IPFS RPC (5553), CrowdSec LAPI (8019) y Gluetun Control (8001) quedan protegidas frente al acceso directo desde el host/LAN/NetBird según las reglas declaradas.
 - La restricción se instala en `DOCKER-USER`, ya que los puertos publicados por Docker pueden saltarse las reglas normales de INPUT de NixOS.
@@ -34,9 +33,8 @@ sudo ip6tables -vnL DOCKER-USER
 
 Comprobar que los paneles siguen accesibles desde LAN y NetBird, que los puertos directos protegidos no son accesibles desde redes no confiables y que Zoraxy continúa encaminando los servicios publicados por 80/443.
 
-La validación de Arcane a través del socket proxy debe cubrir listado, inicio, parada, reinicio, creación y eliminación de contenedores, imágenes y redes que Arcane requiera. Confirmar también que el proxy solo es accesible desde los contenedores autorizados.
+La unidad `arcane-proxy-ready` espera hasta 180 segundos a que `arcane-docker-proxy` alcance estado `healthy`; si falla, Arcane no arranca y se registran los últimos logs del proxy. Después, la validación funcional debe comprobar que Arcane puede consultar contenedores y logs, iniciar/parar contenedores y gestionar stacks, imágenes y builds. Un error HTTP 403 indica una ruta no incluida en la allowlist; un error de DNS/conexión apunta a red, alias o disponibilidad del proxy. No se debe resolver ninguno de estos errores abriendo todos los endpoints.
 
 ## Referencias
 
-- [Arcane: Docker socket proxy](https://getarcane.app/docs/security/socket-proxy)
 - [Docker: DOCKER-USER chain](https://docs.docker.com/engine/network/firewall-iptables/)
