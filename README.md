@@ -1,6 +1,6 @@
 # ❄️ Configuración NixOS de Juan (Flakes)
 
-Este repositorio contiene la configuración centralizada de cinco equipos, gestionada mediante **Nix Flakes**.
+Este repositorio contiene la configuración centralizada de cinco equipos, gestionada mediante **Nix Flakes**. Incluye dos servidores del homelab (`atlas` y `pico`), dos equipos de escritorio (`elytra` y `titan`) y una Raspberry Pi dedicada a audio (`palco`).
 
 ## 📂 Estructura del Repositorio
 
@@ -8,9 +8,11 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **hosts/**: Configuraciones específicas de hardware.
     * `portatil/` (elytra): Laptop i5-13450HX (Raptor Lake HX) + NVIDIA RTX 5050 Max-Q / UHD integrada (PRIME offload).
     * `torre/` (titan): PC Ryzen 5 5600X + RX 6700 XT 12GB + 32GB RAM (AMD nativo).
-    * `servidor/` (atlas): i5-1250P + 32GB RAM (Docker, sin entorno gráfico).
-    * `zimablade/` (pico): Intel Celeron N3450 (Apollo Lake) (ZimaBlade, Docker/Dockge).
+    * `servidor/` (**atlas · servidor principal**): Minisforum UN1250 con Intel Core i5-1250P y 32GB RAM; servidor headless para Docker y servicios del homelab.
+    * `zimablade/` (**pico · servidor secundario**): ZimaBlade con Intel Celeron N3450 (Apollo Lake); servidor headless para Docker y Dockge.
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
+**Atlas y Pico son los dos servidores del homelab.** Ambos ejecutan NixOS sin entorno gráfico, usan Docker y tienen NetBird (interfaz `wt0`) y OpenSSH para administración remota. Atlas es el servidor principal (Minisforum UN1250); Pico es el servidor secundario (ZimaBlade).
+
 * **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
@@ -56,12 +58,12 @@ sudo nixos-rebuild switch --flake .#elytra
 sudo nixos-rebuild switch --flake .#titan
 ```
 
-### ☁️ Servidor (atlas)
+### 🗄️ Servidor principal · Atlas (Minisforum UN1250)
 ```bash
 sudo nixos-rebuild switch --flake .#atlas
 ```
 
-### 🧊 ZimaBlade (pico)
+### 🧊 Servidor secundario · Pico (ZimaBlade)
 ```bash
 sudo nixos-rebuild switch --flake .#pico
 ```
