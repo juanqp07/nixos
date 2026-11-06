@@ -135,7 +135,7 @@ run_step() {
     finished_at="$(date +%s)"
     elapsed="$((finished_at - started_at))"
     rm -f "$log_file"
-    printf '  %b✓%b %s %b· %s%b\n' "$C_GREEN" "$C_RESET" "$description" "$C_DIM" "$(format_duration "$elapsed")" "$C_RESET"
+    printf '  %b✓%b Completado %b· %s%b\n' "$C_GREEN" "$C_RESET" "$C_DIM" "$(format_duration "$elapsed")" "$C_RESET"
   else
     status=$?
     printf '  %b✖%b %s %b(código %s)%b\n' "$C_RED" "$C_RESET" "$description" "$C_DIM" "$status" "$C_RESET" >&2
