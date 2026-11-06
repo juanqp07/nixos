@@ -210,6 +210,11 @@
     # defaultPath que systemd configura automáticamente.
     path = [ "/run/wrappers" ];
 
+    # RustDesk carga libxdo dinámicamente para inyectar teclado y ratón
+    # en el greeter X11. NixOS no expone automáticamente las bibliotecas
+    # de xdotool al cargador dinámico del proceso iniciado por sudo -E.
+    environment.LD_LIBRARY_PATH = "${pkgs.xdotool}/lib";
+
     serviceConfig = {
       Type = "simple";
       ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
