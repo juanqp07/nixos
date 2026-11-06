@@ -1,16 +1,13 @@
 { lib, ... }:
 
 {
-  # Fastfetch solo en terminales locales; no interrumpir sesiones SSH.
+  # Fastfetch local y funciones de despliegue remoto para los escritorios.
+  # Las sesiones SSH no lanzan fastfetch automáticamente.
   programs.fish.interactiveShellInit = lib.mkAfter ''
     if not set -q SSH_CONNECTION; and not set -q SSH_TTY
       fastfetch
     end
-  '';
 
-  # Despliegue remoto con el mismo lenguaje visual que el resto de Fish.
-  # La compilación sigue siendo local y la activación se realiza por SSH.
-  programs.fish.interactiveShellInit = lib.mkAfter ''
     function nix-up-atlas --description "Despliega la configuración en Atlas"
       if not pushd "$HOME/nixos" >/dev/null
         __kigo_alias_result 1 "No se pudo acceder a ~/nixos"
