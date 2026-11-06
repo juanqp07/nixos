@@ -200,6 +200,11 @@
     ];
     wantedBy = [ "multi-user.target" ];
 
+    # RustDesk necesita el sudo de NixOS en PATH para lanzar su proceso
+    # de captura como el usuario activo (incluido el greeter de SDDM).
+    environment.PATH =
+      "/run/wrappers/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin";
+
     serviceConfig = {
       Type = "simple";
       ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
