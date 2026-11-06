@@ -5,7 +5,7 @@ La configuración queda declarada, pero no se aplica al servidor hasta desplegar
 
 ## Qué cambia en Atlas
 
-- Arcane deja de montar `/var/run/docker.sock` directamente. Usa `wollomatic/socket-proxy` con el socket montado en solo lectura, sin capabilities y con allowlist de operaciones Docker.
+- Arcane monta directamente `/var/run/docker.sock` y conecta mediante `DOCKER_HOST=unix:///var/run/docker.sock`. Se elimina el contenedor socket-proxy. Esto concede a Arcane control administrativo del Docker Engine y requiere proteger estrictamente su panel.
 - Se bloquea el acceso directo a los puertos publicados de aplicaciones y paneles desde redes no confiables. Los paneles siguen accesibles desde la LAN `192.168.1.0/24` y NetBird (`wt0`); los bridges Docker conservan el acceso de Zoraxy y las comunicaciones internas.
 - Las APIs administrativas de IPFS RPC (5553), CrowdSec LAPI (8019) y Gluetun Control (8001) quedan protegidas frente al acceso directo desde el host/LAN/NetBird según las reglas declaradas.
 - La restricción se instala en `DOCKER-USER`, ya que los puertos publicados por Docker pueden saltarse las reglas normales de INPUT de NixOS.
@@ -34,7 +34,7 @@ sudo ip6tables -vnL DOCKER-USER
 
 Comprobar que los paneles siguen accesibles desde LAN y NetBird, que los puertos directos protegidos no son accesibles desde redes no confiables y que Zoraxy continúa encaminando los servicios publicados por 80/443.
 
-La validación de Arcane a través del socket proxy debe cubrir listado, inicio, parada, reinicio, creación y eliminación de contenedores, imágenes y redes que Arcane requiera. Confirmar también que el proxy solo es accesible desde los contenedores autorizados.
+La validación de Arcane mediante el socket Unix local debe cubrir listado, logs, inicio, parada, reinicio y gestión de stacks. Al no existir socket-proxy, cualquier usuario con acceso administrativo a Arcane debe considerarse de confianza para administrar Docker y, por extensión, el host.
 
 ## Referencias
 
