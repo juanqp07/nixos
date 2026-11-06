@@ -377,14 +377,42 @@
     after = [ "arcane-network.service" ];
   };
 
+  # Esperar a que el proxy pase su healthcheck antes de arrancar Arcane.
+  # Evita el error "Cannot connect to the Docker daemon" durante el arranque.
+  systemd.services.arcane-proxy-ready = {
+    description = "Wait for Arcane Docker socket proxy health";
+    requires = [ "docker-arcane-docker-proxy.service" ];
+    after = [ "docker-arcane-docker-proxy.service" ];
+    before = [ "docker-arcane.service" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    script = ''
+      for attempt in {1..30}; do
+        status="$(${config.virtualisation.docker.package}/bin/docker inspect --format '{{.State.Health.Status}}' arcane-docker-proxy 2>/dev/null || true)"
+        if [ "$status" = "healthy" ]; then
+          exit 0
+        fi
+        ${pkgs.coreutils}/bin/sleep 2
+      done
+
+      echo "Arcane Docker socket proxy did not become healthy within 60 seconds." >&2
+      ${config.virtualisation.docker.package}/bin/docker logs --tail=50 arcane-docker-proxy >&2 || true
+      exit 1
+    '';
+  };
+
   systemd.services.docker-arcane = {
     requires = [
       "arcane-network.service"
-      "docker-arcane-docker-proxy.service"
+      "arcane-proxy-ready.service"
     ];
     after = [
       "arcane-network.service"
-      "docker-arcane-docker-proxy.service"
+      "arcane-proxy-ready.service"
     ];
   };
 
