@@ -191,6 +191,12 @@
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
+  # Mantener disponible el greeter X11 para RustDesk aunque nadie inicie
+  # sesión inmediatamente. -s 0 desactiva el salvapantallas de Xorg y
+  # -dpms evita apagar la salida mientras SDDM está esperando credenciales.
+  services.displayManager.sddm.settings.X11.ServerArguments =
+    "-nolisten tcp -s 0 -dpms";
+
   systemd.services.rustdesk = {
     description = "RustDesk";
     requires = [ "network.target" ];
