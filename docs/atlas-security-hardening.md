@@ -33,7 +33,7 @@ sudo ip6tables -vnL DOCKER-USER
 
 Comprobar que los paneles siguen accesibles desde LAN y NetBird, que los puertos directos protegidos no son accesibles desde redes no confiables y que Zoraxy continúa encaminando los servicios publicados por 80/443.
 
-La validación de Arcane debe comprobar que `arcane-docker-proxy` alcanza estado `healthy`, que Arcane puede consultar contenedores y logs, iniciar/parar contenedores y gestionar stacks, imágenes y builds. Un error HTTP 403 indica una ruta no incluida en la allowlist; un error de DNS/conexión apunta a red, alias o disponibilidad del proxy. No se debe resolver ninguno de estos errores abriendo todos los endpoints.
+La unidad `arcane-proxy-ready` espera hasta 180 segundos a que `arcane-docker-proxy` alcance estado `healthy`; si falla, Arcane no arranca y se registran los últimos logs del proxy. Después, la validación funcional debe comprobar que Arcane puede consultar contenedores y logs, iniciar/parar contenedores y gestionar stacks, imágenes y builds. Un error HTTP 403 indica una ruta no incluida en la allowlist; un error de DNS/conexión apunta a red, alias o disponibilidad del proxy. No se debe resolver ninguno de estos errores abriendo todos los endpoints.
 
 ## Referencias
 
