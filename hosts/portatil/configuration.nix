@@ -188,6 +188,9 @@
   # la sesión de KDE Plasma puede seguir usando Wayland.
   services.displayManager.sddm.wayland.enable = false;
 
+  # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
+  services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
+
   systemd.services.rustdesk = {
     description = "RustDesk";
     requires = [ "network.target" ];

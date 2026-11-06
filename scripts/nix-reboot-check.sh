@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Check reboot requirements against the system profile selected for next boot.
-# In "boot" mode, the full generation is pending until the next restart.
-# In "switch" mode, only reboot-sensitive components require a restart.
+# Comprueba si la generación seleccionada requiere reiniciar el equipo.
 
 set -Eeuo pipefail
 
@@ -13,37 +11,35 @@ BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
 
 [[ -e "$BOOTED" ]] || {
-  echo "❌ Error: no existe $BOOTED; no se puede identificar el sistema arrancado." >&2
+  echo "❌ Error: no se puede identificar el sistema que está arrancado." >&2
   exit 1
 }
 [[ -e "$NEXT" ]] || {
-  echo "❌ Error: no existe $NEXT; no se puede identificar la generación seleccionada." >&2
+  echo "❌ Error: no se puede identificar la generación seleccionada." >&2
   exit 1
 }
 
 HOST="$(hostname -s)"
-OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")"
+if ! OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
+  echo "❌ Error: no se pudo consultar la estrategia de actualización del host." >&2
+  exit 2
+fi
 
 if [[ "$OPERATION" == "boot" ]]; then
-  booted_system="$(readlink -f "$BOOTED")"
-  next_system="$(readlink -f "$NEXT")"
-
-  if [[ "$booted_system" != "$next_system" ]]; then
-    printf '🔁 Reinicio pendiente: hay una nueva generación preparada para el próximo arranque.\n'
-    printf '🟢 Arrancada: %s\n📦 Siguiente: %s\n' "$booted_system" "$next_system"
-    exit 0
+  if [[ "$(readlink -f "$BOOTED")" != "$(readlink -f "$NEXT")" ]]; then
+    echo "🔁 Reinicio pendiente: hay una nueva generación preparada."
+  else
+    echo "✅ No hay ningún reinicio pendiente."
   fi
-
-  echo "✅ No hay una nueva generación pendiente de activar en el próximo arranque."
   exit 0
 fi
 
 if [[ "$OPERATION" != "switch" ]]; then
-  printf '❌ Error: operación de despliegue no reconocida: %s\n' "$OPERATION" >&2
+  printf '❌ Error: estrategia de actualización no reconocida: %s\n' "$OPERATION" >&2
   exit 2
 fi
 
-needs_reboot=0
+changed_components=()
 unverified=0
 
 for component in kernel kernel-modules initrd systemd; do
@@ -51,27 +47,23 @@ for component in kernel kernel-modules initrd systemd; do
   next_component="$NEXT/$component"
 
   if [[ ! -e "$booted_component" || ! -e "$next_component" ]]; then
-    printf '⚠️  Aviso: no se pudo comparar el componente %s.\n' "$component"
     unverified=1
     continue
   fi
 
-  booted_target="$(readlink -f "$booted_component")"
-  next_target="$(readlink -f "$next_component")"
-
-  if [[ "$booted_target" != "$next_target" ]]; then
-    printf '🔁 Reinicio necesario: cambio en %s\n' "$component"
-    needs_reboot=1
+  if [[ "$(readlink -f "$booted_component")" != "$(readlink -f "$next_component")" ]]; then
+    changed_components+=("$component")
   fi
 done
 
-if (( needs_reboot )); then
+if (( ${#changed_components[@]} > 0 )); then
+  printf '🔁 Reinicio necesario: cambios en %s.\n' "${changed_components[*]}"
   exit 0
 fi
 
 if (( unverified )); then
-  echo "⚠️  No se pudo verificar todos los componentes; revisa los avisos anteriores." >&2
+  echo "⚠️  No se pudo comprobar si hace falta reiniciar." >&2
   exit 2
 fi
 
-echo "✅ Sin cambios de kernel, módulos, initrd o systemd pendientes de reinicio."
+echo "✅ No es necesario reiniciar."
