@@ -191,12 +191,99 @@
   virtualisation.oci-containers.backend = "docker";
 
   virtualisation.oci-containers.containers = {
+    # Proxy limitado: Arcane nunca recibe el socket Docker directamente.
+    arcane-docker-proxy = {
+      image = "wollomatic/socket-proxy:1.13.2";
+      autoStart = true;
+      user = "0:0";
+
+      cmd = [
+        "-listenip=0.0.0.0"
+        # Arcane y su helper temporal de actualizaciones. No usar rangos CIDR.
+        "-allowfrom=arcane,arcane-upgrader"
+        "-allowhealthcheck"
+
+        # Lectura: estado, eventos, contenedores, imágenes y recursos.
+        "-allowGET=(/v[0-9.]+)?/_ping"
+        "-allowGET=(/v[0-9.]+)?/events(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/version"
+        "-allowGET=(/v[0-9.]+)?/info(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/system/df"
+        "-allowGET=(/v[0-9.]+)?/containers(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/exec(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/images(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/networks(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/volumes(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/distribution(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/swarm(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/nodes(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/services(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/tasks(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/secrets(/.*)?"
+        "-allowGET=(/v[0-9.]+)?/configs(/.*)?"
+
+        # HEAD: comprobaciones de versión y disponibilidad.
+        "-allowHEAD=(/v[0-9.]+)?/_ping"
+        "-allowHEAD=(/v[0-9.]+)?/version"
+
+        # POST: operaciones de gestión, builds, registros y Swarm.
+        "-allowPOST=(/v[0-9.]+)?/containers(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/exec(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/images(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/networks(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/volumes(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/commit"
+        "-allowPOST=(/v[0-9.]+)?/build(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/session"
+        "-allowPOST=(/v[0-9.]+)?/grpc"
+        "-allowPOST=(/v[0-9.]+)?/auth"
+        "-allowPOST=(/v[0-9.]+)?/swarm(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/nodes(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/services(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/secrets(/.*)?"
+        "-allowPOST=(/v[0-9.]+)?/configs(/.*)?"
+
+        # PUT: transferencia de archivos de contenedores.
+        "-allowPUT=(/v[0-9.]+)?/containers(/.*)?"
+
+        # DELETE: eliminación de recursos Docker.
+        "-allowDELETE=(/v[0-9.]+)?/containers(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/images(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/networks(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/volumes(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/nodes(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/services(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/secrets(/.*)?"
+        "-allowDELETE=(/v[0-9.]+)?/configs(/.*)?"
+      ];
+
+      volumes = [
+        "/var/run/docker.sock:/var/run/docker.sock:ro"
+      ];
+
+      extraOptions = [
+        "--network=arcane-net"
+        "--network-alias=docker-socket-proxy"
+        "--read-only"
+        "--cap-drop=ALL"
+        "--security-opt=no-new-privileges:true"
+        "--memory=64m"
+        "--pids-limit=64"
+        # La imagen incluye un healthcheck binario; no necesita shell.
+        "--health-cmd=./healthcheck"
+        "--health-start-period=15s"
+        "--health-interval=10s"
+        "--health-timeout=5s"
+        "--health-retries=15"
+      ];
+    };
+
     arcane = {
       image = "ghcr.io/getarcaneapp/manager:latest";
       autoStart = true;
 
-      # NixOS owns the Arcane container lifecycle and upgrades. Prevent Arcane's
-      # automatic updater from replacing a container managed by oci-containers.
+      # NixOS gestiona el ciclo de vida; desactivar el updater interno evita
+      # que compita con virtualisation.oci-containers.
       labels = {
         "com.getarcaneapp.arcane.updater" = "false";
       };
@@ -208,8 +295,6 @@
       volumes = [
         "arcane-data:/app/data"
         "/mnt/datos/arcane/projects:/app/data/projects"
-        # Direct Docker socket access grants administrative control over the host.
-        "/var/run/docker.sock:/var/run/docker.sock"
       ];
 
       environmentFiles = [
@@ -224,13 +309,18 @@
         LOG_JSON = "false";
         OIDC_ENABLED = "false";
         PROJECTS_DIRECTORY = "/app/data/projects";
-        DOCKER_HOST = "unix:///var/run/docker.sock";
+        DOCKER_HOST = "tcp://docker-socket-proxy:2375";
       };
 
-      dependsOn = [ "arcane-postgres" ];
+      dependsOn = [ "arcane-postgres" "arcane-docker-proxy" ];
 
       extraOptions = [
         "--network=arcane-net"
+        "--health-cmd=./arcane health --timeout 2s"
+        "--health-start-period=15s"
+        "--health-interval=10s"
+        "--health-timeout=5s"
+        "--health-retries=5"
       ];
     };
 
@@ -253,19 +343,17 @@
 
       # PostgreSQL no necesita publicar el puerto 5432:
       # Arcane accede a él por la red privada arcane-net.
-      #
-      # Si necesitas acceder desde el propio host:
-      # ports = [ "127.0.0.1:5334:5432" ];
     };
   };
 
-  # Crear la red Docker privada para Arcane y PostgreSQL.
+  # Crear la red Docker privada antes de iniciar Arcane, el proxy y PostgreSQL.
   systemd.services.arcane-network = {
     description = "Docker network for Arcane";
     wantedBy = [ "multi-user.target" ];
     requires = [ "docker.service" ];
     after = [ "docker.service" ];
     before = [
+      "docker-arcane-docker-proxy.service"
       "docker-arcane.service"
       "docker-arcane-postgres.service"
     ];
@@ -283,10 +371,21 @@
     '';
   };
 
-  # Asegurar que la red exista también al iniciar manualmente los servicios.
-  systemd.services.docker-arcane = {
+  # Orden explícito: la red existe antes de los tres contenedores.
+  systemd.services.docker-arcane-docker-proxy = {
     requires = [ "arcane-network.service" ];
     after = [ "arcane-network.service" ];
+  };
+
+  systemd.services.docker-arcane = {
+    requires = [
+      "arcane-network.service"
+      "docker-arcane-docker-proxy.service"
+    ];
+    after = [
+      "arcane-network.service"
+      "docker-arcane-docker-proxy.service"
+    ];
   };
 
   systemd.services.docker-arcane-postgres = {
