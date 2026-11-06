@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 STYLE_LIB="${TERMINAL_STYLE_LIB:-$SCRIPT_DIR/terminal-style.sh}"
 
 if [[ ! -r "$STYLE_LIB" ]]; then
-  printf 'No se encuentra la biblioteca de estilo: %s\\n' "$STYLE_LIB" >&2
+  printf 'No se encuentra la biblioteca de estilo: %s\n' "$STYLE_LIB" >&2
   exit 1
 fi
 # shellcheck source=scripts/terminal-style.sh
@@ -55,7 +55,7 @@ case "${1:-}" in
     term_banner "Palco · Modo bolo" "Wi-Fi desactivado · Bluetooth disponible"
     run_step "Bloqueando Wi-Fi" sudo rfkill block wifi
     term_step "Activando Bluetooth y el modo visible/emparejable"
-    if printf 'power on\\ndiscoverable on\\npairable on\\n' | bluetoothctl; then
+    if printf 'power on\ndiscoverable on\npairable on\n' | bluetoothctl; then
       term_success "Bluetooth listo para emparejar"
     else
       status=$?
