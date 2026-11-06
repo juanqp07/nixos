@@ -12,6 +12,72 @@ cd "$FLAKE_DIR"
 # shellcheck source=scripts/terminal-style.sh
 source "$SCRIPT_DIR/terminal-style.sh"
 
+# Adaptadores del antiguo vocabulario visual al API compartido term_*.
+# Se mantienen locales a este script para no ampliar innecesariamente la
+# interfaz de terminal-style.sh.
+banner() {
+  term_banner "Mantenimiento NixOS" "$1"
+}
+
+section() {
+  local number="$1"
+  local title="$2"
+  local description="${3:-}"
+
+  term_section "${number} · ${title}"
+  if [[ -n "$description" ]]; then
+    term_info "$description"
+  fi
+}
+
+note() {
+  term_info "$*"
+}
+
+warning() {
+  term_warning "$*"
+}
+
+format_duration() {
+  local total_seconds="${1:-0}"
+  local hours minutes seconds
+
+  [[ "$total_seconds" =~ ^[0-9]+$ ]] || total_seconds=0
+  hours=$((total_seconds / 3600))
+  minutes=$(((total_seconds % 3600) / 60))
+  seconds=$((total_seconds % 60))
+
+  if (( hours > 0 )); then
+    printf '%dh %02dm %02ds' "$hours" "$minutes" "$seconds"
+  elif (( minutes > 0 )); then
+    printf '%dm %02ds' "$minutes" "$seconds"
+  else
+    printf '%ds' "$seconds"
+  fi
+}
+
+print_summary() {
+  local duration="$1"
+  local result="$2"
+
+  term_rule
+  term_section "RESUMEN DEL MANTENIMIENTO"
+  term_info "Equipo: $HOST"
+  term_info "Duración: $(format_duration "$duration")"
+
+  case "$result" in
+    "Configuración aplicada"|"Preparada para el próximo arranque")
+      term_success "$result"
+      ;;
+    "Aplicación cancelada")
+      term_warning "$result"
+      ;;
+    *)
+      term_info "$result"
+      ;;
+  esac
+}
+
 die() {
   term_error "$*"
   exit 1
