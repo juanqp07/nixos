@@ -40,7 +40,7 @@ if [[ "$OPERATION" == "boot" ]]; then
 fi
 
 if [[ "$OPERATION" != "switch" ]]; then
-  printf '❌ Error: estrategia de actualización no reconocida: %s\n' "$OPERATION" >&2
+  term_error "Estrategia de actualización no reconocida: $OPERATION"
   exit 2
 fi
 
@@ -62,7 +62,7 @@ for component in kernel kernel-modules initrd systemd; do
 done
 
 if (( ${#changed_components[@]} > 0 )); then
-  printf '🔁 Reinicio necesario: cambios en %s.\n' "${changed_components[*]}"
+  term_warning "Reinicio necesario: cambios en ${changed_components[*]}."
   exit 0
 fi
 
