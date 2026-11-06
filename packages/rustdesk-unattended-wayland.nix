@@ -71,7 +71,8 @@ buildFHSEnv (fhsDefaults // {
   ]);
 
   extraBuildCommands = ''
-    mkdir -p "$out/usr/share" "$out/usr/bin" "$out/usr/lib"
+    # buildFHSEnv already creates usr/lib as a symlink to usr/lib64.
+    mkdir -p "$out/usr/share" "$out/usr/bin"
     ln -s "${deb}/usr/share/rustdesk" "$out/usr/share/rustdesk"
     ln -s "${deb}/usr/lib/rustdesk" "$out/usr/lib/rustdesk"
     ln -s "${deb}/usr/share/rustdesk/rustdesk" "$out/usr/bin/rustdesk"
