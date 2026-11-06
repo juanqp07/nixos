@@ -6,10 +6,7 @@ let
   # de arrancar. Añadimos la ruta Nix de libxdo al cargador del propio RustDesk.
   rustdeskWithXdo = pkgs.rustdesk-flutter.overrideAttrs (old: {
     postPatch = (old.postPatch or "") + ''
-      substituteInPlace ../libs/libxdo-sys-stub/src/lib.rs \\
-        --replace-fail \\
-          'const LIB_NAMES: [&str; 3] = ["libxdo.so.4", "libxdo.so.3", "libxdo.so"];' \\
-          'const LIB_NAMES: [&str; 4] = ["${pkgs.xdotool}/lib/libxdo.so.4", "libxdo.so.4", "libxdo.so.3", "libxdo.so"];'
+      substituteInPlace ../libs/libxdo-sys-stub/src/lib.rs --replace-fail 'const LIB_NAMES: [&str; 3] = ["libxdo.so.4", "libxdo.so.3", "libxdo.so"];' 'const LIB_NAMES: [&str; 4] = ["${pkgs.xdotool}/lib/libxdo.so.4", "libxdo.so.4", "libxdo.so.3", "libxdo.so"];'
     '';
   });
 in
