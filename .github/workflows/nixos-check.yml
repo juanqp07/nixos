@@ -78,3 +78,8 @@ jobs:
       - name: Evaluate system closure
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
+
+      - name: Build the pinned RustDesk unattended Wayland package
+        if: matrix.host == 'elytra'
+        run: |
+          nix build --no-link --show-trace ".#packages.x86_64-linux.rustdesk-unattended-wayland"
