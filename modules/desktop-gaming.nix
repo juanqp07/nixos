@@ -304,7 +304,7 @@
     libreoffice
     hunspell
     hunspellDicts.es_ES
-    typora
+    marktext
 
     # KDE y utilidades de escritorio.
     kdePackages.kate
