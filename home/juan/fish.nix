@@ -32,7 +32,7 @@
           set_color normal
           printf '%s (código %s)\n' "$message" "$result"
         end
-      endd
+      end
 
       function __kigo_alias_run --description "Ejecuta un comando con cabecera y resultado"
         set -l title "$argv[1]"
