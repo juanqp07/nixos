@@ -1,5 +1,18 @@
 { config, pkgs, lib, ... }:
 
+let
+  # RustDesk carga libxdo dinámicamente para controlar el greeter X11.
+  # El servidor --server se inicia mediante sudo, que elimina LD_* antes
+  # de arrancar. Añadimos la ruta Nix de libxdo al cargador del propio RustDesk.
+  rustdeskWithXdo = pkgs.rustdesk-flutter.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace ../libs/libxdo-sys-stub/src/lib.rs \\
+        --replace-fail \\
+          'const LIB_NAMES: [&str; 3] = ["libxdo.so.4", "libxdo.so.3", "libxdo.so"];' \\
+          'const LIB_NAMES: [&str; 4] = ["${pkgs.xdotool}/lib/libxdo.so.4", "libxdo.so.4", "libxdo.so.3", "libxdo.so"];'
+    '';
+  });
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -210,14 +223,9 @@
     # defaultPath que systemd configura automáticamente.
     path = [ "/run/wrappers" ];
 
-    # RustDesk carga libxdo dinámicamente para inyectar teclado y ratón
-    # en el greeter X11. NixOS no expone automáticamente las bibliotecas
-    # de xdotool al cargador dinámico del proceso iniciado por sudo -E.
-    environment.LD_LIBRARY_PATH = "${pkgs.xdotool}/lib";
-
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
+      ExecStart = "${rustdeskWithXdo}/bin/rustdesk --service";
       ExecStop = "${pkgs.procps}/bin/pkill -f \"rustdesk --\"";
       PIDFile = "/run/rustdesk.pid";
       KillMode = "mixed";
