@@ -188,70 +188,9 @@
   };
 
   # --- ARCANE ---
-virtualisation.oci-containers.backend = "docker";
+  virtualisation.oci-containers.backend = "docker";
 
-virtualisation.oci-containers.containers = {
-  # Arcane never receives the Docker socket directly. The proxy only allows
-  # the Docker API methods/endpoints required for single-host management.
-  arcane-docker-proxy = {
-    image = "wollomatic/socket-proxy:1.13.2";
-    autoStart = true;
-    user = "0:0";
-
-    cmd = [
-      "-listenip=0.0.0.0"
-      "-allowfrom=arcane,arcane-upgrader"
-      "-allowhealthcheck"
-      "-allowGET=(/v[0-9.]+)?/_ping"
-      "-allowGET=(/v[0-9.]+)?/events(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/version"
-      "-allowGET=(/v[0-9.]+)?/info(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/system/df"
-      "-allowGET=(/v[0-9.]+)?/containers(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/exec(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/images(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/networks(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/volumes(/.*)?"
-      "-allowGET=(/v[0-9.]+)?/distribution(/.*)?"
-      "-allowHEAD=(/v[0-9.]+)?/_ping"
-      "-allowHEAD=(/v[0-9.]+)?/version"
-      "-allowPOST=(/v[0-9.]+)?/containers(/.*)?"
-      "-allowPOST=(/v[0-9.]+)?/exec(/.*)?"
-      "-allowPOST=(/v[0-9.]+)?/images(/.*)?"
-      "-allowPOST=(/v[0-9.]+)?/networks(/.*)?"
-      "-allowPOST=(/v[0-9.]+)?/volumes(/.*)?"
-      "-allowPOST=(/v[0-9.]+)?/commit"
-      "-allowPOST=(/v[0-9.]+)?/build(/.*)?"
-      "-allowPOST=(/v[0-9.]+)?/session"
-      "-allowPOST=(/v[0-9.]+)?/grpc"
-      "-allowPOST=(/v[0-9.]+)?/auth"
-      "-allowPUT=(/v[0-9.]+)?/containers(/.*)?"
-      "-allowDELETE=(/v[0-9.]+)?/containers(/.*)?"
-      "-allowDELETE=(/v[0-9.]+)?/images(/.*)?"
-      "-allowDELETE=(/v[0-9.]+)?/networks(/.*)?"
-      "-allowDELETE=(/v[0-9.]+)?/volumes(/.*)?"
-    ];
-
-    volumes = [
-      "/var/run/docker.sock:/var/run/docker.sock:ro"
-    ];
-
-    extraOptions = [
-      "--network=arcane-net"
-      "--network-alias=docker-socket-proxy"
-      "--read-only"
-      "--cap-drop=ALL"
-      "--security-opt=no-new-privileges:true"
-      # The healthcheck verifies that the Docker Unix socket is reachable.
-      # Avoid probing it every 2 seconds; allow a short startup grace period.
-      "--health-cmd=./healthcheck"
-      "--health-start-period=15s"
-      "--health-interval=30s"
-      "--health-timeout=5s"
-      "--health-retries=3"
-    ];
-  };
-
+  virtualisation.oci-containers.containers = {
   arcane = {
     image = "ghcr.io/getarcaneapp/manager:latest";
     autoStart = true;
@@ -269,6 +208,8 @@ virtualisation.oci-containers.containers = {
     volumes = [
       "arcane-data:/app/data"
       "/mnt/datos/arcane/projects:/app/data/projects"
+      # Acceso directo al Docker Engine: Arcane debe considerarse administrador del host.
+      "/var/run/docker.sock:/var/run/docker.sock"
     ];
 
     environmentFiles = [
@@ -283,10 +224,10 @@ virtualisation.oci-containers.containers = {
       LOG_JSON = "false";
       OIDC_ENABLED = "false";
       PROJECTS_DIRECTORY = "/app/data/projects";
-      DOCKER_HOST = "tcp://docker-socket-proxy:2375";
+      DOCKER_HOST = "unix:///var/run/docker.sock";
     };
 
-    dependsOn = [ "arcane-postgres" "arcane-docker-proxy" ];
+    dependsOn = [ "arcane-postgres" ];
 
     extraOptions = [
       "--network=arcane-net"
@@ -319,13 +260,12 @@ virtualisation.oci-containers.containers = {
 };
 
 # Crear la red Docker antes de iniciar los contenedores.
-systemd.services.arcane-docker-network = {
+systemd.services.arcane-network = {
   description = "Docker network for Arcane";
   wantedBy = [ "multi-user.target" ];
   requires = [ "docker.service" ];
   after = [ "docker.service" ];
   before = [
-    "docker-arcane-docker-proxy.service"
     "docker-arcane.service"
     "docker-arcane-postgres.service"
   ];
@@ -344,19 +284,16 @@ systemd.services.arcane-docker-network = {
 };
 
 # Asegurar que la red exista también al iniciar manualmente los servicios.
-systemd.services.docker-arcane-docker-proxy = {
-  requires = [ "arcane-docker-network.service" ];
-  after = [ "arcane-docker-network.service" ];
-};
+
 
 systemd.services.docker-arcane = {
-  requires = [ "arcane-docker-network.service" ];
-  after = [ "arcane-docker-network.service" ];
+  requires = [ "arcane-network.service" ];
+  after = [ "arcane-network.service" ];
 };
 
 systemd.services.docker-arcane-postgres = {
-  requires = [ "arcane-docker-network.service" ];
-  after = [ "arcane-docker-network.service" ];
+  requires = [ "arcane-network.service" ];
+  after = [ "arcane-network.service" ];
 };
 
   systemd.tmpfiles.rules = [
