@@ -29,7 +29,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 
 ## 🛡️ Privacidad remota en Elytra
 
-El comando `rustdesk-privacy on|off|toggle|status` apaga la retroiluminación del panel y bloquea los dispositivos físicos de entrada sin capturar los dispositivos virtuales que RustDesk usa para el control remoto. Atajo KDE previsto: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
+El comando `rustdesk-privacy on|off|toggle|status` controla la privacidad de pantalla y entrada física. `on` activa el modo manual, que permanece hasta `off`; el monitor de Home Manager también puede activarlo al concederse una sesión entrante de RustDesk y retirarlo al cerrarse la última sesión, sin tocar una activación manual. Atajo KDE: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
 
 ## 🏠 Home Manager
 
