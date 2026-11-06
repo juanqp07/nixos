@@ -7,29 +7,34 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
+# Estilo común de la suite de administración.
+# shellcheck source=scripts/terminal-style.sh
+source "$SCRIPT_DIR/terminal-style.sh"
+
+HOST="$(hostname -s)"
+
 BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
 
 [[ -e "$BOOTED" ]] || {
-  echo "❌ Error: no se puede identificar el sistema que está arrancado." >&2
+  term_error "No se puede identificar el sistema que está arrancado."
   exit 1
 }
 [[ -e "$NEXT" ]] || {
-  echo "❌ Error: no se puede identificar la generación seleccionada." >&2
+  term_error "No se puede identificar la generación seleccionada."
   exit 1
 }
 
-HOST="$(hostname -s)"
 if ! OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
-  echo "❌ Error: no se pudo consultar la estrategia de actualización del host." >&2
+  term_error "No se pudo consultar la estrategia de actualización del host."
   exit 2
 fi
 
 if [[ "$OPERATION" == "boot" ]]; then
   if [[ "$(readlink -f "$BOOTED")" != "$(readlink -f "$NEXT")" ]]; then
-    echo "🔁 Reinicio pendiente: hay una nueva generación preparada."
+    term_warning "Reinicio pendiente: hay una nueva generación preparada."
   else
-    echo "✅ No hay ningún reinicio pendiente."
+    term_success "No hay ningún reinicio pendiente."
   fi
   exit 0
 fi
@@ -62,8 +67,8 @@ if (( ${#changed_components[@]} > 0 )); then
 fi
 
 if (( unverified )); then
-  echo "⚠️  No se pudo comprobar si hace falta reiniciar." >&2
+  term_warning "No se pudo comprobar si hace falta reiniciar."
   exit 2
 fi
 
-echo "✅ No es necesario reiniciar."
+term_success "No es necesario reiniciar."
