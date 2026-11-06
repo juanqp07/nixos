@@ -3,6 +3,10 @@
 
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd "$FLAKE_DIR"
+
 BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
 
