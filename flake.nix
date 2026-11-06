@@ -52,6 +52,7 @@
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
       ./modules/rustdesk-privacy.nix
+      ./modules/rustdesk-unattended-wayland.nix
     ];
 
     titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
@@ -73,6 +74,9 @@
       ./modules/palco-audio.nix
     ];
   };
+
+      packages.x86_64-linux.rustdesk-unattended-wayland =
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/rustdesk-unattended-wayland.nix { };
 
       formatter.x86_64-linux =
         nixpkgs.legacyPackages.x86_64-linux.nixfmt;
