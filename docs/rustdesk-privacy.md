@@ -1,8 +1,8 @@
 # Modo privacidad de RustDesk en Elytra
 
-El módulo modules/rustdesk-privacy.nix se carga solo en elytra. Añade un comando para apagar la retroiluminación del panel y aislar los dispositivos físicos de entrada mientras se sigue controlando el escritorio mediante RustDesk.
+El módulo modules/rustdesk-privacy.nix se carga solo en elytra. Permite apagar la retroiluminación del panel y aislar los dispositivos físicos de entrada mientras el escritorio sigue siendo controlable por RustDesk.
 
-## Uso
+## Uso manual
 
 ~~~bash
 rustdesk-privacy on
@@ -11,33 +11,57 @@ rustdesk-privacy toggle
 rustdesk-privacy status
 ~~~
 
-El atajo global previsto es **Ctrl + Alt + P**. La configuración se escribe en kglobalshortcutsrc, pero Plasma 6 Wayland puede necesitar cerrar e iniciar sesión una vez después del primer despliegue para registrar un atajo nuevo. También se puede ejecutar el comando desde una terminal remota o buscar **Privacidad de RustDesk** en el menú de aplicaciones.
+- on activa el modo con propiedad **manual**. La desconexión de RustDesk no lo desactiva.
+- off lo desactiva y restaura pantalla, teclado y ratón.
+- toggle es un control manual: si está activo, lo apaga; si está apagado, lo activa en modo manual.
+- status muestra si el modo está apagado, automático o manual.
 
-El modo no se activa automáticamente al conectarse ni se desactiva al desconectarse: se controla manualmente desde el equipo remoto.
+Una activación manual permanece activa hasta ejecutar rustdesk-privacy off o volver a pulsar el atajo manual. No tiene límite de 12 horas.
 
-## Qué hace
+El atajo global KDE previsto es **Ctrl + Alt + P**. También está disponible el lanzador **Privacidad de RustDesk** en el menú de aplicaciones.
 
-1. El servicio rustdesk-privacy-grabber.service comprueba que puede identificar y aislar al menos un teclado y un dispositivo apuntador físicos.
-2. Abre los nodos físicos /dev/input/event* y aplica EVIOCGRAB. El kernel deja de entregar esos eventos a la sesión local mientras el proceso mantenga abiertos los descriptores.
-3. Excluye los dispositivos cuyo sysfs esté bajo /devices/virtual/input/. RustDesk utiliza dispositivos virtuales uinput para inyectar la entrada remota en Linux; estos no se capturan.
-4. Guarda el nivel de brillo original y pone a cero la retroiluminación del panel con brightnessctl. No apaga el monitor mediante DPMS, para no interrumpir deliberadamente la captura de pantalla.
-5. Vigila los dispositivos cada segundo para aislar también los periféricos físicos que se conecten mientras el modo está activo.
+## Activación automática por sesión
 
-Si falta un teclado, un dispositivo apuntador o una retroiluminación compatible, el inicio falla y el proceso libera los dispositivos ya capturados. El servicio no se reinicia automáticamente tras un fallo para evitar reactivar la privacidad sin intervención.
+Un servicio de usuario de Home Manager escucha el D-Bus de XDG Desktop Portal durante la sesión gráfica de KDE. En RustDesk 1.5.0 para Linux/Wayland, la captura del escritorio utiliza PipeWire y XDG Desktop Portal.
 
-## Recuperación y seguridad
+El monitor no se activa por detectar un proceso, un socket TCP o una conexión pendiente. Espera la respuesta positiva del portal al paso ScreenCast Start (request handle token u4), que llega después de que se haya concedido la captura de pantalla. Solo acepta ese evento cuando el propietario de la petición es el proceso RustDesk de servidor entrante (rustdesk --server).
 
-- rustdesk-privacy off detiene el servicio. Al cerrarse los descriptores, Linux libera los dispositivos físicos; ExecStopPost vuelve a intentar restaurar el brillo.
-- Hay un límite de ejecución de **12 horas**. Al alcanzarlo, systemd detiene el servicio y ejecuta la restauración.
-- El servicio es root porque necesita abrir y capturar nodos de entrada. Polkit autoriza a juan a iniciar y detener únicamente rustdesk-privacy-grabber.service; no concede permisos generales de administración de systemd.
-- El estado de brillo original se guarda temporalmente en /run/rustdesk-privacy-backlight.json, con permisos solo para root.
-- En caso de emergencia, desde una terminal remota: sudo systemctl stop rustdesk-privacy-grabber.service.
-- Para diagnosticar un fallo: sudo journalctl -u rustdesk-privacy-grabber.service -b.
+Cuando llega el evento:
 
-Si rustdesk-privacy status informa de una restauración de brillo pendiente, consulta el registro antes de borrar el archivo de estado. No elimines ese archivo sin restaurar primero el valor guardado.
+1. El monitor registra el propietario de la sesión del portal en XDG_RUNTIME_DIR.
+2. Ejecuta rustdesk-privacy auto-on.
+3. Si no existe una activación manual ni una supresión manual vigente, inicia rustdesk-privacy-grabber.service y marca el modo como automático.
 
-## Límites que deben probarse en el equipo real
+Cuando el portal emite Session.Closed, el monitor retira ese propietario. Tras un margen breve de 2,5 segundos, si no queda ninguna sesión de escritorio RustDesk, ejecuta auto-off. Esto evita restaurar el equipo si una reconexión inmediata ya abrió otra sesión.
 
-La captura de eventos es selectiva y depende de las propiedades que udev publique para cada dispositivo físico. Los dispositivos virtuales se dejan activos intencionadamente para conservar el control remoto. El brillo a cero depende de que el controlador exponga una retroiluminación de tipo backlight.
+El servicio manual tiene prioridad:
+- Si el modo está en manual, auto-on y auto-off no pueden modificarlo.
+- Si el modo está en automático, ejecutar manual on lo convierte en manual; seguirá activo al desconectarse RustDesk.
+- Ejecutar manual off durante una sesión remota desactiva la privacidad y suprime una reactivación automática hasta que se cierre esa sesión del portal. Una conexión posterior podrá volver a activarla automáticamente.
+- Si el modo se activa desde fuera del comando y no hay estado de propiedad, el monitor lo trata como manual y no lo apaga por su cuenta.
 
-La evaluación y compilación de NixOS no pueden demostrar que la captura remota siga funcionando con la combinación concreta de RustDesk, KWin, PipeWire y el controlador gráfico de Elytra. Después de desplegar, comprueba primero status, después activa el modo y verifica que puedes seguir moviendo el ratón y escribiendo desde el cliente RustDesk; termina con rustdesk-privacy off.
+El monitor se inicia con graphical-session.target y se detiene al terminar la sesión gráfica. Si se detiene de forma ordenada, retira la activación automática; una activación manual se conserva.
+
+## Qué hace el servicio privilegiado
+
+1. Comprueba que puede aislar al menos un teclado físico y un dispositivo apuntador físico.
+2. Abre los nodos físicos /dev/input/event* y aplica EVIOCGRAB.
+3. Excluye los nodos bajo /devices/virtual/input/, incluidos los dispositivos uinput de RustDesk.
+4. Guarda el brillo original y pone la retroiluminación del panel a cero con brightnessctl. No apaga la salida mediante DPMS.
+5. Vigila los dispositivos físicos conectados en caliente mientras el modo está activo.
+
+Si no se identifican las entradas físicas o no se encuentra una retroiluminación compatible, el inicio falla y libera los descriptores que ya hubiera capturado. Al detenerse, systemd ejecuta una segunda restauración del brillo mediante ExecStopPost.
+
+## Seguridad y recuperación
+
+- El servicio de captura de eventos se ejecuta como root porque EVIOCGRAB necesita acceso privilegiado a /dev/input.
+- Polkit autoriza a juan únicamente a iniciar y detener rustdesk-privacy-grabber.service; no concede permisos generales para administrar unidades.
+- El estado del brillo original se guarda en /run/rustdesk-privacy-backlight.json con permisos solo para root.
+- El estado manual/automático y los propietarios de sesiones se guardan en el XDG_RUNTIME_DIR del usuario.
+- Para recuperar la entrada física desde SSH: sudo systemctl stop rustdesk-privacy-grabber.service.
+- Para diagnosticar el capturador: sudo journalctl -u rustdesk-privacy-grabber.service -b.
+- Para diagnosticar el monitor: journalctl --user -u rustdesk-privacy-watcher -b.
+
+## Límites de la validación
+
+La evaluación NixOS comprueba la configuración y los servicios, pero no puede simular el portal KDE, el hardware de teclado/touchpad ni la sesión RustDesk real. La primera prueba debe hacerse con SSH disponible y comprobar, por este orden: conexión entrante autorizada, pantalla física apagada, control remoto todavía operativo, desconexión, restauración automática y persistencia del modo manual después de desconectar.
