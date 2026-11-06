@@ -38,5 +38,4 @@ La validación de Arcane mediante el socket Unix local debe cubrir listado, logs
 
 ## Referencias
 
-- [Arcane: Docker socket proxy](https://getarcane.app/docs/security/socket-proxy)
 - [Docker: DOCKER-USER chain](https://docs.docker.com/engine/network/firewall-iptables/)
