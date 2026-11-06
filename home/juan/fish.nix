@@ -11,10 +11,10 @@
 
       function __kigo_alias_header --description "Cabecera visual de los alias personales"
         set_color --bold brblue
-        printf '\\n╭─ NIXOS / %s\\n' "$argv[1]"
+        printf '\n╭─ NIXOS / %s\n' "$argv[1]"
         set_color normal
         set_color brblack
-        printf '╰────────────────────────────────────────────────────\\n'
+        printf '╰────────────────────────────────────────────────────\n'
         set_color normal
       end
 
@@ -29,7 +29,7 @@
           printf '  ✕ '
         end
         set_color normal
-        printf '%s\\n' "$message"
+        printf '%s\n' "$message"
       end
 
       function __kigo_alias_run --description "Ejecuta un comando con cabecera y resultado"
