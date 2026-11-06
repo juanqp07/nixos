@@ -191,110 +191,108 @@
   virtualisation.oci-containers.backend = "docker";
 
   virtualisation.oci-containers.containers = {
-  arcane = {
-    image = "ghcr.io/getarcaneapp/manager:latest";
-    autoStart = true;
+    arcane = {
+      image = "ghcr.io/getarcaneapp/manager:latest";
+      autoStart = true;
 
-    # NixOS owns the Arcane container lifecycle and upgrades. Prevent Arcane's
-    # automatic updater from replacing a container managed by oci-containers.
-    labels = {
-      "com.getarcaneapp.arcane.updater" = "false";
+      # NixOS owns the Arcane container lifecycle and upgrades. Prevent Arcane's
+      # automatic updater from replacing a container managed by oci-containers.
+      labels = {
+        "com.getarcaneapp.arcane.updater" = "false";
+      };
+
+      ports = [
+        "3552:3552"
+      ];
+
+      volumes = [
+        "arcane-data:/app/data"
+        "/mnt/datos/arcane/projects:/app/data/projects"
+        # Direct Docker socket access grants administrative control over the host.
+        "/var/run/docker.sock:/var/run/docker.sock"
+      ];
+
+      environmentFiles = [
+        "/mnt/datos/AppData/arcane/arcane.env"
+      ];
+
+      environment = {
+        APP_URL = "http://192.168.1.143:3552";
+        PUID = "1000";
+        PGID = "1000";
+        LOG_LEVEL = "info";
+        LOG_JSON = "false";
+        OIDC_ENABLED = "false";
+        PROJECTS_DIRECTORY = "/app/data/projects";
+        DOCKER_HOST = "unix:///var/run/docker.sock";
+      };
+
+      dependsOn = [ "arcane-postgres" ];
+
+      extraOptions = [
+        "--network=arcane-net"
+      ];
     };
 
-    ports = [
-      "3552:3552"
+    arcane-postgres = {
+      image = "postgres:17-alpine";
+      autoStart = true;
+
+      volumes = [
+        "postgres-data:/var/lib/postgresql/data"
+      ];
+
+      environmentFiles = [
+        "/mnt/datos/AppData/arcane/postgres.env"
+      ];
+
+      extraOptions = [
+        "--network=arcane-net"
+        "--network-alias=postgres"
+      ];
+
+      # PostgreSQL no necesita publicar el puerto 5432:
+      # Arcane accede a él por la red privada arcane-net.
+      #
+      # Si necesitas acceder desde el propio host:
+      # ports = [ "127.0.0.1:5334:5432" ];
+    };
+  };
+
+  # Crear la red Docker privada para Arcane y PostgreSQL.
+  systemd.services.arcane-network = {
+    description = "Docker network for Arcane";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "docker.service" ];
+    after = [ "docker.service" ];
+    before = [
+      "docker-arcane.service"
+      "docker-arcane-postgres.service"
     ];
 
-    volumes = [
-      "arcane-data:/app/data"
-      "/mnt/datos/arcane/projects:/app/data/projects"
-      # Acceso directo al Docker Engine: Arcane debe considerarse administrador del host.
-      "/var/run/docker.sock:/var/run/docker.sock"
-    ];
-
-    environmentFiles = [
-      "/mnt/datos/AppData/arcane/arcane.env"
-    ];
-
-    environment = {
-      APP_URL = "http://192.168.1.143:3552";
-      PUID = "1000";
-      PGID = "1000";
-      LOG_LEVEL = "info";
-      LOG_JSON = "false";
-      OIDC_ENABLED = "false";
-      PROJECTS_DIRECTORY = "/app/data/projects";
-      DOCKER_HOST = "unix:///var/run/docker.sock";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
     };
 
-    dependsOn = [ "arcane-postgres" ];
-
-    extraOptions = [
-      "--network=arcane-net"
-    ];
+    script = ''
+      ${config.virtualisation.docker.package}/bin/docker \
+        network inspect arcane-net >/dev/null 2>&1 || \
+      ${config.virtualisation.docker.package}/bin/docker \
+        network create arcane-net
+    '';
   };
 
-  arcane-postgres = {
-    image = "postgres:17-alpine";
-    autoStart = true;
-
-    volumes = [
-      "postgres-data:/var/lib/postgresql/data"
-    ];
-
-    environmentFiles = [
-      "/mnt/datos/AppData/arcane/postgres.env"
-    ];
-
-    extraOptions = [
-      "--network=arcane-net"
-      "--network-alias=postgres"
-    ];
-
-    # PostgreSQL no necesita publicar el puerto 5432:
-    # Arcane accede a él por la red privada arcane-net.
-    #
-    # Si necesitas acceder desde el propio host:
-    # ports = [ "127.0.0.1:5334:5432" ];
-  };
-};
-
-# Crear la red Docker antes de iniciar los contenedores.
-systemd.services.arcane-network = {
-  description = "Docker network for Arcane";
-  wantedBy = [ "multi-user.target" ];
-  requires = [ "docker.service" ];
-  after = [ "docker.service" ];
-  before = [
-    "docker-arcane.service"
-    "docker-arcane-postgres.service"
-  ];
-
-  serviceConfig = {
-    Type = "oneshot";
-    RemainAfterExit = true;
+  # Asegurar que la red exista también al iniciar manualmente los servicios.
+  systemd.services.docker-arcane = {
+    requires = [ "arcane-network.service" ];
+    after = [ "arcane-network.service" ];
   };
 
-  script = ''
-    ${config.virtualisation.docker.package}/bin/docker \
-      network inspect arcane-net >/dev/null 2>&1 || \
-    ${config.virtualisation.docker.package}/bin/docker \
-      network create arcane-net
-  '';
-};
-
-# Asegurar que la red exista también al iniciar manualmente los servicios.
-
-
-systemd.services.docker-arcane = {
-  requires = [ "arcane-network.service" ];
-  after = [ "arcane-network.service" ];
-};
-
-systemd.services.docker-arcane-postgres = {
-  requires = [ "arcane-network.service" ];
-  after = [ "arcane-network.service" ];
-};
+  systemd.services.docker-arcane-postgres = {
+    requires = [ "arcane-network.service" ];
+    after = [ "arcane-network.service" ];
+  };
 
   systemd.tmpfiles.rules = [
     "d /mnt/datos/AppData/dockge/docker 0755 juan users -"
