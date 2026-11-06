@@ -8,6 +8,10 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
+# Estilo común de la suite de administración.
+# shellcheck source=scripts/terminal-style.sh
+source "$SCRIPT_DIR/terminal-style.sh"
+
 die() {
   printf '❌ Error: %s\n' "$*" >&2
   exit 1
