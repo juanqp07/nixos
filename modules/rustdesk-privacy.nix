@@ -2,14 +2,26 @@
 
 let
   privacyGrabber = ../scripts/rustdesk-privacy-grabber.py;
+  privacyMonitor = ../scripts/rustdesk-privacy-monitor.py;
 
   privacyCli = pkgs.writeShellApplication {
     name = "rustdesk-privacy";
     runtimeInputs = [
       pkgs.systemd
       pkgs.libnotify
+      pkgs.util-linux
     ];
     text = builtins.readFile ../scripts/rustdesk-privacy.sh;
+  };
+
+  privacyMonitorCli = pkgs.writeShellApplication {
+    name = "rustdesk-privacy-watcher";
+    runtimeInputs = [
+      pkgs.dbus
+      pkgs.systemd
+      privacyCli
+    ];
+    text = "${pkgs.python3}/bin/python3 ${privacyMonitor}";
   };
 in
 {
@@ -36,7 +48,6 @@ in
 
       TimeoutStartSec = "30s";
       TimeoutStopSec = "10s";
-      RuntimeMaxSec = "12h";
       Restart = "no";
       UMask = "0077";
 
