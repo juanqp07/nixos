@@ -198,6 +198,10 @@ in
   # la sesión de KDE Plasma puede seguir usando Wayland.
   services.displayManager.sddm.wayland.enable = false;
 
+  # Probar el backend oficial DRM/KMS de RustDesk para acceder al greeter Wayland.
+  # Se puede desactivar para volver al servicio RustDesk normal + SDDM X11.
+  services.rustdesk-unattended-wayland.enable = true;
+
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
