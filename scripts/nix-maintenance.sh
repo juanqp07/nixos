@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
-# Estilo común de la suite de administración.
+# Estilo común para KDE Plasma, Konsole y sesiones SSH.
 # shellcheck source=scripts/terminal-style.sh
 source "$SCRIPT_DIR/terminal-style.sh"
 
@@ -21,7 +21,7 @@ need_command() {
   command -v "$1" >/dev/null 2>&1 || die "No se encuentra el comando requerido: $1"
 }
 
-for command in nix git sudo mktemp tail; do
+for command in nix git sudo mktemp tail date; do
   need_command "$command"
 done
 
@@ -62,15 +62,18 @@ confirm() {
 # últimas líneas para que el error siga siendo útil sin inundar la terminal.
 run_step() {
   local description="$1"
-  local log_file status
+  local log_file status started_at finished_at elapsed
   shift
 
   log_file="$(mktemp)" || die "No se pudo crear un archivo temporal para registrar la operación."
+  started_at="$(date +%s)"
   term_step "$description"
 
   if "$@" >"$log_file" 2>&1; then
+    finished_at="$(date +%s)"
+    elapsed="$((finished_at - started_at))"
     rm -f "$log_file"
-    term_success "$description completado"
+    term_success "Completado · $(format_duration "$elapsed")"
   else
     status=$?
     term_error "$description (código $status)"
@@ -114,7 +117,7 @@ clean_generations() {
   # En modo boot no se borran generaciones mientras la nueva siga pendiente.
   if [[ "$OPERATION" == "boot" && -e /run/booted-system && -e /nix/var/nix/profiles/system ]]; then
     if [[ "$(readlink -f /run/booted-system)" != "$(readlink -f /nix/var/nix/profiles/system)" ]]; then
-      term_skip "Limpieza omitida: hay una generación pendiente de reinicio."
+      warning "Limpieza omitida: hay una generación pendiente de reinicio."
       return 0
     fi
   fi
@@ -124,7 +127,7 @@ clean_generations() {
 
   if [[ "$automatic" != "yes" ]] &&
     ! confirm "¿Limpiar las generaciones antiguas según la política del sistema?"; then
-    term_skip "Limpieza omitida."
+    note "Limpieza omitida."
     return 0
   fi
 
@@ -134,24 +137,28 @@ clean_generations() {
 build_and_show() {
   run_step "Construyendo la configuración de $HOST" sudo nixos-rebuild build --flake ".#$HOST"
   run_step "Comprobando la activación sin aplicar cambios" sudo nixos-rebuild dry-activate --flake ".#$HOST"
-  term_info "Configuración construida; todavía no se ha aplicado."
+  note "La generación está construida y validada; todavía no se ha aplicado."
 }
 
 apply_generation() {
+  section "05" "ACTIVACIÓN" "Desplegando la generación validada"
   case "$OPERATION" in
     switch)
       run_step "Aplicando la configuración ahora" sudo nixos-rebuild switch --flake ".#$HOST"
+      APPLY_RESULT="Configuración aplicada"
       ;;
     boot)
       run_step "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --flake ".#$HOST"
+      APPLY_RESULT="Preparada para el próximo arranque"
       ;;
   esac
 
-  term_step "Comprobando si hace falta reiniciar"
+  term_step "Verificando el estado de reinicio"
   NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
 }
 
 run_update() {
+  section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
   check_lock_clean
   run_step "Actualizando las versiones de los inputs" nix flake update
   # Actualiza la estrategia por si ha cambiado con las nuevas revisiones.
@@ -161,34 +168,43 @@ run_update() {
 run_build_apply() {
   local automatic="$1"
   local include_clean="$2"
+  section "03" "CONSTRUIR Y VALIDAR" "Comprobar que la nueva generación puede activarse"
   build_and_show
 
   if [[ "$include_clean" == "yes" ]]; then
+    section "04" "LIMPIEZA" "Aplicando la política de retención de generaciones"
     if [[ "$automatic" == "yes" ]]; then
       clean_generations yes
     elif confirm "¿Limpiar las generaciones antiguas ahora?"; then
       clean_generations yes
     else
-      term_skip "Limpieza omitida."
+      note "Limpieza omitida."
     fi
   fi
 
   if [[ "$automatic" == "yes" ]] || confirm "¿Aplicar la nueva configuración en $HOST?"; then
     apply_generation
   else
-    term_skip "Aplicación cancelada. No se ha cambiado el sistema."
+    APPLY_RESULT="Aplicación cancelada"
+    warning "Aplicación cancelada. El sistema sigue usando la generación anterior."
   fi
 }
 
 run_maintenance() {
   local automatic="$1"
   local reboot_status=0
+  local started_at finished_at mode_label
 
-  local mode_label="interactivo"
-  [[ "$automatic" == "yes" ]] && mode_label="automático"
-  term_banner "Mantenimiento" "$HOST · modo $mode_label"
+  started_at="$(date +%s)"
+  if [[ "$automatic" == "yes" ]]; then
+    mode_label="MODO AUTOMÁTICO · confirmaciones omitidas"
+  else
+    mode_label="MODO INTERACTIVO · tú decides cuándo aplicar"
+  fi
+  banner "$mode_label"
 
-  term_step "Comprobando el estado del sistema"
+  section "01" "COMPROBACIONES" "Revisando el estado de arranque"
+  term_step "Comprobando si hay un reinicio pendiente"
   NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
   case "$reboot_status" in
     0) ;;
@@ -198,11 +214,15 @@ run_maintenance() {
   esac
 
   run_update
-  term_info "Estrategia de activación: $OPERATION"
+  case "$OPERATION" in
+    switch) note "Estrategia: aplicar inmediatamente (switch)." ;;
+    boot) note "Estrategia: preparar para el próximo arranque (boot)." ;;
+  esac
+  APPLY_RESULT="Sin aplicar"
   run_build_apply "$automatic" yes
 
-  term_rule
-  term_success "Mantenimiento finalizado en $HOST"
+  finished_at="$(date +%s)"
+  print_summary "$((finished_at - started_at))" "$APPLY_RESULT"
 }
 
 usage() {
@@ -237,13 +257,14 @@ case "${1:-}" in
     ;;
   update)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    term_banner "Actualizar configuración" "$HOST · actualización de inputs"
+    banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
     run_update
     run_build_apply no no
     ;;
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    term_banner "Aplicación fijada" "$HOST · usando las versiones de flake.lock"
+    banner "MODO INTERACTIVO · versiones fijadas en flake.lock"
+    note "No se actualizarán los inputs."
     run_build_apply no no
     ;;
   clean)
@@ -254,9 +275,8 @@ case "${1:-}" in
       shift
     fi
     [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
-    mode_label="interactivo"
-    [[ "$automatic" == "yes" ]] && mode_label="automático"
-    term_banner "Limpieza de generaciones" "$HOST · modo $mode_label"
+    banner "MODO LIMPIEZA · política declarada por el host"
+    section "01" "LIMPIEZA" "Revisando generaciones antiguas"
     clean_generations "$automatic"
     ;;
   -h|--help|"")
