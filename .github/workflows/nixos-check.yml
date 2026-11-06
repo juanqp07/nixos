@@ -16,6 +16,8 @@ on:
       - "**.nix"
       - "flake.nix"
       - "flake.lock"
+      - "scripts/**"
+      - "docs/**"
       - ".github/workflows/nixos-check.yml"
 
 permissions:
