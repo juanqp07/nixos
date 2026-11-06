@@ -263,7 +263,6 @@
 
       extraOptions = [
         "--network=arcane-net"
-        "--network-alias=docker-socket-proxy"
         "--read-only"
         "--cap-drop=ALL"
         "--security-opt=no-new-privileges:true"
@@ -309,7 +308,7 @@
         LOG_JSON = "false";
         OIDC_ENABLED = "false";
         PROJECTS_DIRECTORY = "/app/data/projects";
-        DOCKER_HOST = "tcp://docker-socket-proxy:2375";
+        DOCKER_HOST = "tcp://arcane-docker-proxy:2375";
       };
 
       dependsOn = [ "arcane-postgres" "arcane-docker-proxy" ];
