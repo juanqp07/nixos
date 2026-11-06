@@ -111,7 +111,7 @@ in
         Type = "simple";
         ExecStart = "${privacyMonitorCli}/bin/rustdesk-privacy-watcher";
         Restart = "on-failure";
-        RestartSec = 3;
+        RestartSec = "3s";
       };
 
       Install.WantedBy = [ "graphical-session.target" ];
