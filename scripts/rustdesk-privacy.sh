@@ -116,10 +116,15 @@ automatic_on() {
   fi
 
   if is_active; then
-    # An active service without our auto marker was started outside the
-    # watcher. Treat it as manually owned rather than stopping it later.
+    # If the watcher has a live authenticated portal session but the mode
+    # marker was lost (for example after a watcher restart), recover it as
+    # automatic. Otherwise preserve an externally started service as manual.
     if [[ "$(mode)" != "auto" ]]; then
-      write_mode manual
+      if [[ -s "$SESSIONS_FILE" ]]; then
+        write_mode auto
+      else
+        write_mode manual
+      fi
     fi
     return 0
   fi
