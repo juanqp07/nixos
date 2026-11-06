@@ -183,9 +183,11 @@ run_maintenance() {
   local automatic="$1"
   local reboot_status=0
 
-  printf '\n🛠️  Mantenimiento de NixOS · %s\n' "$HOST"
+  local mode_label="interactivo"
+  [[ "$automatic" == "yes" ]] && mode_label="automático"
+  term_banner "Mantenimiento" "$HOST · modo $mode_label"
 
-  printf '🔎 Comprobando el estado del sistema...\n'
+  term_step "Comprobando el estado del sistema"
   bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
   case "$reboot_status" in
     0) ;;
@@ -234,12 +236,13 @@ case "${1:-}" in
     ;;
   update)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
+    term_banner "Actualizar configuración" "$HOST · actualización de inputs"
     run_update
     run_build_apply no no
     ;;
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    term_banner "Aplicación bloqueada" "$HOST · usando flake.lock"
+    term_banner "Aplicación fijada" "$HOST · usando las versiones de flake.lock"
     run_build_apply no no
     ;;
   clean)
@@ -250,6 +253,9 @@ case "${1:-}" in
       shift
     fi
     [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
+    local mode_label="interactivo"
+    [[ "$automatic" == "yes" ]] && mode_label="automático"
+    term_banner "Limpieza de generaciones" "$HOST · modo $mode_label"
     clean_generations "$automatic"
     ;;
   -h|--help|"")
