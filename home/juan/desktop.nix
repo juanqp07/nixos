@@ -19,7 +19,7 @@
 
       __kigo_alias_header "Despliegue remoto · Atlas"
       set_color brblack
-      printf '  Destino: juan@192.168.1.143 · flake .#atlas\\n'
+      printf '  Destino: juan@192.168.1.143 · flake .#atlas\n'
       set_color normal
       command nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --ask-sudo-password
       set -l result $status
@@ -36,7 +36,7 @@
 
       __kigo_alias_header "Despliegue remoto · Pico"
       set_color brblack
-      printf '  Destino: juan@192.168.1.147 · flake .#pico\\n'
+      printf '  Destino: juan@192.168.1.147 · flake .#pico\n'
       set_color normal
       command nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password
       set -l result $status
