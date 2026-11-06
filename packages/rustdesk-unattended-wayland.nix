@@ -71,8 +71,8 @@ buildFHSEnv (fhsDefaults // {
   ]);
 
   extraBuildCommands = ''
-    # buildFHSEnv creates usr/lib as a symlink to usr/lib64. Populate the
-    # real target so /usr/lib/rustdesk resolves through the standard usrmerge link.
+    # buildFHSEnv creates usr/lib as an absolute usrmerge symlink to /usr/lib64.
+    # Populate the real target so /usr/lib/rustdesk resolves through that link.
     mkdir -p "$out/usr/share" "$out/usr/bin" "$out/usr/lib64"
     ln -s "${deb}/usr/share/rustdesk" "$out/usr/share/rustdesk"
     ln -s "${deb}/usr/lib/rustdesk" "$out/usr/lib64/rustdesk"
@@ -80,7 +80,9 @@ buildFHSEnv (fhsDefaults // {
 
     test -x "$out/usr/bin/rustdesk"
     test -e "$out/usr/lib64/rustdesk/libdrmtap.so.0"
-    test -e "$out/usr/lib/rustdesk/libdrmtap.so.0"
+    # Do not test -e through $out/usr/lib: the absolute usrmerge link resolves
+    # against the build host. Validate the symlink itself instead.
+    test "$(readlink "$out/usr/lib")" = "/usr/lib64"
   '';
 
   meta = {
