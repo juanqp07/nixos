@@ -21,7 +21,7 @@ Arcane accede al Docker Engine de Atlas a través de `wollomatic/socket-proxy:1.
 
 El proxy no publica puertos en el host ni está conectado a `staticnet` o `warpnet`. Solo acepta clientes identificados como `arcane` y `arcane-upgrader`; no se permite un rango de subred completo. El contenedor se ejecuta con filesystem de solo lectura, sin capabilities, con `no-new-privileges`, límite de memoria de 64 MiB y límite de procesos.
 
-Antes de iniciar Arcane, la unidad `arcane-proxy-ready` espera hasta 180 segundos a que el healthcheck Docker del proxy alcance `healthy`. Si pasa a `unhealthy` o agota el tiempo, muestra los últimos logs y bloquea el arranque de Arcane. Esto cubre una limitación de `oci-containers.dependsOn`: NixOS añade `After/Requires`, pero no espera al estado de salud del contenedor.
+Antes de iniciar Arcane, la unidad `arcane-proxy-ready` ejecuta `docker exec arcane-docker-proxy ./healthcheck` hasta que el binario incluido por Wollomatic confirma que puede acceder al socket. Se invoca directamente en formato exec, sin shell. No se configura `--health-cmd` desde Docker CLI: ese parámetro genera una prueba `CMD-SHELL`, incompatible con la imagen mínima de Wollomatic, que no incluye `/bin/sh`. Si el proxy no responde dentro de 180 segundos, systemd muestra los últimos logs y bloquea el arranque de Arcane.
 
 La allowlist sigue la integración oficial de Arcane e incluye las rutas necesarias para consultar contenedores, eventos, imágenes, redes, volúmenes, builds, registros y operaciones de gestión. Se mantienen bloqueados los métodos y endpoints que no están expresamente declarados. No se debe sustituir por `allowGET=.*`, `allowPOST=.*` ni publicar el puerto 2375 fuera de la red privada.
 
