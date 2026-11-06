@@ -268,12 +268,7 @@
         "--security-opt=no-new-privileges:true"
         "--memory=64m"
         "--pids-limit=64"
-        # La imagen incluye un healthcheck binario; no necesita shell.
-        "--health-cmd=./healthcheck"
-        "--health-start-period=15s"
-        "--health-interval=10s"
-        "--health-timeout=5s"
-        "--health-retries=15"
+        # No configurar --health-cmd: Docker CLI lo convierte en CMD-SHELL y esta imagen no tiene shell.
       ];
     };
 
@@ -391,19 +386,23 @@
     };
 
     script = ''
+      docker="${config.virtualisation.docker.package}/bin/docker"
       attempt=0
 
       while [ "$attempt" -lt 90 ]; do
         attempt=$((attempt + 1))
-        status="$(${config.virtualisation.docker.package}/bin/docker inspect --format '{{.State.Health.Status}}' arcane-docker-proxy 2>/dev/null || true)"
 
-        case "$status" in
-          healthy)
-            exit 0
-            ;;
-          unhealthy)
-            echo "Arcane no se inicia: el socket proxy está unhealthy." >&2
-            ${config.virtualisation.docker.package}/bin/docker logs --tail=100 arcane-docker-proxy >&2 || true
+        # Ejecuta el binario healthcheck en formato exec (sin /bin/sh).
+        if "$docker" exec arcane-docker-proxy ./healthcheck >/dev/null 2>&1; then
+          echo "Arcane Docker socket proxy está saludable."
+          exit 0
+        fi
+
+        state="$("$docker" inspect --format '{{.State.Status}}' arcane-docker-proxy 2>/dev/null || true)"
+        case "$state" in
+          exited|dead)
+            echo "Arcane no se inicia: el socket proxy está en estado $state." >&2
+            "$docker" logs --tail=100 arcane-docker-proxy >&2 || true
             exit 1
             ;;
         esac
@@ -411,8 +410,9 @@
         ${pkgs.coreutils}/bin/sleep 2
       done
 
-      echo "Arcane no se inicia: el socket proxy no alcanzó healthy en 180 segundos." >&2
-      ${config.virtualisation.docker.package}/bin/docker logs --tail=100 arcane-docker-proxy >&2 || true
+      echo "Arcane no se inicia: el healthcheck exec del socket proxy falló durante 180 segundos." >&2
+      "$docker" inspect --format 'Estado: {{.State.Status}}' arcane-docker-proxy >&2 || true
+      "$docker" logs --tail=100 arcane-docker-proxy >&2 || true
       exit 1
     '';
   };
