@@ -12,12 +12,12 @@ as a remote session. The watcher runs in the logged-in user's D-Bus session.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import selectors
 import signal
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
@@ -37,6 +37,7 @@ SIGNAL_HEADER = re.compile(
     r"interface=(?P<interface>\S+); member=(?P<member>\S+)"
 )
 RESPONSE_CODE = re.compile(r"^\s*uint32\s+(\d+)\s*$")
+SESSION_HANDLE = re.compile(r'object path "([^"]+)"')
 
 REQUEST_MATCH = (
     "type='signal',sender='org.freedesktop.portal.Desktop',"
@@ -53,6 +54,7 @@ RUNTIME_DIR = Path(
 SESSIONS_FILE = RUNTIME_DIR / "rustdesk-privacy-portal-sessions"
 CLOSE_GRACE_SECONDS = 2.5
 RECONNECT_DELAY_SECONDS = 2.0
+SESSION_CHECK_INTERVAL_SECONDS = 10.0
 
 stopping = False
 
@@ -129,24 +131,30 @@ def is_rustdesk_server(owner: str) -> bool:
         return False
 
 
-def load_sessions() -> set[str]:
+def load_sessions() -> dict[str, str]:
     try:
-        owners = {
-            line.strip()
-            for line in SESSIONS_FILE.read_text(encoding="utf-8").splitlines()
-            if re.fullmatch(r"\d+_\d+", line.strip())
+        value = json.loads(SESSIONS_FILE.read_text(encoding="utf-8"))
+        if not isinstance(value, dict):
+            return {}
+        return {
+            owner: path
+            for owner, path in value.items()
+            if isinstance(owner, str)
+            and re.fullmatch(r"\d+_\d+", owner)
+            and isinstance(path, str)
+            and SESSION_PATH.fullmatch(path)
+            and SESSION_PATH.fullmatch(path).group("owner") == owner
         }
-        return owners
     except FileNotFoundError:
-        return set()
-    except OSError as error:
+        return {}
+    except (OSError, json.JSONDecodeError) as error:
         log(f"No se pudo leer el estado de sesiones: {error}")
-        return set()
+        return {}
 
 
-def save_sessions(owners: set[str]) -> None:
+def save_sessions(sessions: dict[str, str]) -> None:
     RUNTIME_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if not owners:
+    if not sessions:
         SESSIONS_FILE.unlink(missing_ok=True)
         return
 
@@ -157,7 +165,8 @@ def save_sessions(owners: set[str]) -> None:
     try:
         os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write("\n".join(sorted(owners)) + "\n")
+            json.dump(sessions, handle, sort_keys=True)
+            handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, SESSIONS_FILE)
@@ -169,13 +178,49 @@ def save_sessions(owners: set[str]) -> None:
         raise
 
 
+def session_exists(path: str) -> bool:
+    try:
+        subprocess.run(
+            [
+                BUSCTL,
+                "--user",
+                "introspect",
+                "org.freedesktop.portal.Desktop",
+                path,
+                "org.freedesktop.portal.Session",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def reconcile_sessions(sessions: dict[str, str]) -> bool:
+    """Drop persisted portal sessions that no longer exist after watcher restart."""
+    stale = [
+        owner
+        for owner, path in sessions.items()
+        if not session_exists(path)
+    ]
+    for owner in stale:
+        sessions.pop(owner, None)
+        log(f"Sesión portal obsoleta retirada ({owner})")
+    if stale:
+        save_sessions(sessions)
+    return bool(stale)
+
+
 def privacy_command(command: str) -> None:
     try:
         result = subprocess.run(
             [PRIVACY_CLI, command],
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=45,
         )
         output = (result.stdout + result.stderr).strip()
         if output:
@@ -187,15 +232,18 @@ def privacy_command(command: str) -> None:
         log(f"No se pudo ejecutar {PRIVACY_CLI} {command}: {error}")
 
 
-def response_succeeded(body: list[str]) -> bool:
+def response_code(body: list[str]) -> int | None:
     for line in body:
         match = RESPONSE_CODE.fullmatch(line)
         if match:
-            return int(match.group(1)) == 0
-    return False
+            return int(match.group(1))
+    return None
 
 
-def parse_signal(header: str, body: list[str]) -> tuple[str, str] | None:
+def parse_signal(
+    header: str,
+    body: list[str],
+) -> tuple[str, str, str | None] | None:
     match = SIGNAL_HEADER.match(header)
     if not match:
         return None
@@ -206,13 +254,26 @@ def parse_signal(header: str, body: list[str]) -> tuple[str, str] | None:
 
     if interface == "org.freedesktop.portal.Request" and member == "Response":
         request = REQUEST_PATH.fullmatch(path)
-        if request and request.group("token") == "u4" and response_succeeded(body):
-            return "started", request.group("owner")
+        code = response_code(body)
+        if not request or code != 0:
+            return None
+
+        owner = request.group("owner")
+        token = request.group("token")
+
+        if token == "u1":
+            joined = "\n".join(body)
+            session_handle = SESSION_HANDLE.search(joined)
+            if session_handle:
+                return "created", owner, session_handle.group(1)
+
+        if token == "u4":
+            return "started", owner, None
 
     if interface == "org.freedesktop.portal.Session" and member == "Closed":
         session = SESSION_PATH.fullmatch(path)
         if session:
-            return "closed", session.group("owner")
+            return "closed", session.group("owner"), path
 
     return None
 
@@ -233,35 +294,51 @@ def start_dbus_monitor() -> subprocess.Popen[str]:
 
 
 def process_event(
-    event: tuple[str, str],
-    active_owners: set[str],
+    event: tuple[str, str, str | None],
+    pending_sessions: dict[str, str],
+    active_sessions: dict[str, str],
     pending_close: float | None,
 ) -> float | None:
-    action, owner = event
+    action, owner, portal_path = event
+
+    if action == "created" and portal_path is not None:
+        if is_rustdesk_server(owner):
+            pending_sessions[owner] = portal_path
+            log(f"Petición de pantalla RustDesk detectada ({owner})")
+        return pending_close
 
     if action == "started":
-        if owner not in active_owners:
-            was_empty = not active_owners
-            active_owners.add(owner)
-            save_sessions(active_owners)
-            log(f"Sesión de escritorio RustDesk autenticada ({owner})")
-            if was_empty:
-                privacy_command("auto-on")
+        portal_path = pending_sessions.pop(owner, None)
+        if portal_path is None:
+            # Missing the earlier CreateSession response is a safe failure:
+            # never infer an active remote session from Start alone.
+            log(f"Se ignora Start sin CreateSession observado ({owner})")
+            return pending_close
+
+        was_empty = not active_sessions
+        active_sessions[owner] = portal_path
+        save_sessions(active_sessions)
+        log(f"Sesión de escritorio RustDesk autenticada ({owner})")
+        if was_empty:
+            privacy_command("auto-on")
         return None
 
-    if action == "closed" and owner in active_owners:
-        active_owners.remove(owner)
-        save_sessions(active_owners)
-        log(f"Sesión de escritorio RustDesk cerrada ({owner})")
-        if not active_owners:
-            return time.monotonic() + CLOSE_GRACE_SECONDS
+    if action == "closed":
+        pending_sessions.pop(owner, None)
+        if owner in active_sessions and active_sessions[owner] == portal_path:
+            active_sessions.pop(owner, None)
+            save_sessions(active_sessions)
+            log(f"Sesión de escritorio RustDesk cerrada ({owner})")
+            if not active_sessions:
+                return time.monotonic() + CLOSE_GRACE_SECONDS
 
     return pending_close
 
 
 def monitor_loop(
     process: subprocess.Popen[str],
-    active_owners: set[str],
+    pending_sessions: dict[str, str],
+    active_sessions: dict[str, str],
 ) -> None:
     global stopping
 
@@ -274,10 +351,9 @@ def monitor_loop(
     current_header: str | None = None
     current_body: list[str] = []
     pending_close: float | None = None
+    next_session_check = time.monotonic() + SESSION_CHECK_INTERVAL_SECONDS
 
-    # If the watcher restarts after seeing a successful Start response, the
-    # runtime session file lets it keep watching for the matching Closed event.
-    if active_owners:
+    if active_sessions:
         privacy_command("auto-on")
 
     def finish_message() -> None:
@@ -285,7 +361,12 @@ def monitor_loop(
         if current_header is not None:
             event = parse_signal(current_header, current_body)
             if event is not None:
-                pending_close = process_event(event, active_owners, pending_close)
+                pending_close = process_event(
+                    event,
+                    pending_sessions,
+                    active_sessions,
+                    pending_close,
+                )
         current_header = None
         current_body = []
 
@@ -303,8 +384,14 @@ def monitor_loop(
                 elif current_header is not None:
                     current_body.append(line.rstrip("\n"))
 
-            if pending_close is not None and time.monotonic() >= pending_close:
-                if not active_owners:
+            now = time.monotonic()
+            if now >= next_session_check and active_sessions:
+                if reconcile_sessions(active_sessions) and not active_sessions:
+                    pending_close = now + CLOSE_GRACE_SECONDS
+                next_session_check = now + SESSION_CHECK_INTERVAL_SECONDS
+
+            if pending_close is not None and now >= pending_close:
+                if not active_sessions:
                     privacy_command("auto-off")
                 pending_close = None
     finally:
@@ -318,15 +405,21 @@ def main() -> int:
     signal.signal(signal.SIGINT, request_stop)
 
     RUNTIME_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
-    active_owners = load_sessions()
+    active_sessions = load_sessions()
 
-    log("Vigilando las sesiones de escritorio RustDesk del portal Wayland.")
+    # A watcher restart must not leave an automatic mode stuck forever. Verify
+    # the persisted portal objects before restoring automatic ownership.
+    if reconcile_sessions(active_sessions):
+        save_sessions(active_sessions)
+    pending_sessions: dict[str, str] = {}
+
+    log("Vigilando sesiones de escritorio RustDesk autorizadas mediante XDG Portal.")
     while not stopping:
         process: subprocess.Popen[str] | None = None
         try:
             process = start_dbus_monitor()
             log("Monitor D-Bus conectado.")
-            monitor_loop(process, active_owners)
+            monitor_loop(process, pending_sessions, active_sessions)
         except FileNotFoundError:
             log("No se encuentra dbus-monitor; comprueba el paquete dbus en NixOS.")
             return 1
@@ -347,7 +440,7 @@ def main() -> int:
 
     # A graphical-session shutdown ends the user's D-Bus watcher. Tear down
     # automatic privacy; a manually-owned mode is deliberately preserved.
-    save_sessions(set())
+    save_sessions({})
     privacy_command("auto-off")
     log("Monitor detenido.")
     return 0
