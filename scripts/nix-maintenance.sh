@@ -253,7 +253,7 @@ case "${1:-}" in
       shift
     fi
     [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
-    local mode_label="interactivo"
+    mode_label="interactivo"
     [[ "$automatic" == "yes" ]] && mode_label="automático"
     term_banner "Limpieza de generaciones" "$HOST · modo $mode_label"
     clean_generations "$automatic"
