@@ -1,5 +1,13 @@
 { config, pkgs, lib, ... }:
 
+let
+  # Empaqueta los comandos de Palco junto con la biblioteca visual compartida.
+  # Así funcionan aunque el repositorio no esté clonado en la Raspberry Pi.
+  palcoCommand = pkgs.writeShellScriptBin "palco-command" ''
+    export TERMINAL_STYLE_LIB="${../scripts/terminal-style.sh}"
+    exec ${pkgs.bash}/bin/bash ${../scripts/palco-cli.sh} "$@"
+  '';
+in
 {
   # ============================================================
   # PALCO-AUDIO
@@ -564,58 +572,19 @@
     util-linux
     lsp-plugins
     lv2
-  ];
+  ] ++ [ palcoCommand ];
 
   # ------------------------------------------------------------
   # ALIASES
   # ------------------------------------------------------------
 
   environment.shellAliases = {
-    # Modo bolo:
-    # Wi-Fi bloqueado, Bluetooth sigue activo.
-    palco-bolo =
-      "sudo rfkill block wifi && "
-      + "printf 'power on\\ndiscoverable on\\npairable on\\n' "
-      + "| bluetoothctl";
-
-    # Modo configuración:
-    # vuelve a permitir Wi-Fi.
-    palco-config =
-      "sudo rfkill unblock wifi && "
-      + "echo 'WiFi activada: usa nmtui para configurar red'";
-
-    # Estado general.
-    palco-estado =
-      "bluetoothctl show && "
-      + "echo '---' && "
-      + "bluetoothctl devices && "
-      + "echo '---' && "
-      + "wpctl status && "
-      + "echo '---' && "
-      + "aplay -l && "
-      + "echo '---' && "
-      + "systemctl --no-pager --failed";
-
-    # Estado Bluetooth.
-    palco-bt =
-      "bluetoothctl show && "
-      + "echo '---' && "
-      + "bluetoothctl devices && "
-      + "echo '---' && "
-      + "bluetoothctl paired-devices && "
-      + "echo '---' && "
-      + "rfkill list bluetooth";
-
-    # Estado DSP.
-    palco-dsp-check =
-      "wpctl status | grep -i 'palco DSP'; "
-      + "echo '---'; "
-      + "pw-dump 2>/dev/null "
-      + "| grep -o 'palco-dsp[^\\\"]*' "
-      + "| sort -u";
-
-    # Prueba directa de audio.
-    palco-audio-test =
-      "speaker-test -t wav -c 2";
+    # Comandos empaquetados: la interfaz visual es común al resto de la suite.
+    palco-bolo = "palco-command bolo";
+    palco-config = "palco-command config";
+    palco-estado = "palco-command estado";
+    palco-bt = "palco-command bt";
+    palco-dsp-check = "palco-command dsp-check";
+    palco-audio-test = "palco-command audio-test";
   };
 }
