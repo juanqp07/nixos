@@ -1,37 +1,56 @@
 #!/usr/bin/env bash
-# Show the configured kernel version for every NixOS host in this flake.
-# This script is read-only: it evaluates the flake and does not build,
-# switch, install, or modify any system.
+# Muestra el kernel configurado para cada host del flake.
+# Solo evalúa la configuración: no construye ni modifica ningún sistema.
 
 set -uo pipefail
 
-FLAKE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+FLAKE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$FLAKE_DIR"
 
+# shellcheck source=scripts/terminal-style.sh
+source "$SCRIPT_DIR/terminal-style.sh"
+
 if ! command -v nix >/dev/null 2>&1; then
-  echo "Error: nix is not installed or not in PATH." >&2
+  term_error "Nix no está instalado o no se encuentra en PATH."
   exit 1
 fi
 
-if ! hosts="$(nix eval --raw --apply 'attrs: builtins.concatStringsSep "\n" (builtins.attrNames attrs)' .#nixosConfigurations 2>/dev/null)"; then
-  echo "Error: could not evaluate nixosConfigurations in $FLAKE_DIR" >&2
+if ! hosts="$(nix eval --raw --apply 'attrs: builtins.concatStringsSep "\\n" (builtins.attrNames attrs)' .#nixosConfigurations 2>/dev/null)"; then
+  term_error "No se pudieron evaluar las configuraciones NixOS de $FLAKE_DIR."
   exit 1
 fi
 
 if [[ -z "$hosts" ]]; then
-  echo "No NixOS hosts found in the flake."
+  term_warning "No se han encontrado hosts NixOS en el flake."
   exit 0
 fi
 
-printf '%-20s %s\n' "HOST" "CONFIGURED KERNEL"
-printf '%-20s %s\n' "--------------------" "-----------------"
+term_banner "Versiones del kernel" "Inventario de los equipos definidos en el flake"
+printf '\n'
+term_table_header "$(printf '%-18s  %s' 'EQUIPO' 'KERNEL CONFIGURADO')"
+term_rule
+
+host_count=0
+failed_count=0
 
 while IFS= read -r host; do
   [[ -n "$host" ]] || continue
+  ((host_count += 1))
 
   if version="$(nix eval --raw ".#nixosConfigurations.${host}.config.boot.kernelPackages.kernel.version" 2>/dev/null)"; then
-    printf '%-20s %s\n' "$host" "$version"
+    printf '%b%-18s%b  %s\n' "$TERM_STYLE_CYAN" "$host" "$TERM_STYLE_RESET" "$version"
   else
-    printf '%-20s %s\n' "$host" "N/A (evaluation failed)" 
+    ((failed_count += 1))
+    printf '%b%-18s%b  %bNo disponible (falló la evaluación)%b\n' \
+      "$TERM_STYLE_CYAN" "$host" "$TERM_STYLE_RESET" \
+      "$TERM_STYLE_WARNING" "$TERM_STYLE_RESET"
   fi
 done <<< "$hosts"
+
+term_rule
+if (( failed_count == 0 )); then
+  term_success "Consulta completada · $host_count equipos"
+else
+  term_warning "Consulta parcial · $((host_count - failed_count)) correctos, $failed_count con errores"
+fi
