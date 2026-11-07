@@ -504,14 +504,16 @@
     memoryPercent = 50;
   };
 
-  services.scx = {
+  # scx-loader sustituye al módulo services.scx eliminado en nixpkgs.
+  # Titan usa el modo Gaming de scx_cosmos (-s 700); Elytra lo sobrescribe
+  # a Auto en hosts/portatil/configuration.nix.
+  services.scx-loader = {
     enable = true;
-    scheduler = "scx_cosmos";
 
-    extraArgs = [
-      "-s"
-      "700"
-    ];
+    config = {
+      default_sched = "scx_cosmos";
+      default_mode = "Gaming";
+    };
   };
 
   boot.kernel.sysctl = {
