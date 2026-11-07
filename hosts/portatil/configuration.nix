@@ -41,7 +41,7 @@ in
 
   # ============================================================
   # APPIMAGE / GEAR LEVER
-  # Bibliotecas necesarias para Orbiscreen
+  # Bibliotecas necesarias para Orbiscreen y Nuvio
   # ============================================================
 
   programs.appimage.package = pkgs.appimage-run.override {
@@ -50,6 +50,7 @@ in
       elfutils
       libffi
       pcre2
+      mpv-unwrapped
     ];
   };
 
