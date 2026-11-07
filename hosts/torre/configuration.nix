@@ -64,6 +64,8 @@
   services.smartd.enable = true;
 
   environment.systemPackages = with pkgs; [
+    # JDK 25: requerido por horizon-prepare y otras herramientas que fijan esta versión.
+    temurin-bin-25
     headsetcontrol
     lunar-client
     clinfo
