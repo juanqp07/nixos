@@ -80,8 +80,11 @@ buildFHSEnv (fhsDefaults // {
 
     test -x "$out/usr/bin/rustdesk"
     test -e "$out/usr/lib64/rustdesk/libdrmtap.so.0"
+<<<<<<< Updated upstream
     # Do not test -e through $out/usr/lib: the absolute usrmerge link resolves
     # against the build host. Validate the symlink itself instead.
+=======
+>>>>>>> Stashed changes
     test "$(readlink "$out/usr/lib")" = "/usr/lib64"
   '';
 
