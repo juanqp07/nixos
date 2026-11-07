@@ -32,10 +32,9 @@ in
     freeSwapThreshold = lib.mkForce 10;
   };
 
-  # desktop-gaming.nix aplica -s 700 a ambos equipos de escritorio.
-  # En Elytra se usa el modo automático/general de scx_cosmos (sin flags
-  # de perfil gaming); no se modifica el módulo compartido ni Titan.
-  services.scx.extraArgs = lib.mkForce [ ];
+  # Elytra conserva scx_cosmos en modo Auto (sin argumentos de perfil Gaming).
+  # Titan hereda el modo Gaming (-s 700) del módulo compartido.
+  services.scx-loader.config.default_mode = lib.mkForce "Auto";
 
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
