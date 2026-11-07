@@ -538,6 +538,11 @@
         name = "flathub";
         location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       }
+      {
+        # Repositorio comunitario de Anycubic Slicer Next para Linux.
+        name = "anycubic-slicer-next";
+        location = "https://develonrails.github.io/anycubic-slicer-next/anycubic-slicer-next.flatpakrepo";
+      }
     ];
 
     packages = [
@@ -550,6 +555,12 @@
       "io.github.dvlv.boxbuddyrs"
       "net.waterfox.waterfox"
       "io.github.totoshko88.RustConn"
+
+      # Anycubic Slicer Next (reempaquetado comunitario, no oficial).
+      {
+        appId = "com.anycubic.AnycubicSlicer";
+        origin = "anycubic-slicer-next";
+      }
     ];
 
     # No hacer descargas durante cada nixos-rebuild switch: las activaciones
