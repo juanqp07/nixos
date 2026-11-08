@@ -53,12 +53,9 @@
 
   services.openssh.enable = true;
 
-  services.sunshine = {
-    enable = true;
-    autoStart = true;
-    capSysAdmin = true;
-    openFirewall = true;
-  };
+  # Piloto de acceso remoto previo al login mediante Sunshine KMS + SDDM Wayland.
+  # Elytra se incorpora solo después de validar físicamente este flujo en Titan.
+  services.sunshine-kms.enable = true;
 
   services.fstrim.enable = true;
   services.smartd.enable = true;
