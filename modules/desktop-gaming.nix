@@ -340,6 +340,7 @@
     protontricks
 
     # Desarrollo y herramientas CLI.
+    android-studio
     rustc
     cargo
     rustfmt
@@ -551,8 +552,6 @@
       "com.stremio.Stremio"
       "org.onlyoffice.desktopeditors"
       "dev.fredol.open-tv"
-      "io.github.ryubing.Ryujinx"
-      "com.google.AndroidStudio"
       "com.github.sdv43.whaler"
       "io.github.dvlv.boxbuddyrs"
       "net.waterfox.waterfox"
