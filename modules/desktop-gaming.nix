@@ -301,7 +301,6 @@
     pi-coding-agent
 
     # Ofimática e idiomas.
-    libreoffice
     hunspell
     hunspellDicts.es_ES
     marktext
