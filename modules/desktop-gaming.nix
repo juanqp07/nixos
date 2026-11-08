@@ -298,6 +298,7 @@
     vesktop
     discord
     rustdesk-flutter
+    pi-coding-agent
 
     # Ofimática e idiomas.
     libreoffice
