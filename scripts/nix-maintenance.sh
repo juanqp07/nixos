@@ -87,20 +87,174 @@ need_command() {
   command -v "$1" >/dev/null 2>&1 || die "No se encuentra el comando requerido: $1"
 }
 
-for command in nix git sudo mktemp tail date; do
+for command in nix git sudo mktemp tail date sleep cat env; do
   need_command "$command"
 done
 
 HOST="$(hostname -s)"
 [[ -n "$HOST" ]] || die "No se pudo detectar el hostname."
 
-if ! nix eval --raw ".#nixosConfigurations.$HOST.config.networking.hostName" >/dev/null 2>&1; then
+# El spinner se pinta en stderr para no contaminar salidas capturadas.
+# Solo se activa en terminales interactivas; CI y logs conservan salida limpia.
+SPINNER_ACTIVE=no
+
+clear_spinner() {
+  if [[ "$SPINNER_ACTIVE" == yes ]]; then
+    printf '\r\033[2K' >&2
+    SPINNER_ACTIVE=no
+  fi
+}
+
+trap clear_spinner EXIT
+
+wait_with_spinner() {
+  local command_pid="$1"
+  local spinner_started="$SECONDS"
+  local frame=0
+  local status=0
+  local elapsed
+  local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+  if [[ -t 2 && "${TERM:-dumb}" != "dumb" && -z "${CI:-}" ]]; then
+    SPINNER_ACTIVE=yes
+
+    while kill -0 "$command_pid" 2>/dev/null; do
+      elapsed="$(format_duration "$((SECONDS - spinner_started))")"
+      printf '\r\033[2K%b  %s%b  En curso · %s' \
+        "$TERM_STYLE_CYAN$TERM_STYLE_BOLD" \
+        "${frames[$frame]}" \
+        "$TERM_STYLE_RESET" \
+        "$elapsed" >&2
+
+      sleep 0.12 || true
+      frame=$(((frame + 1) % ${#frames[@]}))
+    done
+
+    clear_spinner
+  fi
+
+  wait "$command_pid" || status=$?
+  return "$status"
+}
+
+# Ejecuta cualquier operación mostrando actividad sin inundar la terminal.
+# La salida normal se conserva en un temporal y solo se enseña si se solicita
+# expresamente o si el comando falla.
+run_step_internal() {
+  local show_output="$1"
+  local description="$2"
+  shift 2
+
+  local log_file status started_at finished_at elapsed command_pid
+
+  log_file="$(mktemp)" || die "No se pudo crear un archivo temporal para registrar la operación."
+  started_at="$(date +%s)"
+  term_step "$description"
+
+  # Autenticar antes de lanzar sudo en segundo plano evita que el spinner
+  # sobrescriba una petición interactiva de contraseña.
+  if [[ "${1:-}" == sudo ]]; then
+    if sudo -v; then
+      :
+    else
+      status=$?
+      rm -f "$log_file"
+      term_error "$description (autenticación sudo cancelada o fallida)"
+      return "$status"
+    fi
+  fi
+
+  "$@" >"$log_file" 2>&1 &
+  command_pid=$!
+
+  if wait_with_spinner "$command_pid"; then
+    finished_at="$(date +%s)"
+    elapsed="$((finished_at - started_at))"
+
+    if [[ "$show_output" == yes && -s "$log_file" ]]; then
+      cat "$log_file"
+    fi
+
+    rm -f "$log_file"
+    term_success "Completado · $(format_duration "$elapsed")"
+  else
+    status=$?
+    term_error "$description (código $status)"
+    if [[ -s "$log_file" ]]; then
+      term_info "Detalle del error (últimas 20 líneas):"
+      tail -n 20 "$log_file" >&2 || true
+    fi
+    rm -f "$log_file"
+    return "$status"
+  fi
+}
+
+run_step() {
+  run_step_internal no "$@"
+}
+
+# Variante para comprobaciones que producen un resumen útil en caso de éxito.
+run_step_show() {
+  run_step_internal yes "$@"
+}
+
+# Variante para comandos cuyo stdout se usa como valor de retorno. El progreso
+# y los diagnósticos se envían por stderr para que command substitution siga
+# recibiendo exclusivamente el resultado del comando.
+run_step_capture() {
+  local description="$1"
+  shift
+
+  local stdout_file stderr_file status started_at finished_at elapsed command_pid
+
+  stdout_file="$(mktemp)" || die "No se pudo crear un temporal para la salida del comando."
+  stderr_file="$(mktemp)" || {
+    rm -f "$stdout_file"
+    die "No se pudo crear un temporal para los errores del comando."
+  }
+
+  started_at="$(date +%s)"
+  term_step "$description" >&2
+  "$@" >"$stdout_file" 2>"$stderr_file" &
+  command_pid=$!
+
+  if wait_with_spinner "$command_pid"; then
+    finished_at="$(date +%s)"
+    elapsed="$((finished_at - started_at))"
+
+    if [[ -s "$stderr_file" ]]; then
+      cat "$stderr_file" >&2
+    fi
+    term_success "Completado · $(format_duration "$elapsed")" >&2
+    cat "$stdout_file"
+  else
+    status=$?
+    term_error "$description (código $status)" >&2
+    if [[ -s "$stderr_file" ]]; then
+      term_info "Detalle del error (últimas 20 líneas):" >&2
+      tail -n 20 "$stderr_file" >&2 || true
+    fi
+    if [[ -s "$stdout_file" ]]; then
+      term_info "Salida del comando (últimas 20 líneas):" >&2
+      tail -n 20 "$stdout_file" >&2 || true
+    fi
+    rm -f "$stdout_file" "$stderr_file"
+    return "$status"
+  fi
+
+  rm -f "$stdout_file" "$stderr_file"
+}
+
+if ! run_step "Validando la configuración de $HOST" \
+  nix eval --raw ".#nixosConfigurations.$HOST.config.networking.hostName"; then
   die "El host '$HOST' no existe o no se puede evaluar en flake.nix."
 fi
 
 get_operation() {
   local operation
-  operation="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)" ||
+  operation="$(run_step_capture \
+    "Consultando la estrategia de actualización de $HOST" \
+    nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
     die "No se pudo consultar la estrategia de actualización de $HOST."
   case "$operation" in
     switch|boot) printf '%s' "$operation" ;;
@@ -124,34 +278,6 @@ confirm() {
   esac
 }
 
-# Oculta la salida normal de cada comando. Si falla, muestra solo las
-# últimas líneas para que el error siga siendo útil sin inundar la terminal.
-run_step() {
-  local description="$1"
-  local log_file status started_at finished_at elapsed
-  shift
-
-  log_file="$(mktemp)" || die "No se pudo crear un archivo temporal para registrar la operación."
-  started_at="$(date +%s)"
-  term_step "$description"
-
-  if "$@" >"$log_file" 2>&1; then
-    finished_at="$(date +%s)"
-    elapsed="$((finished_at - started_at))"
-    rm -f "$log_file"
-    term_success "Completado · $(format_duration "$elapsed")"
-  else
-    status=$?
-    term_error "$description (código $status)"
-    if [[ -s "$log_file" ]]; then
-      term_info "Detalle del error (últimas 20 líneas):"
-      tail -n 20 "$log_file" >&2 || true
-    fi
-    rm -f "$log_file"
-    return "$status"
-  fi
-}
-
 check_lock_clean() {
   if ! git diff --quiet HEAD -- flake.lock; then
     die "flake.lock ya contiene cambios. Revísalos o guárdalos antes de actualizar."
@@ -160,7 +286,11 @@ check_lock_clean() {
 
 get_gc_args() {
   local gc_options
-  gc_options="$(nix eval --raw ".#nixosConfigurations.$HOST.config.nix.gc.options" 2>/dev/null)" ||
+  local -a GC_ARGS
+
+  gc_options="$(run_step_capture \
+    "Consultando la política de limpieza de $HOST" \
+    nix eval --raw ".#nixosConfigurations.$HOST.config.nix.gc.options")" ||
     die "No se pudo consultar la política de limpieza de $HOST."
 
   # Solo se acepta la política de retención declarada para este repositorio.
@@ -219,8 +349,8 @@ apply_generation() {
       ;;
   esac
 
-  term_step "Verificando el estado de reinicio"
-  NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
+  run_step_show "Verificando el estado de reinicio" \
+    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
 }
 
 run_update() {
@@ -270,8 +400,12 @@ run_maintenance() {
   banner "$mode_label"
 
   section "01" "COMPROBACIONES" "Revisando el estado de arranque"
-  term_step "Comprobando si hay un reinicio pendiente"
-  NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" || reboot_status=$?
+  if run_step_show "Comprobando si hay un reinicio pendiente" \
+    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"; then
+    reboot_status=0
+  else
+    reboot_status=$?
+  fi
   case "$reboot_status" in
     0) ;;
     1) die "Falló la comprobación de reinicio." ;;
