@@ -16,6 +16,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
+    * `sunshine-kms.nix`: acceso Moonlight previo al login con KMS; piloto habilitado solo en Titan.
     * `rustdesk-privacy.nix`: modo privacidad para RustDesk, exclusivo de Elytra.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
@@ -30,6 +31,12 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 ## 🛡️ Privacidad remota en Elytra
 
 El comando `rustdesk-privacy on|off|toggle|status` controla la privacidad de pantalla y entrada física. `on` activa el modo manual, que permanece hasta `off`; el monitor de Home Manager también puede activarlo al concederse una sesión entrante de RustDesk y retirarlo al cerrarse la última sesión, sin tocar una activación manual. Atajo KDE: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
+
+## 🖥️ Acceso remoto previo al login en Titan (piloto)
+
+Titan prueba Sunshine con captura DRM/KMS y SDDM Wayland para permitir el acceso mediante Moonlight desde la pantalla de login, incluso después de reiniciar y sin autologin. El servicio de usuario de Juan se mantiene activo con systemd lingering; el firewall permite sus puertos únicamente por NetBird (`wt0`). Elytra no activa todavía este módulo.
+
+La evaluación de Nix no demuestra que el greeter acepte la captura y la entrada virtual: hay que validar físicamente vídeo, teclado, ratón, contraseña y continuidad al entrar en Plasma. Consulta [docs/sunshine-kms.md](docs/sunshine-kms.md) antes de desplegar o revertir el piloto.
 
 ## 🏠 Home Manager
 
