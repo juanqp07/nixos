@@ -297,7 +297,6 @@
     telegram-desktop
     vesktop
     discord
-    google-chrome
     rustdesk-flutter
 
     # Ofimática e idiomas.
