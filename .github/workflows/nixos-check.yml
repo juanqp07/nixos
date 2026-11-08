@@ -101,6 +101,56 @@ jobs:
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
 
+      - name: Validate Titan pre-login Sunshine KMS configuration
+        if: matrix.host == 'titan'
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+
+          prefix = ".#nixosConfigurations.titan.config."
+
+          def nix_eval(path, as_json=False):
+              command = ["nix", "eval"]
+              command.append("--json" if as_json else "--raw")
+              command.append(prefix + path)
+              return subprocess.check_output(command, text=True).strip()
+
+          scalar_checks = {
+              "services.sunshine.enable": "true",
+              "services.sunshine.autoStart": "true",
+              "services.sunshine.capSysAdmin": "true",
+              "services.sunshine.openFirewall": "false",
+              "services.sunshine.settings.capture": "kms",
+              "services.sunshine.settings.upnp": "disabled",
+              "services.sunshine.settings.origin_web_ui_allowed": "wan",
+              "services.displayManager.sddm.wayland.enable": "true",
+              "users.users.juan.linger": "true",
+              "systemd.user.services.sunshine.unitConfig.ConditionUser": "juan",
+          }
+
+          for path, expected in scalar_checks.items():
+              actual = nix_eval(path)
+              if actual != expected:
+                  raise SystemExit(f"{path}: expected {expected!r}, got {actual!r}")
+              print(f"OK {path} = {actual}")
+
+          list_checks = {
+              "systemd.user.services.sunshine.wantedBy": ["default.target"],
+              "systemd.user.services.sunshine.partOf": [],
+              "systemd.user.services.sunshine.wants": [],
+              "systemd.user.services.sunshine.after": [],
+              "networking.firewall.interfaces.wt0.allowedTCPPorts": [47984, 47989, 47990, 48010],
+              "networking.firewall.interfaces.wt0.allowedUDPPorts": [47998, 47999, 48000, 48002, 48010],
+          }
+
+          for path, expected in list_checks.items():
+              actual = json.loads(nix_eval(path, as_json=True))
+              if actual != expected:
+                  raise SystemExit(f"{path}: expected {expected!r}, got {actual!r}")
+              print(f"OK {path} = {actual}")
+          PY
+
       - name: Build the pinned RustDesk unattended Wayland package
         if: matrix.host == 'elytra' && steps.rustdesk.outputs.required == 'true'
         run: |
