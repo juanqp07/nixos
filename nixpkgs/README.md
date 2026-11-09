@@ -7,9 +7,9 @@ Esta carpeta conserva las expresiones con la estructura que Nixpkgs espera. Las 
 - `pkgs/by-name/no/nori/package.nix`: AppImage oficial de Nori Desktop.
 - `pkgs/by-name/no/nori-cli/package.nix`: tarball oficial de Nori CLI.
 
-Los dos paquetes declaran AGPL-3.0-or-later, x86_64-linux y `sourceProvenance = binaryNativeCode`, porque la release distribuye estos ejecutables precompilados. No se deben presentar como compilaciones reproducibles desde código fuente.
+Los dos paquetes declaran AGPL-3.0-or-later, x86_64-linux y aarch64-linux, y `sourceProvenance = binaryNativeCode`, porque la release distribuye estos ejecutables precompilados para ambas arquitecturas. No se deben presentar como compilaciones reproducibles desde código fuente.
 
-El AppImage de escritorio no incluye WebKitGTK: Nori upstream espera usar la biblioteca del sistema. La receta añade `webkitgtk_4_1` al entorno FHS. El CLI también se ejecuta en un entorno FHS con WebKitGTK y ALSA.
+El AppImage de escritorio no incluye WebKitGTK: Nori upstream espera usar la biblioteca del sistema. La receta añade `webkitgtk_4_1` al entorno FHS. El CLI también se ejecuta en un entorno FHS con WebKitGTK y ALSA. Ambas recetas seleccionan el asset y su hash según la arquitectura del sistema.
 
 ## Actualizaciones automáticas
 
