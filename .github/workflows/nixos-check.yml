@@ -62,6 +62,73 @@ jobs:
             echo "required=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Detect Nori package build changes
+        id: nori
+        if: matrix.host == 'elytra'
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            changed_files="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"
+          else
+            changed_files="$(git diff --name-only "$PUSH_BEFORE_SHA" "$GITHUB_SHA")"
+          fi
+
+          if grep -Eq '^(packages/nori\\.nix|hosts/portatil/configuration\\.nix|flake\\.nix|flake\\.lock)
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Validate shell, Fish and privacy helper syntax
+        if: matrix.host == 'elytra'
+        run: |
+          for script in scripts/*.sh; do
+            bash -n "$script"
+            echo "Syntax OK: $script"
+          done
+
+          nix eval --raw ".#nixosConfigurations.elytra.config.home-manager.users.juan.programs.fish.interactiveShellInit" > /tmp/kigo-fish-init.fish
+          nix build --no-link ".#nixosConfigurations.elytra.pkgs.fish"
+          fish_path="$(nix eval --raw ".#nixosConfigurations.elytra.pkgs.fish.outPath")"
+          "$fish_path/bin/fish" --no-execute /tmp/kigo-fish-init.fish
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          for path in (
+              Path("scripts/rustdesk-privacy-grabber.py"),
+              Path("scripts/rustdesk-privacy-monitor.py"),
+          ):
+              ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+              print(f"Syntax OK: {path}")
+          PY
+
+      - name: Check flake outputs
+        if: matrix.host == 'titan'
+        run: |
+          nix flake check --no-build --show-trace
+
+      - name: Evaluate system closure
+        run: |
+          nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
+
+      - name: Build the pinned RustDesk unattended Wayland package
+        if: matrix.host == 'elytra' && steps.rustdesk.outputs.required == 'true'
+        run: |
+          nix build --no-link --show-trace ".#packages.x86_64-linux.rustdesk-unattended-wayland"
+
+      - name: Build the declarative Nori package
+        if: matrix.host == 'elytra' && steps.nori.outputs.required == 'true'
+        run: |
+          nix build --no-link --show-trace ".#packages.x86_64-linux.nori"
+ <<< "$changed_files"; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
