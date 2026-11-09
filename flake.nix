@@ -78,6 +78,10 @@
       packages.x86_64-linux.rustdesk-unattended-wayland =
         nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/rustdesk-unattended-wayland.nix { };
 
+      # Paquete declarativo para Nori (AppImage oficial + WebKitGTK 4.1).
+      packages.x86_64-linux.nori =
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix { };
+
       formatter.x86_64-linux =
         nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
