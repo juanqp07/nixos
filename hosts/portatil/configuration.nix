@@ -273,5 +273,7 @@ in
   ] ++ [
     # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
     (pkgs.callPackage ../../packages/nori.nix { })
+    # Cliente de terminal de Nori.
+    (pkgs.callPackage ../../packages/nori-cli.nix { })
   ];
 }
