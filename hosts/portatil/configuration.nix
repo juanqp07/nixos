@@ -199,11 +199,6 @@ in
   # la sesión de KDE Plasma puede seguir usando Wayland.
   services.displayManager.sddm.wayland.enable = false;
 
-  # Backend DRM/KMS experimental de RustDesk.
-  # Mantener desactivado hasta validar la build FHS y el CRTC Intel de la pantalla interna.
-  # Activar solo después de superar ambas comprobaciones.
-  services.rustdesk-unattended-wayland.enable = false;
-
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
