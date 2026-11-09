@@ -42,26 +42,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect RustDesk package build changes
-        id: rustdesk
-        if: matrix.host == 'elytra'
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            changed_files="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"
-          else
-            changed_files="$(git diff --name-only "$PUSH_BEFORE_SHA" "$GITHUB_SHA")"
-          fi
-
-          if grep -Eq '^(packages/rustdesk-unattended-wayland\.nix|flake\.nix|flake\.lock)$' <<< "$changed_files"; then
-            echo "required=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "required=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Detect Nori package build changes
         id: nori
         if: matrix.host == 'elytra'
@@ -120,11 +100,6 @@ jobs:
       - name: Evaluate system closure
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
-
-      - name: Build the pinned RustDesk unattended Wayland package
-        if: matrix.host == 'elytra' && steps.rustdesk.outputs.required == 'true'
-        run: |
-          nix build --no-link --show-trace ".#packages.x86_64-linux.rustdesk-unattended-wayland"
 
       - name: Build the declarative Nori package
         if: matrix.host == 'elytra' && steps.nori.outputs.required == 'true'
