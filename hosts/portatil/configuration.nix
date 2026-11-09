@@ -51,6 +51,7 @@ in
       libffi
       pcre2
       mpv-unwrapped
+      webkitgtk_4_1
     ];
   };
 
@@ -274,5 +275,8 @@ in
 
     # Portátil
     brightnessctl
+  ] ++ [
+    # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
+    (pkgs.callPackage ../../packages/nori.nix { })
   ];
 }
