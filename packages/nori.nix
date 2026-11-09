@@ -1,6 +1,5 @@
 # Keep the NixOS package and the expression prepared for Nixpkgs identical.
-# The local nixpkgs input does not contain our new maintainer entry yet.
-{ lib, ... }@args:
+{ lib, appimageTools, fetchurl, nix-update-script }:
 
 let
   nixpkgsLib = lib // {
@@ -13,6 +12,7 @@ let
     };
   };
 in
-import ../nixpkgs/pkgs/by-name/no/nori/package.nix (args // {
+import ../nixpkgs/pkgs/by-name/no/nori/package.nix {
+  inherit appimageTools fetchurl nix-update-script;
   lib = nixpkgsLib;
-})
+}
