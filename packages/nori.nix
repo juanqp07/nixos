@@ -18,8 +18,6 @@ appimageTools.wrapType2 (finalAttrs: {
   ];
 
   extraInstallCommands = ''
-    mv "$out/bin/${pname}-${version}" "$out/bin/${pname}"
-
     install -Dm444 "${finalAttrs.contents}/dev.nori.desktop.desktop" \
       "$out/share/applications/dev.nori.desktop.desktop"
     substituteInPlace "$out/share/applications/dev.nori.desktop.desktop" \
