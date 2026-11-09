@@ -20,15 +20,30 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
-* **packages/**: aplicaciones externas empaquetadas para NixOS.
-    * `nori.nix`: Nori Desktop 0.8.0 para x86_64, instalado declarativamente en Elytra y Titan desde el AppImage oficial y con WebKitGTK 4.1 dentro de su entorno FHS.
-    * `nori-cli.nix`: Nori CLI 0.8.0 para x86_64, instalado en ambos equipos mediante un entorno FHS con WebKitGTK 4.1 y ALSA.
+* **packages/**: accesos a los paquetes externos preparados para NixOS.
+    * `nori.nix` y `nori-cli.nix`: reutilizan las expresiones candidatas para Nixpkgs, evitando mantener dos recetas distintas.
+* **nixpkgs/pkgs/by-name/no/**: expresiones listas para proponer en Nixpkgs.
+    * `nori/package.nix`: Nori Desktop 0.8.0 desde el AppImage oficial y con WebKitGTK 4.1.
+    * `nori-cli/package.nix`: Nori CLI 0.8.0 desde el tarball oficial y con ALSA/WebKitGTK.
 * **home/juan/**: Configuración personal compartida con Home Manager.
     * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
     * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
     * `desktop.nix`: Fastfetch y alias de despliegue exclusivos de Elytra y Titan.
 
 ---
+
+## 📦 Preparación para Nixpkgs
+
+Las recetas candidatas de Nori están en `nixpkgs/pkgs/by-name/no/` y son las mismas que usan Elytra y Titan. Ambas incluyen `passthru.updateScript = nix-update-script { };`, para que el actualizador comunitario de Nixpkgs pueda proponer nuevas versiones una vez fusionado el paquete oficial.
+
+El primer envío requiere una PR a `NixOS/nixpkgs` con las dos recetas y una entrada de mantenedor. Este repositorio prepara y compila los paquetes, pero no publica directamente dentro de Nixpkgs. Los artefactos oficiales actuales son binarios precompilados, por lo que sus metadatos indican `binaryNativeCode`.
+
+Validación local:
+
+```bash
+nix build --no-link .#nori
+nix build --no-link .#nori-cli
+```
 
 ## 🛡️ Privacidad remota en Elytra
 
