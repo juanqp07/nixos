@@ -1,5 +1,5 @@
 # Keep the NixOS package and the expression prepared for Nixpkgs identical.
-{ lib, appimageTools, fetchurl, nix-update-script }:
+{ lib, stdenv, appimageTools, fetchurl, nix-update-script }:
 
 let
   nixpkgsLib = lib // {
@@ -13,6 +13,6 @@ let
   };
 in
 import ../nixpkgs/pkgs/by-name/no/nori/package.nix {
-  inherit appimageTools fetchurl nix-update-script;
+  inherit stdenv appimageTools fetchurl nix-update-script;
   lib = nixpkgsLib;
 }
