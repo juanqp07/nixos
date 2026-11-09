@@ -78,6 +78,10 @@
       packages.x86_64-linux.nori =
         nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix { };
 
+      # Cliente de terminal de Nori, empaquetado con sus dependencias FHS.
+      packages.x86_64-linux.nori-cli =
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori-cli.nix { };
+
       formatter.x86_64-linux =
         nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
