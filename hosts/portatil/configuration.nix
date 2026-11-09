@@ -41,7 +41,7 @@ in
 
   # ============================================================
   # APPIMAGE / GEAR LEVER
-  # Bibliotecas necesarias para Orbiscreen y Nuvio
+  # Bibliotecas para Orbiscreen, Nuvio y el WebKitGTK de Nori
   # ============================================================
 
   programs.appimage.package = pkgs.appimage-run.override {
