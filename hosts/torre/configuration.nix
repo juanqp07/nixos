@@ -71,6 +71,9 @@
     clinfo
     vulkan-tools
     amdgpu_top
+
+    # Aplicación declarativa compartida con Elytra.
+    (callPackage ../../packages/nori.nix { })
   ];
 
   # ---------------------------------------------------------
