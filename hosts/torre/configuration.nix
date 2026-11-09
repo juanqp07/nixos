@@ -74,6 +74,8 @@
 
     # Aplicación declarativa compartida con Elytra.
     (callPackage ../../packages/nori.nix { })
+    # Cliente de terminal de Nori.
+    (callPackage ../../packages/nori-cli.nix { })
   ];
 
   # ---------------------------------------------------------
