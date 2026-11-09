@@ -76,8 +76,15 @@ jobs:
             changed_files="$(git diff --name-only "$PUSH_BEFORE_SHA" "$GITHUB_SHA")"
           fi
 
-          if grep -Eq '^(packages/nori\.nix|hosts/portatil/configuration\.nix|flake\.nix|flake\.lock)
-          extra_nix_config: |
+          if printf '%s\n' "$changed_files" | grep -Eq '^(packages/nori\.nix|hosts/portatil/configuration\.nix|flake\.nix|flake\.lock)$'; then
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
             experimental-features = nix-command flakes
 
       - name: Validate shell, Fish and privacy helper syntax
