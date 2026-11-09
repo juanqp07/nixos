@@ -20,6 +20,8 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
+* **packages/**: aplicaciones externas empaquetadas para NixOS.
+    * `nori.nix`: Nori 0.8.0 para x86_64, instalado declarativamente en Elytra desde el AppImage oficial y con WebKitGTK 4.1 dentro de su entorno FHS.
 * **home/juan/**: Configuración personal compartida con Home Manager.
     * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
     * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
