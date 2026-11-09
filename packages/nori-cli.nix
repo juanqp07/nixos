@@ -1,6 +1,16 @@
 # Keep the NixOS package and the expression prepared for Nixpkgs identical.
-# The local nixpkgs input does not contain our new maintainer entry yet.
-{ lib, ... }@args:
+{ lib
+, stdenvNoCC
+, fetchurl
+, gnutar
+, gzip
+, buildFHSEnv
+, appimageTools
+, alsa-lib
+, webkitgtk_4_1
+, cacert
+, nix-update-script
+}:
 
 let
   nixpkgsLib = lib // {
@@ -13,6 +23,18 @@ let
     };
   };
 in
-import ../nixpkgs/pkgs/by-name/no/nori-cli/package.nix (args // {
+import ../nixpkgs/pkgs/by-name/no/nori-cli/package.nix {
+  inherit
+    stdenvNoCC
+    fetchurl
+    gnutar
+    gzip
+    buildFHSEnv
+    appimageTools
+    alsa-lib
+    webkitgtk_4_1
+    cacert
+    nix-update-script
+    ;
   lib = nixpkgsLib;
-})
+}
