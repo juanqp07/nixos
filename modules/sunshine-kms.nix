@@ -39,6 +39,7 @@ in
     users.groups.sunshine-kms = { };
     users.users.juan.extraGroups = [ "sunshine-kms" ];
     security.wrappers.sunshine = {
+      owner = lib.mkForce "root";
       group = lib.mkForce "sunshine-kms";
       permissions = lib.mkForce "u+rx,g+x,o-rwx";
     };

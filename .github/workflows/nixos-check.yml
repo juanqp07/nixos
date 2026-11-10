@@ -125,6 +125,7 @@ jobs:
               "services.displayManager.sddm.wayland.enable": True,
               "users.users.juan.linger": True,
               "systemd.user.services.sunshine.unitConfig.ConditionUser": "juan",
+              "security.wrappers.sunshine.owner": "root",
               "security.wrappers.sunshine.group": "sunshine-kms",
               "security.wrappers.sunshine.permissions": "u+rx,g+x,o-rwx",
               "security.wrappers.sunshine.capabilities": "cap_sys_admin+p",
