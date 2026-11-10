@@ -16,6 +16,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
+    * `sunshine-kms.nix`: piloto de Sunshine KMS y SDDM Wayland antes del login, activado solo en Titan.
     * `rustdesk-privacy.nix`: modo privacidad para RustDesk, exclusivo de Elytra.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
@@ -48,6 +49,14 @@ nix build --no-link .#nori-cli
 ## 🛡️ Privacidad remota en Elytra
 
 El comando `rustdesk-privacy on|off|toggle|status` controla la privacidad de pantalla y entrada física. `on` activa el modo manual, que permanece hasta `off`; el monitor de Home Manager también puede activarlo al concederse una sesión entrante de RustDesk y retirarlo al cerrarse la última sesión, sin tocar una activación manual. Atajo KDE: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
+
+## 🖥️ Acceso remoto previo al login en Titan
+
+Titan incorpora un piloto reversible de Sunshine con captura DRM/KMS y greeter SDDM Wayland. La idea es poder conectar con Moonlight después de reiniciar y escribir la contraseña en la pantalla de inicio, sin autologin. El servicio de usuario de Juan se inicia mediante systemd lingering.
+
+Los puertos de Sunshine/Moonlight solo se permiten en la interfaz NetBird (`wt0`); no se abre el firewall global ni se habilita UPnP. El wrapper que concede `CAP_SYS_ADMIN` queda limitado al grupo local `sunshine-kms`, del que solo forma parte Juan.
+
+Es una configuración piloto: la evaluación de Nix no demuestra que el greeter acepte correctamente vídeo y entrada virtual. Antes de considerarlo definitivo, hay que validar físicamente vídeo, teclado, ratón, contraseña y continuidad al entrar en Plasma tras reiniciar. Consulta [docs/sunshine-kms.md](docs/sunshine-kms.md).
 
 ## 🏠 Home Manager
 

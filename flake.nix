@@ -57,6 +57,7 @@
     titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
+      ./modules/sunshine-kms.nix
     ];
 
     atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
