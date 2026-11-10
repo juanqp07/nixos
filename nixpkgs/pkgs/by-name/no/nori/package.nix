@@ -30,7 +30,11 @@ appimageTools.wrapType2 (finalAttrs: {
   };
 
   # Nori intentionally uses the host WebKitGTK for its sign-in window.
-  extraPkgs = pkgs: [ pkgs.webkitgtk_4_1 ];
+  # Its AppImage also loads libsoup-3 dynamically at runtime.
+  extraPkgs = pkgs: [
+    pkgs.webkitgtk_4_1
+    pkgs.libsoup_3
+  ];
 
   extraInstallCommands = ''
     install -Dm444 "${finalAttrs.contents}/dev.nori.desktop.desktop" \
