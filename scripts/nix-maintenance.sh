@@ -56,6 +56,44 @@ format_duration() {
   fi
 }
 
+# Bash 5 proporciona EPOCHREALTIME con microsegundos. Convertimos el reloj
+# a décimas para que el spinner no repita "0s", "1s", etc. cuatro veces por
+# segundo al refrescarse cada 250 ms.
+get_clock_tenths() {
+  local timestamp="${EPOCHREALTIME:-}"
+  local whole_seconds fractional
+
+  if [[ "$timestamp" =~ ^([0-9]+)\.([0-9]{1,6})$ ]]; then
+    whole_seconds="${BASH_REMATCH[1]}"
+    fractional="${BASH_REMATCH[2]}000000"
+    printf '%s%s' "$whole_seconds" "${fractional:0:1}"
+  else
+    # Compatibilidad con Bash sin EPOCHREALTIME (resolución de un segundo).
+    printf '%s0' "$SECONDS"
+  fi
+}
+
+format_elapsed() {
+  local tenths="${1:-0}"
+  local total_seconds=$((tenths / 10))
+  local tenth_digit=$((tenths % 10))
+
+  if (( total_seconds >= 3600 )); then
+    printf '%dh %02dm %02d.%ds' \
+      "$((total_seconds / 3600))" \
+      "$(((total_seconds % 3600) / 60))" \
+      "$((total_seconds % 60))" \
+      "$tenth_digit"
+  elif (( total_seconds >= 60 )); then
+    printf '%dm %02d.%ds' \
+      "$((total_seconds / 60))" \
+      "$((total_seconds % 60))" \
+      "$tenth_digit"
+  else
+    printf '%d.%ds' "$total_seconds" "$tenth_digit"
+  fi
+}
+
 print_summary() {
   local duration="$1"
   local result="$2"
@@ -161,11 +199,14 @@ trap finish_with_notification EXIT
 wait_with_spinner() {
   local command_pid="$1"
   local log_file="${2:-}"
-  local spinner_started="$SECONDS"
+  local spinner_started
+  local now_tenths
   local frame=0
   local status=0
   local elapsed
   local preview_line preview_width
+
+  spinner_started="$(get_clock_tenths)"
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
   if [[ -t 2 && "${TERM:-dumb}" != "dumb" && -z "${CI:-}" ]]; then
@@ -174,7 +215,8 @@ wait_with_spinner() {
     SPINNER_ACTIVE=yes
 
     while kill -0 "$command_pid" 2>/dev/null; do
-      elapsed="$(format_duration "$((SECONDS - spinner_started))")"
+      now_tenths="$(get_clock_tenths)"
+      elapsed="$(format_elapsed "$((now_tenths - spinner_started))")"
 
       if [[ -n "$log_file" && -s "$log_file" ]]; then
         preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null | \
