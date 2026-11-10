@@ -41,7 +41,7 @@ in
 
   # ============================================================
   # APPIMAGE / GEAR LEVER
-  # Bibliotecas necesarias para Orbiscreen y Nuvio
+  # Bibliotecas para Orbiscreen, Nuvio y el WebKitGTK de Nori
   # ============================================================
 
   programs.appimage.package = pkgs.appimage-run.override {
@@ -51,6 +51,7 @@ in
       libffi
       pcre2
       mpv-unwrapped
+      webkitgtk_4_1
     ];
   };
 
@@ -198,11 +199,6 @@ in
   # la sesión de KDE Plasma puede seguir usando Wayland.
   services.displayManager.sddm.wayland.enable = false;
 
-  # Backend DRM/KMS experimental de RustDesk.
-  # Mantener desactivado hasta validar la build FHS y el CRTC Intel de la pantalla interna.
-  # Activar solo después de superar ambas comprobaciones.
-  services.rustdesk-unattended-wayland.enable = false;
-
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
@@ -274,5 +270,10 @@ in
 
     # Portátil
     brightnessctl
+  ] ++ [
+    # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
+    (pkgs.callPackage ../../packages/nori.nix { })
+    # Cliente de terminal de Nori.
+    (pkgs.callPackage ../../packages/nori-cli.nix { })
   ];
 }

@@ -12,9 +12,10 @@ Elytra no activa este módulo todavía. Su configuración de RustDesk y SDDM que
 - La captura se fija explícitamente a `kms`; no se depende de la selección automática ni del portal de escritorio.
 - Se reutiliza el servicio de usuario generado por el módulo NixOS. Su `WantedBy` pasa de `graphical-session.target` a `default.target`, y se eliminan sus dependencias de la sesión gráfica.
 - `users.users.juan.linger = true` hace que el gestor systemd de Juan arranque con el sistema y permanezca activo cuando no hay una sesión gráfica.
-- El servicio sigue ejecutándose como Juan. `services.sunshine.capSysAdmin` hace que NixOS cree el wrapper con la capacidad que necesita KMS; no se ejecuta Sunshine como root.
+- El servicio sigue ejecutándose como Juan. `services.sunshine.capSysAdmin` hace que NixOS cree el wrapper con `CAP_SYS_ADMIN`; el wrapper pertenece al grupo dedicado `sunshine-kms`, al que se añade Juan. Sus permisos son `u+rx,g+x,o-rwx`, por lo que otros usuarios locales no pueden ejecutarlo. No se ejecuta Sunshine como root.
 - Sunshine necesita acceso de escritura a `/dev/uinput`. La regla local asigna ese nodo al grupo `uinput`, al que Juan ya pertenece por el módulo de escritorio. No se añade Juan al grupo amplio `input`, que puede dar acceso de lectura a dispositivos físicos de teclado.
 - No se usa `services.sunshine.openFirewall`. Los puertos TCP/UDP se permiten solamente en la interfaz NetBird `wt0`; UPnP queda desactivado.
+- `origin_web_ui_allowed = "wan"` permite el acceso a la Web UI desde cualquier origen que consiga llegar al servicio; no es una restricción a la VPN. La barrera de red es el firewall por interfaz (`wt0`). Mantén las ACL de NetBird y una contraseña fuerte de Sunshine: los peers autorizados para llegar a esos puertos pueden alcanzar la Web UI.
 
 No se crea un segundo proceso Sunshine ni se inventa una unidad de sistema distinta. Se adapta la unidad de usuario que ya genera NixOS para que no dependa de una sesión Plasma activa.
 

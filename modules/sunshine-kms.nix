@@ -22,8 +22,8 @@ in
         system_tray = "disabled";
         upnp = "disabled";
 
-        # The Web UI is reachable over NetBird only; the firewall below does
-        # not permit these ports on the LAN or public interfaces.
+        # "wan" is required for the remote Web UI. Reachability is restricted
+        # below to NetBird; NetBird ACLs and a strong Web UI password still apply.
         origin_web_ui_allowed = "wan";
       };
     };
@@ -33,6 +33,15 @@ in
 
     # Start juan's user manager at boot, even with no graphical login.
     users.users.juan.linger = true;
+
+    # Keep the capability-bearing wrapper executable only by root and the
+    # dedicated sunshine-kms group. The NixOS default also permits "other".
+    users.groups.sunshine-kms = { };
+    users.users.juan.extraGroups = [ "sunshine-kms" ];
+    security.wrappers.sunshine = {
+      group = lib.mkForce "sunshine-kms";
+      permissions = lib.mkForce "u+rx,g+x,o-rwx";
+    };
 
     # Sunshine only needs its virtual input node. Do not add juan to the broad
     # "input" group, which can grant read access to physical keyboard devices.

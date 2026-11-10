@@ -42,8 +42,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect RustDesk package build changes
-        id: rustdesk
+      - name: Detect Nori package build changes
+        id: nori
         if: matrix.host == 'elytra'
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -56,7 +56,7 @@ jobs:
             changed_files="$(git diff --name-only "$PUSH_BEFORE_SHA" "$GITHUB_SHA")"
           fi
 
-          if grep -Eq '^(packages/rustdesk-unattended-wayland\.nix|flake\.nix|flake\.lock)$' <<< "$changed_files"; then
+          if printf '%s\n' "$changed_files" | grep -Eq '^(packages/nori\.nix|packages/nori-cli\.nix|nixpkgs/pkgs/by-name/no/nori/package\.nix|nixpkgs/pkgs/by-name/no/nori-cli/package\.nix|hosts/portatil/configuration\.nix|hosts/torre/configuration\.nix|flake\.nix|flake\.lock|\.github/workflows/nixos-check\.yml)$'; then
             echo "required=true" >> "$GITHUB_OUTPUT"
           else
             echo "required=false" >> "$GITHUB_OUTPUT"
@@ -110,23 +110,24 @@ jobs:
 
           prefix = ".#nixosConfigurations.titan.config."
 
-          def nix_eval(path, as_json=False):
-              command = ["nix", "eval"]
-              command.append("--json" if as_json else "--raw")
-              command.append(prefix + path)
-              return subprocess.check_output(command, text=True).strip()
+          def nix_eval(path):
+              command = ["nix", "eval", "--json", prefix + path]
+              return json.loads(subprocess.check_output(command, text=True).strip())
 
           scalar_checks = {
-              "services.sunshine.enable": "true",
-              "services.sunshine.autoStart": "true",
-              "services.sunshine.capSysAdmin": "true",
-              "services.sunshine.openFirewall": "false",
+              "services.sunshine.enable": True,
+              "services.sunshine.autoStart": True,
+              "services.sunshine.capSysAdmin": True,
+              "services.sunshine.openFirewall": False,
               "services.sunshine.settings.capture": "kms",
               "services.sunshine.settings.upnp": "disabled",
               "services.sunshine.settings.origin_web_ui_allowed": "wan",
-              "services.displayManager.sddm.wayland.enable": "true",
-              "users.users.juan.linger": "true",
+              "services.displayManager.sddm.wayland.enable": True,
+              "users.users.juan.linger": True,
               "systemd.user.services.sunshine.unitConfig.ConditionUser": "juan",
+              "security.wrappers.sunshine.group": "sunshine-kms",
+              "security.wrappers.sunshine.permissions": "u+rx,g+x,o-rwx",
+              "security.wrappers.sunshine.capabilities": "cap_sys_admin+p",
           }
 
           for path, expected in scalar_checks.items():
@@ -145,13 +146,52 @@ jobs:
           }
 
           for path, expected in list_checks.items():
-              actual = json.loads(nix_eval(path, as_json=True))
+              actual = nix_eval(path)
+              if actual != expected:
+                  raise SystemExit(f"{path}: expected {expected!r}, got {actual!r}")
+              print(f"OK {path} = {actual}")
+
+          user_groups = nix_eval("users.users.juan.extraGroups")
+          if "sunshine-kms" not in user_groups:
+              raise SystemExit("Juan must be the only member assigned to the sunshine-kms wrapper group")
+          print("OK Juan belongs to sunshine-kms")
+
+          global_tcp = set(nix_eval("networking.firewall.allowedTCPPorts"))
+          global_udp = set(nix_eval("networking.firewall.allowedUDPPorts"))
+          sunshine_tcp = {47984, 47989, 47990, 48010}
+          sunshine_udp = {47998, 47999, 48000, 48002, 48010}
+          if global_tcp & sunshine_tcp or global_udp & sunshine_udp:
+              raise SystemExit("Sunshine ports must not be opened on the global firewall")
+          print("OK Sunshine ports are not opened globally")
+          PY
+
+      - name: Verify Sunshine KMS remains disabled on Elytra
+        if: matrix.host == 'elytra'
+        run: |
+          python3 - <<'PY'
+          import json
+          import subprocess
+
+          checks = {
+              "services.sunshine.enable": False,
+              "services.displayManager.sddm.wayland.enable": False,
+          }
+          prefix = ".#nixosConfigurations.elytra.config."
+          for path, expected in checks.items():
+              actual = json.loads(subprocess.check_output(
+                  ["nix", "eval", "--json", prefix + path], text=True
+              ).strip())
               if actual != expected:
                   raise SystemExit(f"{path}: expected {expected!r}, got {actual!r}")
               print(f"OK {path} = {actual}")
           PY
 
-      - name: Build the pinned RustDesk unattended Wayland package
-        if: matrix.host == 'elytra' && steps.rustdesk.outputs.required == 'true'
+      - name: Build the declarative Nori desktop package
+        if: matrix.host == 'elytra' && steps.nori.outputs.required == 'true'
         run: |
-          nix build --no-link --show-trace ".#packages.x86_64-linux.rustdesk-unattended-wayland"
+          nix build --no-link --show-trace ".#packages.x86_64-linux.nori"
+
+      - name: Build the declarative Nori CLI package
+        if: matrix.host == 'elytra' && steps.nori.outputs.required == 'true'
+        run: |
+          nix build --no-link --show-trace ".#packages.x86_64-linux.nori-cli"

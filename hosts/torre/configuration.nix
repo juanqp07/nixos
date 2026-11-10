@@ -54,7 +54,7 @@
   services.openssh.enable = true;
 
   # Piloto de acceso remoto previo al login mediante Sunshine KMS + SDDM Wayland.
-  # Elytra se incorpora solo después de validar físicamente este flujo en Titan.
+  # Se habilita solo en Titan y limita la capacidad privilegiada al usuario Juan.
   services.sunshine-kms.enable = true;
 
   services.fstrim.enable = true;
@@ -68,6 +68,11 @@
     clinfo
     vulkan-tools
     amdgpu_top
+
+    # Aplicación declarativa compartida con Elytra.
+    (callPackage ../../packages/nori.nix { })
+    # Cliente de terminal de Nori.
+    (callPackage ../../packages/nori-cli.nix { })
   ];
 
   # ---------------------------------------------------------

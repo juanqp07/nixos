@@ -9,18 +9,23 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `portatil/` (elytra): Laptop i5-13450HX (Raptor Lake HX) + NVIDIA RTX 5050 Max-Q / UHD integrada (PRIME offload).
     * `torre/` (titan): PC Ryzen 5 5600X + RX 6700 XT 12GB + 32GB RAM (AMD nativo).
     * `servidor/` (**atlas · servidor principal**): Minisforum UN1250 con Intel Core i5-1250P y 32GB RAM; servidor headless para Docker y servicios del homelab.
-    * `zimablade/` (**pico · servidor secundario**): ZimaBlade con Intel Celeron N3450 (Apollo Lake); servidor headless para Docker y Dockge.
+    * `zimablade/` (**pico · servidor secundario**): ZimaBlade con Intel Celeron N3450 (Apollo Lake); servidor headless para Docker y Arcane Edge Agent, administrado desde Atlas.
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
 **Atlas y Pico son los dos servidores del homelab.** Ambos ejecutan NixOS sin entorno gráfico, usan Docker y tienen NetBird (interfaz `wt0`) y OpenSSH para administración remota. Atlas es el servidor principal (Minisforum UN1250); Pico es el servidor secundario (ZimaBlade).
 
 * **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
-    * `sunshine-kms.nix`: acceso Moonlight previo al login con KMS; piloto habilitado solo en Titan.
+    * `sunshine-kms.nix`: piloto de Sunshine KMS y SDDM Wayland antes del login, activado solo en Titan.
     * `rustdesk-privacy.nix`: modo privacidad para RustDesk, exclusivo de Elytra.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
+* **packages/**: accesos a los paquetes externos preparados para NixOS.
+    * `nori.nix` y `nori-cli.nix`: reutilizan las expresiones candidatas para Nixpkgs, evitando mantener dos recetas distintas.
+* **nixpkgs/pkgs/by-name/no/**: expresiones listas para proponer en Nixpkgs.
+    * `nori/package.nix`: Nori Desktop 0.8.0 desde el AppImage oficial y con WebKitGTK 4.1.
+    * `nori-cli/package.nix`: Nori CLI 0.8.0 desde el tarball oficial y con ALSA/WebKitGTK.
 * **home/juan/**: Configuración personal compartida con Home Manager.
     * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
     * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
@@ -28,15 +33,30 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 
 ---
 
+## 📦 Preparación para Nixpkgs
+
+Las recetas candidatas de Nori están en `nixpkgs/pkgs/by-name/no/` y son las mismas que usan Elytra y Titan. Ambas incluyen `passthru.updateScript = nix-update-script { };`, para que el actualizador comunitario de Nixpkgs pueda proponer nuevas versiones una vez fusionado el paquete oficial.
+
+El primer envío requiere una PR a `NixOS/nixpkgs` con las dos recetas y una entrada de mantenedor. Este repositorio prepara y compila los paquetes, pero no publica directamente dentro de Nixpkgs. Los artefactos oficiales actuales son binarios precompilados, por lo que sus metadatos indican `binaryNativeCode`.
+
+Validación local:
+
+```bash
+nix build --no-link .#nori
+nix build --no-link .#nori-cli
+```
+
 ## 🛡️ Privacidad remota en Elytra
 
 El comando `rustdesk-privacy on|off|toggle|status` controla la privacidad de pantalla y entrada física. `on` activa el modo manual, que permanece hasta `off`; el monitor de Home Manager también puede activarlo al concederse una sesión entrante de RustDesk y retirarlo al cerrarse la última sesión, sin tocar una activación manual. Atajo KDE: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
 
-## 🖥️ Acceso remoto previo al login en Titan (piloto)
+## 🖥️ Acceso remoto previo al login en Titan
 
-Titan prueba Sunshine con captura DRM/KMS y SDDM Wayland para permitir el acceso mediante Moonlight desde la pantalla de login, incluso después de reiniciar y sin autologin. El servicio de usuario de Juan se mantiene activo con systemd lingering; el firewall permite sus puertos únicamente por NetBird (`wt0`). Elytra no activa todavía este módulo.
+Titan incorpora un piloto reversible de Sunshine con captura DRM/KMS y greeter SDDM Wayland. La idea es poder conectar con Moonlight después de reiniciar y escribir la contraseña en la pantalla de inicio, sin autologin. El servicio de usuario de Juan se inicia mediante systemd lingering.
 
-La evaluación de Nix no demuestra que el greeter acepte la captura y la entrada virtual: hay que validar físicamente vídeo, teclado, ratón, contraseña y continuidad al entrar en Plasma. Consulta [docs/sunshine-kms.md](docs/sunshine-kms.md) antes de desplegar o revertir el piloto.
+Los puertos de Sunshine/Moonlight solo se permiten en la interfaz NetBird (`wt0`); no se abre el firewall global ni se habilita UPnP. El wrapper que concede `CAP_SYS_ADMIN` queda limitado al grupo local `sunshine-kms`, del que solo forma parte Juan.
+
+Es una configuración piloto: la evaluación de Nix no demuestra que el greeter acepte correctamente vídeo y entrada virtual. Antes de considerarlo definitivo, hay que validar físicamente vídeo, teclado, ratón, contraseña y continuidad al entrar en Plasma tras reiniciar. Consulta [docs/sunshine-kms.md](docs/sunshine-kms.md).
 
 ## 🏠 Home Manager
 

@@ -52,8 +52,6 @@
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
       ./modules/rustdesk-privacy.nix
-      ./modules/rustdesk-unattended-wayland.nix
-      ./modules/sunshine-kms.nix
     ];
 
     titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
@@ -77,8 +75,13 @@
     ];
   };
 
-      packages.x86_64-linux.rustdesk-unattended-wayland =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/rustdesk-unattended-wayland.nix { };
+      # Paquete declarativo para Nori (AppImage oficial + WebKitGTK 4.1).
+      packages.x86_64-linux.nori =
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix { };
+
+      # Cliente de terminal de Nori, empaquetado con sus dependencias FHS.
+      packages.x86_64-linux.nori-cli =
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori-cli.nix { };
 
       formatter.x86_64-linux =
         nixpkgs.legacyPackages.x86_64-linux.nixfmt;
