@@ -151,10 +151,14 @@ jobs:
                   raise SystemExit(f"{path}: expected {expected!r}, got {actual!r}")
               print(f"OK {path} = {actual}")
 
-          user_groups = nix_eval("users.users.juan.extraGroups")
-          if "sunshine-kms" not in user_groups:
-              raise SystemExit("Juan must be the only member assigned to the sunshine-kms wrapper group")
-          print("OK Juan belongs to sunshine-kms")
+          group_users = json.loads(subprocess.check_output([
+              "nix", "eval", "--json", "--apply",
+              'users: builtins.filter (name: builtins.elem "sunshine-kms" (users.${name}.extraGroups or [])) (builtins.attrNames users)',
+              ".#nixosConfigurations.titan.config.users.users",
+          ], text=True).strip())
+          if group_users != ["juan"]:
+              raise SystemExit(f"Only Juan may belong to sunshine-kms; found {group_users!r}")
+          print("OK Juan is the only user in sunshine-kms")
 
           global_tcp = set(nix_eval("networking.firewall.allowedTCPPorts"))
           global_udp = set(nix_eval("networking.firewall.allowedUDPPorts"))
