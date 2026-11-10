@@ -49,6 +49,7 @@ in
       libunwind
       elfutils
       libffi
+      libgpg-error
       pcre2
       mpv-unwrapped
       webkitgtk_4_1
