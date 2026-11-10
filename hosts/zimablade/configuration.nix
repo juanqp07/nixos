@@ -120,7 +120,7 @@
   # El token se obtiene desde Environments -> Add Environment -> Edge en Arcane
   # y se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
   virtualisation.oci-containers.backend = "docker";
-  virtualisation.oci-containers.containers.arcane-agent = {
+  virtualisation.oci-containers.containers.arcane-edge-agent = {
     image = "ghcr.io/getarcaneapp/agent:latest";
     autoStart = true;
 
@@ -138,7 +138,7 @@
 
     volumes = [
       "/var/run/docker.sock:/var/run/docker.sock"
-      "arcane-agent-data:/app/data"
+      "arcane-data:/app/data"
       # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
       "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
     ];
