@@ -93,7 +93,7 @@ Pico no ejecuta una segunda instancia de Arcane Manager ni otra base de datos. E
 - El agente necesita acceso al Docker Engine local mediante /var/run/docker.sock; por tanto, el token de este entorno debe tratarse como una credencial administrativa de Pico.
 - El token generado en Arcane se guarda exclusivamente en /var/lib/arcane-agent/agent.env como AGENT_TOKEN=.... El archivo no debe añadirse a Git ni copiarse a documentación o registros.
 - La carpeta de proyectos que Dockge utilizaba, /var/lib/dockge/stacks, se conserva y se monta en el agente con la misma ruta absoluta. En Arcane, dentro del entorno Pico, configura **Storage & Limits → Projects Directory** como /var/lib/dockge/stacks. Así se podrán descubrir y administrar los Compose existentes sin moverlos ni cambiar las rutas relativas de sus bind mounts.
-- El agente mantiene sus datos en el volumen Docker persistente arcane-agent-data.
+- El agente mantiene sus datos en el volumen Docker persistente arcane-data.
 
 #### Alta y despliegue del agente
 
@@ -109,7 +109,7 @@ Pico no ejecuta una segunda instancia de Arcane Manager ni otra base de datos. E
        AGENT_TOKEN=arc_...
 
 3. Construye y revisa sudo nixos-rebuild build --flake .#pico; después aplica sudo nixos-rebuild switch --flake .#pico.
-4. Comprueba docker logs arcane-agent y que Pico aparezca Online en el selector de entornos de Atlas.
+4. Comprueba docker logs arcane-edge-agent y que Pico aparezca Online en el selector de entornos de Atlas.
 5. En los ajustes de almacenamiento del entorno remoto, configura /var/lib/dockge/stacks como Projects Directory y comprueba que los Compose existentes aparecen antes de eliminar manualmente cualquier dato antiguo.
 
 Si cambia la IP LAN de Atlas, actualiza MANAGER_API_URL en hosts/zimablade/configuration.nix y despliega la nueva generación. El agente usa el transporte Edge auto para mantener el canal iniciado desde Pico; no requiere conexiones entrantes desde Atlas.
@@ -151,7 +151,7 @@ Esta rama es una propuesta de configuración; no ejecuta cambios remotos en los 
 
 1. Crear el entorno Edge llamado pico en Arcane de Atlas y guardar el token fuera de Git en /var/lib/arcane-agent/agent.env.
 2. Construir y revisar sudo nixos-rebuild build --flake .#pico.
-3. Tras desplegar, comprobar que el contenedor arcane-agent está activo y aparece Online en Arcane de Atlas.
+3. Tras desplegar, comprobar que el contenedor arcane-edge-agent está activo y aparece Online en Arcane de Atlas.
 4. Configurar /var/lib/dockge/stacks como Projects Directory del entorno Pico y validar los proyectos existentes.
 
 ### Titan
