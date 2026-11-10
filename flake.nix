@@ -51,7 +51,6 @@
     elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
       ./modules/desktop-gaming.nix
       nix-flatpak.nixosModules.nix-flatpak
-      ./modules/rustdesk-privacy.nix
     ];
 
     titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
