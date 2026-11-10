@@ -1,5 +1,7 @@
 # Modo privacidad de RustDesk en Elytra
 
+> **Estado actual:** esta función está temporalmente deshabilitada en el flake. El módulo no se importa, por lo que los comandos, servicios y atajo descritos más abajo no están activos. El documento y los scripts se conservan para una futura reactivación.
+
 El módulo modules/rustdesk-privacy.nix se carga solo en elytra. Permite apagar la retroiluminación del panel y aislar los dispositivos físicos de entrada mientras el escritorio sigue siendo controlable por RustDesk.
 
 ## Uso manual
