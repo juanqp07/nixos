@@ -139,9 +139,9 @@ SPINNER_ACTIVE=no
 
 clear_spinner() {
   if [[ "$SPINNER_ACTIVE" == yes ]]; then
-    # El spinner ocupa dos líneas: estado y última línea del registro.
-    # Restaurar la posición inicial permite borrarlas sin dejar residuos.
-    printf '\033[u\033[2K\033[1B\033[2K\033[u' >&2
+    # El spinner solo ocupa una línea; borrarla deja el cursor listo
+    # para que el siguiente mensaje se escriba normalmente.
+    printf '\r\033[K' >&2
     SPINNER_ACTIVE=no
   fi
 }
@@ -198,53 +198,29 @@ trap finish_with_notification EXIT
 
 wait_with_spinner() {
   local command_pid="$1"
-  local log_file="${2:-}"
   local spinner_started
   local now_tenths
   local frame=0
   local status=0
   local elapsed
-  local preview_line preview_width
-
-  spinner_started="$(get_clock_tenths)"
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
+  spinner_started="$(get_clock_tenths)"
+
   if [[ -t 2 && "${TERM:-dumb}" != "dumb" && -z "${CI:-}" ]]; then
-    # Guardar el inicio del área de progreso para poder refrescar ambas líneas.
-    printf '\033[s' >&2
     SPINNER_ACTIVE=yes
 
     while kill -0 "$command_pid" 2>/dev/null; do
       now_tenths="$(get_clock_tenths)"
       elapsed="$(format_elapsed "$((now_tenths - spinner_started))")"
 
-      if [[ -n "$log_file" && -s "$log_file" ]]; then
-        preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null | \
-          sed -E 's/\x1B\[[0-9;?]*[ -/]*[@-~]//g; s/\r/ /g; s/[[:cntrl:]]//g' || true)"
-      else
-        preview_line=""
-      fi
-
-      if [[ -z "$preview_line" ]]; then
-        preview_line="Esperando la primera línea del comando…"
-      fi
-
-      preview_width="${COLUMNS:-100}"
-      [[ "$preview_width" =~ ^[0-9]+$ ]] || preview_width=100
-      preview_width=$((preview_width - 8))
-      (( preview_width < 20 )) && preview_width=20
-      if (( ${#preview_line} > preview_width )); then
-        preview_line="${preview_line:0:$((preview_width - 1))}…"
-      fi
-
-      printf '\033[u\033[2K%b  %s%b  En curso · %s\n\033[2K%b    ↳ %s%b' \
+      # \r vuelve al principio y \033[K limpia el resto de la misma línea.
+      # No se imprime ningún salto de línea hasta que termina la operación.
+      printf '\r\033[K%b  %s%b  En curso · %s' \
         "$TERM_STYLE_CYAN$TERM_STYLE_BOLD" \
         "${frames[$frame]}" \
         "$TERM_STYLE_RESET" \
-        "$elapsed" \
-        "$TERM_STYLE_MUTED" \
-        "$preview_line" \
-        "$TERM_STYLE_RESET" >&2
+        "$elapsed" >&2
 
       sleep 0.25 || true
       frame=$(((frame + 1) % ${#frames[@]}))
