@@ -8,6 +8,7 @@
 , buildFHSEnv
 , appimageTools
 , alsa-lib
+, libsoup_3
 , webkitgtk_4_1
 , cacert
 , nix-update-script
@@ -34,6 +35,7 @@ import ../nixpkgs/pkgs/by-name/no/nori-cli/package.nix {
     buildFHSEnv
     appimageTools
     alsa-lib
+    libsoup_3
     webkitgtk_4_1
     cacert
     nix-update-script
