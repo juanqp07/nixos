@@ -16,7 +16,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **modules/**: Módulos compartidos de NixOS.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
-    * `rustdesk-privacy.nix`: modo privacidad para RustDesk, exclusivo de Elytra.
+    * `rustdesk-privacy.nix`: código conservado para futura reactivación; temporalmente deshabilitado.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
@@ -45,9 +45,9 @@ nix build --no-link .#nori
 nix build --no-link .#nori-cli
 ```
 
-## 🛡️ Privacidad remota en Elytra
+## 🛑 RustDesk en los escritorios (temporalmente deshabilitado)
 
-El comando `rustdesk-privacy on|off|toggle|status` controla la privacidad de pantalla y entrada física. `on` activa el modo manual, que permanece hasta `off`; el monitor de Home Manager también puede activarlo al concederse una sesión entrante de RustDesk y retirarlo al cerrarse la última sesión, sin tocar una activación manual. Atajo KDE: `Ctrl + Alt + P`. Consulta [docs/rustdesk-privacy.md](docs/rustdesk-privacy.md) para el funcionamiento, las salvaguardas y las pruebas necesarias.
+El cliente y el servicio RustDesk se han retirado temporalmente de Elytra y Titan para evitar sus compilaciones locales mientras se resuelven los problemas del paquete en Nixpkgs. El código del modo privacidad se conserva, pero su módulo no se importa y sus comandos/atajos no están activos. La infraestructura autoalojada de relay `hbbs`/`hbbr` en Atlas no se modifica.
 
 ## 🏠 Home Manager
 
