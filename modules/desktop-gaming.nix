@@ -608,6 +608,18 @@
         }
       );
     })
+    # Workaround temporal para dwarfs 0.15.8 (NixOS/nixpkgs#585413):
+    # seis pruebas de CTest fallan en la revisión nixpkgs f4a03c0.
+    # Desactivamos solo las pruebas de construcción; Gear Lever conserva
+    # las herramientas de DwarFS para gestionar AppImages en ejecución.
+    (final: prev: {
+      dwarfs = prev.dwarfs.overrideAttrs (old: {
+        doCheck = false;
+        cmakeFlags =
+          (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ]))
+          ++ [ "-DWITH_TESTS=OFF" ];
+      });
+    })
     # Workaround temporal para OpenCode 2.2.5 con Bun 1.4.4.
     # NixOS/nixpkgs#582675 ya está fusionado, pero la corrección aún no
     # ha llegado a nixos-unstable. Retirar este override cuando llegue.
