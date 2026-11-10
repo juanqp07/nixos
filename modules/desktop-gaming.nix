@@ -592,6 +592,22 @@
   # ============================================================
 
   nixpkgs.overlays = [
+    # Workaround temporal para rustdesk-flutter 1.5.0 en nixpkgs f4a03c0:
+    # tras dejar de vendorizar las dependencias Rust, libsodium-sys necesita
+    # localizar libsodium mediante pkg-config. El paquete omitía libsodium
+    # de buildInputs (NixOS/nixpkgs#585458).
+    #
+    # Se evita duplicarlo cuando nixpkgs ya incluya la dependencia.
+    (final: prev: {
+      rustdesk-flutter = prev.rustdesk-flutter.overrideAttrs (old:
+        let
+          inputs = old.buildInputs or [ ];
+        in
+        {
+          buildInputs = inputs ++ lib.optional (!(lib.elem final.libsodium inputs)) final.libsodium;
+        }
+      );
+    })
     # Workaround temporal para OpenCode 2.2.5 con Bun 1.4.4.
     # NixOS/nixpkgs#582675 ya está fusionado, pero la corrección aún no
     # ha llegado a nixos-unstable. Retirar este override cuando llegue.
