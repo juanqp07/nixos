@@ -1,15 +1,5 @@
 { config, pkgs, lib, ... }:
 
-let
-  # RustDesk carga libxdo dinámicamente para controlar el greeter X11.
-  # El servidor --server se inicia mediante sudo, que elimina LD_* antes
-  # de arrancar. Añadimos la ruta Nix de libxdo al cargador del propio RustDesk.
-  rustdeskWithXdo = pkgs.rustdesk-flutter.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace ../libs/libxdo-sys-stub/src/lib.rs --replace-fail 'const LIB_NAMES: [&str; 3] = ["libxdo.so.4", "libxdo.so.3", "libxdo.so"];' 'const LIB_NAMES: [&str; 4] = ["${pkgs.xdotool}/lib/libxdo.so.4", "libxdo.so.4", "libxdo.so.3", "libxdo.so"];'
-    '';
-  });
-in
 {
   imports = [
     ./hardware-configuration.nix
@@ -195,46 +185,8 @@ in
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;
 
-  # RustDesk: servicio de sistema disponible antes del inicio de sesión.
-  # SDDM usa X11 para permitir captura/control de la pantalla de login;
-  # la sesión de KDE Plasma puede seguir usando Wayland.
-  services.displayManager.sddm.wayland.enable = false;
-
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
-
-  # Mantener disponible el greeter X11 para RustDesk aunque nadie inicie
-  # sesión inmediatamente. -s 0 desactiva el salvapantallas de Xorg y
-  # -dpms evita apagar la salida mientras SDDM está esperando credenciales.
-  services.displayManager.sddm.settings.X11.ServerArguments =
-    "-nolisten tcp -s 0 -dpms";
-
-  systemd.services.rustdesk = {
-    description = "RustDesk";
-    requires = [ "network.target" ];
-    after = [
-      "network.target"
-      "systemd-user-sessions.service"
-    ];
-    wantedBy = [ "multi-user.target" ];
-
-    # Añade los wrappers setuid de NixOS al PATH sin sustituir el
-    # defaultPath que systemd configura automáticamente.
-    path = [ "/run/wrappers" ];
-
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${rustdeskWithXdo}/bin/rustdesk --service";
-      ExecStop = "${pkgs.procps}/bin/pkill -f \"rustdesk --\"";
-      PIDFile = "/run/rustdesk.pid";
-      KillMode = "mixed";
-      TimeoutStopSec = "30s";
-      User = "root";
-      LimitNOFILE = 100000;
-      Restart = "on-failure";
-      RestartSec = "5s";
-    };
-  };
 
   # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
   # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
