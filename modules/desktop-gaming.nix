@@ -592,6 +592,18 @@
   # ============================================================
 
   nixpkgs.overlays = [
+    # Workaround temporal para dwarfs 0.15.8 (NixOS/nixpkgs#585413):
+    # en nixpkgs f4a03c0 fallan seis pruebas de CTest en Hydra y en local.
+    # Desactivamos solo las pruebas de compilación: Gear Lever conserva
+    # DwarFS y sus herramientas para trabajar con AppImages en ejecución.
+    (final: prev: {
+      dwarfs = prev.dwarfs.overrideAttrs (old: {
+        doCheck = false;
+        cmakeFlags =
+          (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ]))
+          ++ [ "-DWITH_TESTS=OFF" ];
+      });
+    })
     # Workaround temporal para rustdesk-flutter 1.5.0 en nixpkgs f4a03c0:
     # tras dejar de vendorizar las dependencias Rust, libsodium-sys necesita
     # localizar libsodium mediante pkg-config. El paquete omitía libsodium
