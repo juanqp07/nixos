@@ -8,6 +8,7 @@
   buildFHSEnv,
   appimageTools,
   alsa-lib,
+  libsoup_3,
   webkitgtk_4_1,
   cacert,
   nix-update-script,
@@ -69,6 +70,7 @@ buildFHSEnv (fhsDefaults // {
     ++ [
       alsa-lib
       webkitgtk_4_1
+      libsoup_3
     ];
 
   profile = ''
