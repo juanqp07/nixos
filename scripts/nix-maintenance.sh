@@ -79,6 +79,7 @@ print_summary() {
 }
 
 die() {
+  EXIT_SUMMARY="$*"
   term_error "$*"
   exit 1
 }
@@ -107,7 +108,55 @@ clear_spinner() {
   fi
 }
 
-trap clear_spinner EXIT
+NOTIFICATION_ENABLED=no
+NOTIFICATION_TASK="Mantenimiento"
+EXIT_SUMMARY=""
+
+notify_desktop() {
+  local urgency="$1"
+  local title="$2"
+  local body="$3"
+  local bus_address="${DBUS_SESSION_BUS_ADDRESS:-}"
+
+  # Las notificaciones son opcionales: sin libnotify o sin una sesión D-Bus,
+  # el mantenimiento sigue funcionando y la terminal conserva los detalles.
+  command -v notify-send >/dev/null 2>&1 || return 0
+
+  if [[ -z "$bus_address" && -n "${XDG_RUNTIME_DIR:-}" && -S "${XDG_RUNTIME_DIR}/bus" ]]; then
+    bus_address="unix:path=${XDG_RUNTIME_DIR}/bus"
+  fi
+  [[ -n "$bus_address" ]] || return 0
+
+  DBUS_SESSION_BUS_ADDRESS="$bus_address" notify-send \
+    --app-name="Mantenimiento NixOS" \
+    --urgency="$urgency" \
+    --expire-time=10000 \
+    "$title" "$body" >/dev/null 2>&1 || true
+}
+
+finish_with_notification() {
+  local exit_status="$?"
+  local details
+
+  trap - EXIT
+  clear_spinner
+
+  if [[ "$NOTIFICATION_ENABLED" == yes ]]; then
+    if (( exit_status == 0 )); then
+      details="${APPLY_RESULT:-Operación completada correctamente}"
+      notify_desktop normal "NixOS · ${HOST:-equipo}" \
+        "${NOTIFICATION_TASK}: terminado" "$details"
+    else
+      details="${EXIT_SUMMARY:-Consulta la terminal para ver los detalles del error.}"
+      notify_desktop critical "NixOS · ${HOST:-equipo}" \
+        "${NOTIFICATION_TASK}: error (código ${exit_status})" "$details"
+    fi
+  fi
+
+  exit "$exit_status"
+}
+
+trap finish_with_notification EXIT
 
 wait_with_spinner() {
   local command_pid="$1"
@@ -188,6 +237,7 @@ run_step_internal() {
     else
       status=$?
       rm -f "$log_file"
+      EXIT_SUMMARY="$description (autenticación sudo cancelada o fallida)"
       term_error "$description (autenticación sudo cancelada o fallida)"
       return "$status"
     fi
@@ -208,6 +258,7 @@ run_step_internal() {
     term_success "Completado · $(format_duration "$elapsed")"
   else
     status=$?
+    EXIT_SUMMARY="$description (código $status)"
     term_error "$description (código $status)"
     if [[ -s "$log_file" ]]; then
       term_info "Detalle del error (últimas 20 líneas):"
@@ -258,6 +309,7 @@ run_step_capture() {
     cat "$stdout_file"
   else
     status=$?
+    EXIT_SUMMARY="$description (código $status)"
     term_error "$description (código $status)" >&2
     if [[ -s "$stderr_file" ]]; then
       term_info "Detalle del error (últimas 20 líneas):" >&2
@@ -482,16 +534,22 @@ case "${1:-}" in
       shift
     fi
     [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
+    NOTIFICATION_TASK="Mantenimiento"
+    NOTIFICATION_ENABLED=yes
     run_maintenance "$automatic"
     ;;
   update)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
+    NOTIFICATION_TASK="Actualización"
+    NOTIFICATION_ENABLED=yes
     banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
     run_update
     run_build_apply no no
     ;;
   apply)
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
+    NOTIFICATION_TASK="Construcción y aplicación"
+    NOTIFICATION_ENABLED=yes
     banner "MODO INTERACTIVO · versiones fijadas en flake.lock"
     note "No se actualizarán los inputs."
     run_build_apply no no
@@ -504,6 +562,8 @@ case "${1:-}" in
       shift
     fi
     [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
+    NOTIFICATION_TASK="Limpieza de generaciones"
+    NOTIFICATION_ENABLED=yes
     banner "MODO LIMPIEZA · política declarada por el host"
     section "01" "LIMPIEZA" "Revisando generaciones antiguas"
     clean_generations "$automatic"
