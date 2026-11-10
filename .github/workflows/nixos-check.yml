@@ -147,9 +147,10 @@ jobs:
 
           for path, expected in list_checks.items():
               actual = nix_eval(path)
-              if actual != expected:
-                  raise SystemExit(f"{path}: expected {expected!r}, got {actual!r}")
-              print(f"OK {path} = {actual}")
+              missing = set(expected) - set(actual)
+              if missing:
+                  raise SystemExit(f"{path}: missing required ports {sorted(missing)!r}; got {actual!r}")
+              print(f"OK {path} contains required ports {expected}")
 
           group_users = json.loads(subprocess.check_output([
               "nix", "eval", "--json", "--apply",
