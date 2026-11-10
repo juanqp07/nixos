@@ -541,6 +541,11 @@
         location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       }
       {
+        # Repositorio oficial de NVIDIA GeForce NOW para Linux.
+        name = "geforcenow";
+        location = "https://international.download.nvidia.com/GFNLinux/flatpak/geforcenow.flatpakrepo";
+      }
+      {
         # Repositorio comunitario de Anycubic Slicer Next para Linux.
         name = "anycubic-slicer-next";
         location = "https://develonrails.github.io/anycubic-slicer-next/anycubic-slicer-next.flatpakrepo";
@@ -555,6 +560,12 @@
       "io.github.dvlv.boxbuddyrs"
       "net.waterfox.waterfox"
       "io.github.totoshko88.RustConn"
+
+      # Cliente nativo oficial de NVIDIA GeForce NOW para Linux.
+      {
+        appId = "com.nvidia.geforcenow";
+        origin = "geforcenow";
+      }
 
       # Anycubic Slicer Next (reempaquetado comunitario, no oficial).
       {
