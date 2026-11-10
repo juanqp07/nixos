@@ -1,15 +1,5 @@
 { config, pkgs, lib, ... }:
 
-let
-  # RustDesk carga libxdo dinámicamente para controlar el greeter X11.
-  # El servidor --server se inicia mediante sudo, que elimina LD_* antes
-  # de arrancar. Añadimos la ruta Nix de libxdo al cargador del propio RustDesk.
-  rustdeskWithXdo = pkgs.rustdesk-flutter.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace ../libs/libxdo-sys-stub/src/lib.rs --replace-fail 'const LIB_NAMES: [&str; 3] = ["libxdo.so.4", "libxdo.so.3", "libxdo.so"];' 'const LIB_NAMES: [&str; 4] = ["${pkgs.xdotool}/lib/libxdo.so.4", "libxdo.so.4", "libxdo.so.3", "libxdo.so"];'
-    '';
-  });
-in
 {
   imports = [
     ./hardware-configuration.nix
@@ -223,7 +213,7 @@ in
 
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${rustdeskWithXdo}/bin/rustdesk --service";
+      ExecStart = "${pkgs.rustdesk-flutter}/bin/rustdesk --service";
       ExecStop = "${pkgs.procps}/bin/pkill -f \"rustdesk --\"";
       PIDFile = "/run/rustdesk.pid";
       KillMode = "mixed";
@@ -252,6 +242,16 @@ in
   # ============================================================
 
   nixpkgs.overlays = [
+    # Aplica el ajuste XDO al paquete de RustDesk de Elytra, no a una segunda
+    # variante local: la aplicación de escritorio y el servicio reutilizan
+    # así la misma derivación compilada.
+    (final: prev: {
+      rustdesk-flutter = prev.rustdesk-flutter.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace ../libs/libxdo-sys-stub/src/lib.rs --replace-fail 'const LIB_NAMES: [&str; 3] = ["libxdo.so.4", "libxdo.so.3", "libxdo.so"];' 'const LIB_NAMES: [&str; 4] = ["${final.xdotool}/lib/libxdo.so.4", "libxdo.so.4", "libxdo.so.3", "libxdo.so"];'
+        '';
+      });
+    })
     (final: prev: {
       cardwire = prev.cardwire.overrideAttrs (old:
         let
