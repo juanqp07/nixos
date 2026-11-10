@@ -87,7 +87,7 @@ need_command() {
   command -v "$1" >/dev/null 2>&1 || die "No se encuentra el comando requerido: $1"
 }
 
-for command in nix git sudo mktemp tail date sleep cat env; do
+for command in nix git sudo mktemp tail sed date sleep cat env; do
   need_command "$command"
 done
 
@@ -100,7 +100,9 @@ SPINNER_ACTIVE=no
 
 clear_spinner() {
   if [[ "$SPINNER_ACTIVE" == yes ]]; then
-    printf '\r\033[2K' >&2
+    # El spinner ocupa dos líneas: estado y última línea del registro.
+    # Restaurar la posición inicial permite borrarlas sin dejar residuos.
+    printf '\033[u\033[2K\033[1B\033[2K\033[u' >&2
     SPINNER_ACTIVE=no
   fi
 }
@@ -109,24 +111,51 @@ trap clear_spinner EXIT
 
 wait_with_spinner() {
   local command_pid="$1"
+  local log_file="${2:-}"
   local spinner_started="$SECONDS"
   local frame=0
   local status=0
   local elapsed
+  local preview_line preview_width
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
   if [[ -t 2 && "${TERM:-dumb}" != "dumb" && -z "${CI:-}" ]]; then
+    # Guardar el inicio del área de progreso para poder refrescar ambas líneas.
+    printf '\033[s' >&2
     SPINNER_ACTIVE=yes
 
     while kill -0 "$command_pid" 2>/dev/null; do
       elapsed="$(format_duration "$((SECONDS - spinner_started))")"
-      printf '\r\033[2K%b  %s%b  En curso · %s' \
+
+      if [[ -n "$log_file" && -s "$log_file" ]]; then
+        preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null | \
+          sed -E 's/\x1B\[[0-9;?]*[ -/]*[@-~]//g; s/\r/ /g; s/[[:cntrl:]]//g' || true)"
+      else
+        preview_line=""
+      fi
+
+      if [[ -z "$preview_line" ]]; then
+        preview_line="Esperando la primera línea del comando…"
+      fi
+
+      preview_width="${COLUMNS:-100}"
+      [[ "$preview_width" =~ ^[0-9]+$ ]] || preview_width=100
+      preview_width=$((preview_width - 8))
+      (( preview_width < 20 )) && preview_width=20
+      if (( ${#preview_line} > preview_width )); then
+        preview_line="${preview_line:0:$((preview_width - 1))}…"
+      fi
+
+      printf '\033[u\033[2K%b  %s%b  En curso · %s\n\033[2K%b    ↳ %s%b' \
         "$TERM_STYLE_CYAN$TERM_STYLE_BOLD" \
         "${frames[$frame]}" \
         "$TERM_STYLE_RESET" \
-        "$elapsed" >&2
+        "$elapsed" \
+        "$TERM_STYLE_MUTED" \
+        "$preview_line" \
+        "$TERM_STYLE_RESET" >&2
 
-      sleep 0.12 || true
+      sleep 0.25 || true
       frame=$(((frame + 1) % ${#frames[@]}))
     done
 
@@ -167,7 +196,7 @@ run_step_internal() {
   "$@" >"$log_file" 2>&1 &
   command_pid=$!
 
-  if wait_with_spinner "$command_pid"; then
+  if wait_with_spinner "$command_pid" "$log_file"; then
     finished_at="$(date +%s)"
     elapsed="$((finished_at - started_at))"
 
@@ -218,7 +247,7 @@ run_step_capture() {
   "$@" >"$stdout_file" 2>"$stderr_file" &
   command_pid=$!
 
-  if wait_with_spinner "$command_pid"; then
+  if wait_with_spinner "$command_pid" "$stderr_file"; then
     finished_at="$(date +%s)"
     elapsed="$((finished_at - started_at))"
 
