@@ -116,6 +116,16 @@ Si cambia la IP LAN de Atlas, actualiza MANAGER_API_URL en hosts/zimablade/confi
 
 El cambio elimina el contenedor Dockge, su directorio de datos de interfaz y la antigua regla DOCKER-USER que protegía TCP/5001. **No elimina /var/lib/dockge/stacks ni los archivos Compose**. Si el contenedor Dockge antiguo permanece tras cambiar de generación, verifica primero que Arcane Agent esté Online y que los proyectos se hayan detectado; después se puede retirar con sudo docker rm -f dockge.
 
+La regla PICO-DOCKGE-PRIVATE puede seguir cargada en el kernel durante la sesión en que se retira la unidad antigua (la unidad original no tenía una acción ExecStop para limpiar iptables). Después de confirmar que Dockge ya no está ejecutándose, elimina esa regla residual una sola vez:
+
+       for tool in iptables ip6tables; do
+         sudo "$tool" -D DOCKER-USER -j PICO-DOCKGE-PRIVATE 2>/dev/null || true
+         sudo "$tool" -F PICO-DOCKGE-PRIVATE 2>/dev/null || true
+         sudo "$tool" -X PICO-DOCKGE-PRIVATE 2>/dev/null || true
+       done
+
+Esto no afecta a otros filtros de Docker: elimina únicamente la cadena creada para el antiguo puerto 5001 de Dockge.
+
 ## Titan
 
 Titan está declarado en `flake.nix` como `titan = mkHost ... "torre"`. El PR #18, ya integrado en `main` el 2 de noviembre de 2026, actualizó Avahi y dejó declarada la SSD ext4 de 1 TB en `/mnt/juegos`, junto con los directorios Steam/Heroic/Downloads/Data con propietario `juan:users` y permisos `0775`.
