@@ -34,7 +34,9 @@
     # Todos los hosts usan zram; afinar más exige medir presión de RAM y carga.
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
-    "vm.max_map_count" = 262144;
+  } // lib.optionalAttrs (config.networking.hostName == "palco") {
+    # Preservar el valor anterior del host fuera del alcance de esta auditoría.
+    "vm.max_map_count" = lib.mkForce 262144;
   };
 
   # ============================================================

@@ -502,14 +502,8 @@
   };
 
   boot.kernel.sysctl = {
-    # El valor original común era 262144.
-    # Se fuerza 1048576 para Proton y aplicaciones exigentes.
-    # sysctl es de valor único; el perfil de escritorio debe prevalecer
-    # sobre el valor común mediante prioridad explícita.
-    "vm.max_map_count" = lib.mkForce 1048576;
-
-    # vm.swappiness y vm.page-cluster se definen en el módulo común,
-    # ya que ambos equipos utilizan zram.
+    # vm.max_map_count ya usa el valor 1048576 predeterminado en este pin NixOS.
+    # vm.swappiness y vm.page-cluster se definen en el módulo común.
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };

@@ -43,10 +43,11 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - La configuración compartida expresa los umbrales base de earlyoom como
   `lib.mkDefault`; Elytra mantiene 10 % sin recurrir a `mkForce`. El modo
   Gaming de scx-loader es también un default, para que Elytra establezca Auto
-  sin prioridad forzada. `vm.max_map_count` es una opción sysctl de valor único:
-  conserva `mkForce` en escritorio porque debe prevalecer sobre la base común
-  (la evaluación de servidores detectó que `mkDefault` no resuelve definiciones
-  empatadas de la opción libre). La capacidad ZRAM de Titan usa asignación normal.
+  sin prioridad forzada. `vm.max_map_count` ya tiene default `1048576` en el
+  módulo sysctl del nixpkgs fijado; se eliminan sus redefiniciones comunes y de
+  escritorio. El valor específico heredado del host excluido se preserva en una
+  condición de compatibilidad para no modificarlo. La capacidad ZRAM de Titan
+  usa asignación normal.
 - Atlas deja de pasar `intel_pstate=active`: en el Alder Lake el modo activo
   es el modo predeterminado del driver cuando HWP está disponible; se conserva
   `powersave` como governor solicitado y se verifica HWP/EPP en runtime.
