@@ -54,10 +54,10 @@
 
   networking.firewall = {
     enable = true; 
-    # 53/tcp y 53/udp siguen permitidos. No retirarlos hasta comprobar si
-    # algún contenedor o servicio ofrece DNS a clientes LAN/NetBird.
-    allowedTCPPorts = [ 22 53 ];
-    allowedUDPPorts = [ 53 ]; 
+    # Pico solo expone SSH a nivel del host. Los puertos publicados por
+    # Docker se filtran en FORWARD/DOCKER-USER, no mediante estas reglas INPUT.
+    allowedTCPPorts = [ 22 ];
+    allowedUDPPorts = [ ]; 
     # Docker no es una interfaz de confianza: los contenedores no deben
     # recibir acceso incondicional a todos los servicios del host.
     trustedInterfaces = [ "wt0" ];

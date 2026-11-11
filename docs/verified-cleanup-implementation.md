@@ -35,8 +35,11 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - Atlas y Pico: se deja explícito en los comentarios de `system.autoUpgrade`
   que `path:/home/juan/nixos` apunta a un checkout local y no hace `git pull`.
   El timer no mantiene sincronizado el repositorio con GitHub.
-- Pico: se corrige el comentario de DNS; los puertos 53/tcp y 53/udp siguen
-  abiertos hasta confirmar qué contenedor/servicio los necesita.
+- Pico: se cierra 53/tcp y 53/udp en el firewall INPUT del host. No hay un
+  servicio DNS del host declarado en NixOS; los puertos publicados por Docker
+  usan el forwarding de Docker y no dependen de estas excepciones INPUT. Si más
+  adelante se añade un DNS nativo del host, hay que abrir solo el protocolo y
+  puerto requeridos.
 - Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
   el parámetro de arranque `panic=10` permanece en `server-system.nix`.
 - Pico: se elimina la declaración explícita de `nix.settings.trusted-users`.
