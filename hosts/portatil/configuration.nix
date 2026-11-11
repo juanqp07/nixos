@@ -197,9 +197,6 @@
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
-  # Workaround para la inicialización gráfica de Plasma 6.8 con NVIDIA híbrida:
-  # solo cambia el greeter de SDDM a X11; la sesión de Plasma puede seguir en Wayland.
-  services.displayManager.sddm.wayland.enable = false;
 
   # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
   # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
