@@ -195,20 +195,43 @@ y configura `powerdevilrc` con estas asignaciones:
 PowerDevil detecta la fuente de alimentación y selecciona el perfil PPD por
 estado. No hace falta añadir TLP, auto-cpufreq, reglas udev ni un servicio
 systemd adicional. La configuración usa `qt.kde.settings` del Home Manager
-fijado y el grupo `[<perfil>][Performance]` definido por el KConfig de KDE.
+fijado y los grupos KConfig `[AC][Performance]`, `[Battery][Performance]` y
+`[LowBattery][Performance]` definidos por KDE.
 
-GameMode continúa independiente: al ejecutar un juego puede solicitar su
-governor `performance`; al salir vuelve a `powersave`. La política PowerDevil
-sigue seleccionando el perfil PPD de AC/batería. Esta combinación no fija un
-límite PL1/PL2 ni demuestra que la dGPU entre en RTD3: eso depende del firmware,
-el driver y de medir el equipo.
+GameMode continúa separado: al ejecutar un juego puede solicitar el governor
+`performance`; al salir vuelve a `powersave`. PowerDevil sigue seleccionando
+el perfil PPD según AC/batería. GameMode puede priorizar rendimiento mientras
+juegas incluso con batería; al terminar se recupera el governor predeterminado.
+Esta configuración no fija PL1/PL2 ni demuestra que la dGPU entre en RTD3:
+eso depende del firmware, el driver y de medir el equipo.
 
 Después de activar la generación y entrar en Plasma, comprobar:
 
 ```bash
 powerprofilesctl list
 powerprofilesctl get
-grep -n -A2 -E '^\\[(AC|Battery|LowBattery)\\]\\[Performance\\]
+grep -n -A1 -F -e '[AC][Performance]' -e '[Battery][Performance]' \
+  -e '[LowBattery][Performance]' "$HOME/.config/powerdevilrc"
+```
+
+El archivo de configuración de PowerDevil es `~/.config/powerdevilrc`.
+Con el cargador conectado, `powerprofilesctl get` debería reflejar
+`performance`; al desconectarlo, `power-saver`. Repetir la prueba al conectar
+y desconectar AC con el equipo despierto y después de reanudar de suspensión.
+Hay reportes de versiones de Plasma que no actualizan el perfil si el cambio
+de AC ocurre durante el sueño: comprobarlo antes de dar el comportamiento por
+validado en el portátil.
+
+No se fija brillo, refresco, acción de tapa, temporizadores de suspensión ni
+umbral de carga: son preferencias y capacidades dependientes del hardware.
+PowerDevil permite configurarlas por estado cuando el dispositivo las soporta.
+
+Referencias: [PowerDevil: configuración por estados AC/batería](https://docs.kde.org/stable_kf6/en/powerdevil/kcontrol/powerdevil/),
+[KConfig de los perfiles PowerDevil](https://github.com/KDE/powerdevil/blob/master/PowerDevilProfileSettings.kcfg),
+[opción `qt.kde.settings` del Home Manager fijado](https://github.com/nix-community/home-manager/blob/82ce401aa350502897c3f2e85f384d61cd3b0b6d/modules/misc/qt/kconfig.nix).
+
+## Comprobaciones necesarias en Elytra antes de diseñar perfiles AC/batería
+
 Ejecutar y guardar la salida con cargador conectado y desconectado:
 
 ```bash
