@@ -102,6 +102,14 @@ print_summary() {
   term_section "RESUMEN DEL MANTENIMIENTO"
   term_info "Equipo: $HOST"
   term_info "Duración: $(format_duration "$duration")"
+  if [[ "$INPUTS_CHANGED" == yes ]]; then
+    term_info "Inputs del flake: se han detectado cambios en flake.lock"
+  elif [[ -n "$LOCK_SNAPSHOT" && -f "$LOCK_SNAPSHOT" ]]; then
+    term_info "Inputs del flake: sin cambios"
+  fi
+  if [[ "$PACKAGE_DIFF_AVAILABLE" == yes ]]; then
+    term_info "Paquetes: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
+  fi
 
   case "$result" in
     "Configuración aplicada"|"Preparada para el próximo arranque")
@@ -126,7 +134,7 @@ need_command() {
   command -v "$1" >/dev/null 2>&1 || die "No se encuentra el comando requerido: $1"
 }
 
-for command in nix git sudo mktemp tail sed date sleep cat env; do
+for command in nix git sudo mktemp tail sed date sleep cat env cp diff readlink basename df; do
   need_command "$command"
 done
 
@@ -150,6 +158,20 @@ clear_spinner() {
 NOTIFICATION_ENABLED=no
 NOTIFICATION_TASK="Mantenimiento"
 EXIT_SUMMARY=""
+
+# Informe de cambios: se conserva la generación anterior y una copia del lock
+# solo durante esta ejecución. Nunca se modifica ni se restaura el repositorio.
+REPORT_DIR=""
+LOCK_SNAPSHOT=""
+BUILD_OUT_LINK=""
+BASE_SYSTEM=""
+PREVIOUS_SELECTED_SYSTEM=""
+NEW_SYSTEM=""
+INPUTS_CHANGED=no
+PACKAGE_DIFF_AVAILABLE=no
+PACKAGE_UPDATED=0
+PACKAGE_ADDED=0
+PACKAGE_REMOVED=0
 
 notify_desktop() {
   local urgency="$1"
@@ -190,6 +212,10 @@ finish_with_notification() {
       notify_desktop critical "NixOS · ${HOST:-equipo}" \
         "${NOTIFICATION_TASK}: error (código ${exit_status})" "$details"
     fi
+  fi
+
+  if [[ -n "$REPORT_DIR" && -d "$REPORT_DIR" ]]; then
+    rm -rf -- "$REPORT_DIR"
   fi
 
   exit "$exit_status"
@@ -391,6 +417,191 @@ run_step_capture() {
   rm -f "$stdout_file" "$stderr_file"
 }
 
+
+prepare_report_context() {
+  REPORT_DIR="$(mktemp -d)" || die "No se pudo crear el directorio temporal del informe."
+  LOCK_SNAPSHOT="$REPORT_DIR/flake.lock.before"
+  BUILD_OUT_LINK="$REPORT_DIR/system-build"
+}
+
+capture_baseline() {
+  BASE_SYSTEM=""
+  PREVIOUS_SELECTED_SYSTEM=""
+
+  if [[ -e /run/booted-system ]]; then
+    BASE_SYSTEM="$(readlink -f /run/booted-system 2>/dev/null || true)"
+  fi
+  if [[ -e /nix/var/nix/profiles/system ]]; then
+    PREVIOUS_SELECTED_SYSTEM="$(readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)"
+  fi
+  if [[ -z "$BASE_SYSTEM" || ! -d "$BASE_SYSTEM" ]]; then
+    BASE_SYSTEM="$PREVIOUS_SELECTED_SYSTEM"
+  fi
+  [[ -d "$BASE_SYSTEM" ]] || BASE_SYSTEM=""
+
+  term_section "ESTADO INICIAL"
+  if [[ -n "$BASE_SYSTEM" ]]; then
+    term_info "Generación arrancada: $BASE_SYSTEM"
+  else
+    term_warning "No se ha podido identificar la generación arrancada."
+  fi
+  if [[ -n "$PREVIOUS_SELECTED_SYSTEM" ]]; then
+    term_info "Generación seleccionada: $PREVIOUS_SELECTED_SYSTEM"
+  fi
+  term_info "Nix: $(nix --version 2>/dev/null || printf 'versión no disponible')"
+}
+
+system_version() {
+  local system_path="$1"
+  local version=""
+
+  if [[ -x "$system_path/sw/bin/nixos-version" ]]; then
+    version="$("$system_path/sw/bin/nixos-version" 2>/dev/null | sed -n '1p' || true)"
+  fi
+  if [[ -n "$version" ]]; then
+    printf '%s' "$version"
+  else
+    basename "$system_path"
+  fi
+}
+
+system_kernel() {
+  local system_path="$1"
+  local kernel_path=""
+
+  if [[ -e "$system_path/kernel" ]]; then
+    kernel_path="$(readlink -f "$system_path/kernel" 2>/dev/null || true)"
+  fi
+  if [[ -n "$kernel_path" ]]; then
+    basename "$kernel_path"
+  else
+    printf 'no disponible'
+  fi
+}
+
+show_generation_metadata() {
+  local old_version old_kernel new_version new_kernel
+
+  term_section "GENERACIONES COMPARADAS"
+  if [[ -n "$BASE_SYSTEM" ]]; then
+    old_version="$(system_version "$BASE_SYSTEM")"
+    old_kernel="$(system_kernel "$BASE_SYSTEM")"
+    term_info "Anterior: $old_version"
+    term_info "Kernel anterior: $old_kernel"
+    term_info "Ruta anterior: $BASE_SYSTEM"
+  else
+    term_warning "No hay una generación anterior legible para comparar."
+  fi
+
+  new_version="$(system_version "$NEW_SYSTEM")"
+  new_kernel="$(system_kernel "$NEW_SYSTEM")"
+  term_info "Nueva: $new_version"
+  term_info "Kernel nuevo: $new_kernel"
+  term_info "Ruta nueva: $NEW_SYSTEM"
+
+  if [[ -n "$PREVIOUS_SELECTED_SYSTEM" && "$PREVIOUS_SELECTED_SYSTEM" != "$BASE_SYSTEM" ]]; then
+    term_info "Aviso: la generación seleccionada antes del mantenimiento no coincidía con la arrancada."
+    term_info "Seleccionada antes: $PREVIOUS_SELECTED_SYSTEM"
+  fi
+}
+
+show_flake_input_changes() {
+  local status=0
+
+  term_section "CAMBIOS EN INPUTS / FLAKE.LOCK"
+  if [[ ! -f "$LOCK_SNAPSHOT" ]]; then
+    term_skip "No se ha actualizado flake.lock en esta operación."
+    return 0
+  fi
+
+  if diff -u --label "flake.lock (antes)" --label "flake.lock (después)" \
+    "$LOCK_SNAPSHOT" "$FLAKE_DIR/flake.lock"; then
+    term_success "Los inputs no han cambiado."
+  else
+    status=$?
+    if (( status == 1 )); then
+      INPUTS_CHANGED=yes
+      term_info "Diff completo: revisiones, hashes y metadatos de los inputs modificados."
+    else
+      warning "No se pudo generar el diff de flake.lock (código $status)."
+    fi
+  fi
+}
+
+show_closure_changes() {
+  local diff_output=""
+  local counts=""
+
+  term_section "CAMBIOS REALES EN PAQUETES"
+  if [[ -z "$BASE_SYSTEM" || ! -d "$BASE_SYSTEM" ]]; then
+    warning "No hay una generación anterior válida; se omite la comparación de paquetes."
+    return 0
+  fi
+  if [[ -z "$NEW_SYSTEM" || ! -d "$NEW_SYSTEM" ]]; then
+    warning "No se ha encontrado la nueva generación construida."
+    return 0
+  fi
+
+  if diff_output="$(run_step_capture \
+    "Comparando las clausuras NixOS anterior y nueva" \
+    nix store diff-closures "$BASE_SYSTEM" "$NEW_SYSTEM")"; then
+    PACKAGE_DIFF_AVAILABLE=yes
+    if [[ -z "$diff_output" ]]; then
+      PACKAGE_UPDATED=0
+      PACKAGE_ADDED=0
+      PACKAGE_REMOVED=0
+      term_success "No se detectan diferencias de paquetes entre ambas generaciones."
+      return 0
+    fi
+
+    counts="$(printf '%s\n' "$diff_output" | awk '
+      /: ∅ →/ { added++; next }
+      /→ ∅/ { removed++; next }
+      NF { modified++ }
+      END { printf "%d %d %d", modified, added, removed }
+    ')"
+    read -r PACKAGE_UPDATED PACKAGE_ADDED PACKAGE_REMOVED <<< "$counts"
+
+    term_success "Resultado: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
+    term_info "Detalle completo de nix store diff-closures (versiones y cambios de tamaño):"
+    printf '%s\n' "$diff_output"
+    term_info "Nix omite cambios de tamaño inferiores a 8 KiB cuando no cambia la versión."
+  else
+    warning "No se pudo calcular el diff de paquetes. La construcción sigue siendo válida; revisa el error anterior."
+  fi
+}
+
+show_store_usage() {
+  local label="$1"
+
+  term_section "ESPACIO EN DISCO · $label"
+  if ! df -h /nix/store; then
+    warning "No se pudo consultar el espacio disponible en /nix/store."
+  fi
+}
+
+show_final_system_state() {
+  local selected booted
+
+  term_section "ESTADO FINAL DEL SISTEMA"
+  selected="$(readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)"
+  booted="$(readlink -f /run/booted-system 2>/dev/null || true)"
+  [[ -n "$selected" ]] && term_info "Generación seleccionada: $selected"
+  [[ -n "$booted" ]] && term_info "Generación arrancada: $booted"
+
+  if [[ -n "$selected" && -n "$booted" && "$selected" != "$booted" ]]; then
+    warning "La generación seleccionada y la arrancada son distintas; puede quedar un reinicio pendiente."
+  fi
+
+  if command -v nix-env >/dev/null 2>&1; then
+    if ! run_step_show "Consultando todas las generaciones del perfil del sistema" \
+      sudo nix-env --profile /nix/var/nix/profiles/system --list-generations; then
+      warning "No se pudo listar el historial de generaciones."
+    fi
+  fi
+  show_store_usage "DESPUÉS DEL MANTENIMIENTO"
+}
+
 if ! run_step "Validando la configuración de $HOST" \
   nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.networking.hostName"; then
   die "El host '$HOST' no existe o no se puede evaluar en flake.nix."
@@ -482,12 +693,30 @@ clean_generations() {
     return 0
   fi
 
-  run_step "Limpiando generaciones antiguas" sudo nix-collect-garbage "${GC_ARGS[@]}"
+  run_step_show "Limpiando generaciones antiguas" sudo nix-collect-garbage "${GC_ARGS[@]}"
 }
 
 build_and_show() {
-  run_step "Construyendo la configuración de $HOST" sudo nixos-rebuild build --flake ".#$HOST"
-  run_step "Comprobando la activación sin aplicar cambios" sudo nixos-rebuild dry-activate --flake ".#$HOST"
+  [[ -n "$REPORT_DIR" && -d "$REPORT_DIR" ]] ||
+    die "No se ha preparado el directorio temporal del informe."
+  rm -f -- "$BUILD_OUT_LINK"
+
+  run_step_show "Construyendo la clausura completa de $HOST" \
+    sudo nix build --show-trace --print-build-logs --no-write-lock-file \
+      --out-link "$BUILD_OUT_LINK" \
+      ".#nixosConfigurations.$HOST.config.system.build.toplevel"
+
+  [[ -e "$BUILD_OUT_LINK" ]] ||
+    die "Nix terminó la construcción, pero no creó el enlace a la nueva generación."
+  NEW_SYSTEM="$(readlink -f "$BUILD_OUT_LINK")"
+  [[ "$NEW_SYSTEM" == /nix/store/* && -d "$NEW_SYSTEM" ]] ||
+    die "La ruta generada no apunta a una clausura válida de /nix/store."
+
+  show_generation_metadata
+  show_closure_changes
+
+  run_step_show "Comprobando la activación sin aplicar cambios" \
+    sudo nixos-rebuild dry-activate --no-write-lock-file --flake ".#$HOST"
   note "La generación está construida y validada; todavía no se ha aplicado."
 }
 
@@ -495,23 +724,26 @@ apply_generation() {
   section "05" "ACTIVACIÓN" "Desplegando la generación validada"
   case "$OPERATION" in
     switch)
-      run_step "Aplicando la configuración ahora" sudo nixos-rebuild switch --flake ".#$HOST"
+      run_step_show "Aplicando la configuración ahora" sudo nixos-rebuild switch --no-write-lock-file --flake ".#$HOST"
       APPLY_RESULT="Configuración aplicada"
       ;;
     boot)
-      run_step "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --flake ".#$HOST"
+      run_step_show "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --no-write-lock-file --flake ".#$HOST"
       APPLY_RESULT="Preparada para el próximo arranque"
       ;;
   esac
 
   run_step_show "Verificando el estado de reinicio" \
     env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
+  show_final_system_state
 }
 
 run_update() {
   section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
   check_lock_clean
-  run_step "Actualizando las versiones de los inputs" nix flake update
+  cp -- "$FLAKE_DIR/flake.lock" "$LOCK_SNAPSHOT"
+  run_step_show "Actualizando las versiones de los inputs" nix flake update
+  show_flake_input_changes
   # Actualiza la estrategia por si ha cambiado con las nuevas revisiones.
   OPERATION="$(get_operation)"
 }
@@ -547,12 +779,15 @@ run_maintenance() {
   local started_at finished_at mode_label
 
   started_at="$(date +%s)"
+  prepare_report_context
   if [[ "$automatic" == "yes" ]]; then
     mode_label="MODO AUTOMÁTICO · confirmaciones omitidas"
   else
     mode_label="MODO INTERACTIVO · tú decides cuándo aplicar"
   fi
   banner "$mode_label"
+  capture_baseline
+  show_store_usage "ANTES DEL MANTENIMIENTO"
 
   section "01" "COMPROBACIONES" "Revisando el estado de arranque"
   if run_step_show "Comprobando si hay un reinicio pendiente" \
@@ -616,6 +851,9 @@ case "${1:-}" in
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
     NOTIFICATION_TASK="Actualización"
     NOTIFICATION_ENABLED=yes
+    prepare_report_context
+    capture_baseline
+    show_store_usage "ANTES DE ACTUALIZAR"
     banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
     run_update
     run_build_apply no no
@@ -624,6 +862,9 @@ case "${1:-}" in
     [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
     NOTIFICATION_TASK="Construcción y aplicación"
     NOTIFICATION_ENABLED=yes
+    prepare_report_context
+    capture_baseline
+    show_store_usage "ANTES DE CONSTRUIR"
     banner "MODO INTERACTIVO · versiones fijadas en flake.lock"
     note "No se actualizarán los inputs."
     run_build_apply no no
