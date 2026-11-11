@@ -139,9 +139,9 @@ SPINNER_ACTIVE=no
 
 clear_spinner() {
   if [[ "$SPINNER_ACTIVE" == yes ]]; then
-    # El spinner solo ocupa una línea; borrarla deja el cursor listo
-    # para que el siguiente mensaje se escriba normalmente.
-    printf '\r\033[K' >&2
+    # El área de actividad ocupa dos líneas: estado y última salida.
+    # Se restauran ambas sin dejar restos antes del siguiente mensaje.
+    printf '\033[u\033[2K\033[1B\033[2K\033[u' >&2
     SPINNER_ACTIVE=no
   fi
 }
@@ -198,29 +198,60 @@ trap finish_with_notification EXIT
 
 wait_with_spinner() {
   local command_pid="$1"
+  local log_file="${2:-}"
   local spinner_started
   local now_tenths
   local frame=0
   local status=0
   local elapsed
+  local preview_line preview_width terminal_rows terminal_columns
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
   spinner_started="$(get_clock_tenths)"
 
   if [[ -t 2 && "${TERM:-dumb}" != "dumb" && -z "${CI:-}" ]]; then
+    # Guardar la posición para refrescar el estado y la vista previa en sitio.
+    printf '\033[s' >&2
     SPINNER_ACTIVE=yes
 
     while kill -0 "$command_pid" 2>/dev/null; do
       now_tenths="$(get_clock_tenths)"
       elapsed="$(format_elapsed "$((now_tenths - spinner_started))")"
 
-      # \r vuelve al principio y \033[K limpia el resto de la misma línea.
-      # No se imprime ningún salto de línea hasta que termina la operación.
-      printf '\r\033[K%b  %s%b  En curso · %s' \
+      # Leer solo la última línea del registro, sin mostrar secuencias ANSI.
+      if [[ -n "$log_file" && -s "$log_file" ]]; then
+        preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null | \
+          sed -E 's/\x1B\[[0-9;?]*[ -/]*[@-~]//g; s/\r/ /g; s/[[:cntrl:]]//g' || true)"
+      else
+        preview_line=""
+      fi
+
+      if [[ -z "$preview_line" ]]; then
+        preview_line="Esperando la primera línea del comando…"
+      fi
+
+      # Usar el ancho real de la terminal; COLUMNS queda como alternativa.
+      if read -r terminal_rows terminal_columns < <(stty size 2>/dev/null); then
+        preview_width="$terminal_columns"
+      else
+        preview_width="${COLUMNS:-100}"
+      fi
+      [[ "$preview_width" =~ ^[0-9]+$ ]] || preview_width=100
+      preview_width=$((preview_width - 8))
+      (( preview_width < 20 )) && preview_width=20
+      if (( ${#preview_line} > preview_width )); then
+        preview_line="${preview_line:0:$((preview_width - 1))}…"
+      fi
+
+      # El spinner se actualiza en la primera línea y el comando en la segunda.
+      printf '\033[u\033[2K%b  %s%b  En curso · %s\n\033[2K%b    ↳ %s%b' \
         "$TERM_STYLE_CYAN$TERM_STYLE_BOLD" \
         "${frames[$frame]}" \
         "$TERM_STYLE_RESET" \
-        "$elapsed" >&2
+        "$elapsed" \
+        "$TERM_STYLE_MUTED" \
+        "$preview_line" \
+        "$TERM_STYLE_RESET" >&2
 
       sleep 0.25 || true
       frame=$(((frame + 1) % ${#frames[@]}))
