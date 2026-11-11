@@ -392,7 +392,7 @@ run_step_capture() {
 }
 
 if ! run_step "Validando la configuración de $HOST" \
-  nix eval --raw ".#nixosConfigurations.$HOST.config.networking.hostName"; then
+  nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.networking.hostName"; then
   die "El host '$HOST' no existe o no se puede evaluar en flake.nix."
 fi
 
@@ -400,7 +400,7 @@ get_operation() {
   local operation
   operation="$(run_step_capture \
     "Consultando la estrategia de actualización de $HOST" \
-    nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
+    nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
     die "No se pudo consultar la estrategia de actualización de $HOST."
   case "$operation" in
     switch|boot) printf '%s' "$operation" ;;
@@ -445,7 +445,7 @@ get_gc_args() {
 
   gc_options="$(run_step_capture \
     "Consultando la política de limpieza de $HOST" \
-    nix eval --raw ".#nixosConfigurations.$HOST.config.nix.gc.options")" ||
+    nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.nix.gc.options")" ||
     die "No se pudo consultar la política de limpieza de $HOST."
 
   # Solo se acepta la política de retención declarada para este repositorio.

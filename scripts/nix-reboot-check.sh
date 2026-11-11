@@ -28,7 +28,7 @@ NEXT="/nix/var/nix/profiles/system"
   exit 1
 }
 
-if ! OPERATION="$(nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
+if ! OPERATION="$(nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
   term_error "No se pudo consultar la estrategia de actualización del host."
   exit 2
 fi

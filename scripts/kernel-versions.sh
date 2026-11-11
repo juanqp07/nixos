@@ -16,7 +16,7 @@ if ! command -v nix >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! hosts="$(nix eval --raw --apply 'attrs: builtins.concatStringsSep "\n" (builtins.attrNames attrs)' .#nixosConfigurations 2>/dev/null)"; then
+if ! hosts="$(nix eval --no-write-lock-file --raw --apply 'attrs: builtins.concatStringsSep "\n" (builtins.attrNames attrs)' .#nixosConfigurations 2>/dev/null)"; then
   term_error "No se pudieron evaluar las configuraciones NixOS de $FLAKE_DIR."
   exit 1
 fi
@@ -38,7 +38,7 @@ while IFS= read -r host; do
   [[ -n "$host" ]] || continue
   ((host_count += 1))
 
-  if version="$(nix eval --raw ".#nixosConfigurations.${host}.config.boot.kernelPackages.kernel.version" 2>/dev/null)"; then
+  if version="$(nix eval --no-write-lock-file --raw ".#nixosConfigurations.${host}.config.boot.kernelPackages.kernel.version" 2>/dev/null)"; then
     printf '%b%-18s%b  %s\n' "$TERM_STYLE_CYAN" "$host" "$TERM_STYLE_RESET" "$version"
   else
     ((failed_count += 1))
