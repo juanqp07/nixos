@@ -9,10 +9,9 @@
   # interrupciones entre los P-cores/E-cores del i5-1250P. No se fuerza performance.
   boot.kernelPackages = pkgs.linuxPackages;
   hardware.enableRedistributableFirmware = true;
-  boot.kernelParams = [
-    "intel_pstate=active"
-  ];
 
+  # En Alder Lake, intel_pstate usa el modo activo por defecto cuando HWP está
+  # disponible; no hace falta forzarlo con intel_pstate=active.
   # Servidor: intel_pstate+HWP escala solo (powersave + EPP balance_performance
   # por defecto): 400MHz en idle (fresco/silencioso) y turbo bajo carga.
   # Rendimiento bajo demanda sin el ruido/consumo del governor fijo.

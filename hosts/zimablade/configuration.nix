@@ -41,9 +41,9 @@
     max-jobs = 1;
     cores = 1;
 
-    # Permite que juan reciba cierres Nix compilados en Elytra/Titan.
-    # trusted-users equivale a root: juan ya pertenece al grupo wheel.
-    trusted-users = [ "root" "juan" ];
+    # Solo root es trusted-user. juan administra mediante sudo/wheel;
+    # trusted-users concede privilegios equivalentes a root en el daemon Nix.
+    trusted-users = [ "root" ];
   };
 
   # Límite de registros ajustado al almacenamiento de la ZimaBlade.

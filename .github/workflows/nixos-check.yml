@@ -101,6 +101,11 @@ jobs:
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
 
+      - name: Build headless server closure
+        if: matrix.host == 'atlas' || matrix.host == 'pico'
+        run: |
+          nix build --no-link --show-trace ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
+
       - name: Build the declarative Nori desktop package
         if: matrix.host == 'elytra' && steps.nori.outputs.required == 'true'
         run: |

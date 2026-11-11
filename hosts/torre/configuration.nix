@@ -49,7 +49,8 @@
   # scx/gamemode/zram/inotify/bluetooth heredados de desktop-gaming.nix
   # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
   # ---------------------------------------------------------
-  zramSwap.memoryPercent = lib.mkForce 25;
+  # 25 % de capacidad máxima: 8 GiB sobre 32 GiB de RAM, sin reserva física al arranque.
+  zramSwap.memoryPercent = 25;
 
   services.openssh.enable = true;
 
@@ -60,7 +61,7 @@
     openFirewall = true;
   };
 
-  services.fstrim.enable = true;
+  # fstrim está habilitado en desktop-gaming.nix.
   services.smartd.enable = true;
 
   environment.systemPackages = with pkgs; [

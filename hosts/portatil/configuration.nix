@@ -18,13 +18,13 @@
   # En este portátil, empezar en 10 % permite que earlyoom envíe SIGTERM con
   # más margen; los umbrales SIGKILL implícitos quedan en el 5 %.
   services.earlyoom = {
-    freeMemThreshold = lib.mkForce 10;
-    freeSwapThreshold = lib.mkForce 10;
+    freeMemThreshold = 10;
+    freeSwapThreshold = 10;
   };
 
   # Elytra conserva scx_cosmos en modo Auto (sin argumentos de perfil Gaming).
   # Titan hereda el modo Gaming (-s 700) del módulo compartido.
-  services.scx-loader.config.default_mode = lib.mkForce "Auto";
+  services.scx-loader.config.default_mode = "Auto";
 
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
@@ -140,8 +140,6 @@
   # ============================================================
 
   networking.networkmanager = {
-    enable = true;
-
     wifi.powersave = false;
     wifi.macAddress = "preserve";
   };
@@ -180,7 +178,7 @@
 
   services.libinput.enable = true;
 
-  services.fstrim.enable = true;
+  # fstrim está habilitado en desktop-gaming.nix.
 
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;

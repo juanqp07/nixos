@@ -31,6 +31,25 @@ repositorio. No se despliega ninguna generación desde GitHub.
   abiertos hasta confirmar qué contenedor/servicio los necesita.
 - Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
   el parámetro de arranque `panic=10` permanece en `server-system.nix`.
+- Pico: se retira `juan` de `nix.settings.trusted-users`. La cuenta conserva
+  el grupo `wheel` y la administración con `sudo`; ser trusted-user concede
+  privilegios equivalentes a root en el daemon Nix y no hace falta para el
+  despliegue remoto ejecutado con sudo.
+- La configuración compartida expresa los umbrales base de earlyoom como
+  `lib.mkDefault`; Elytra mantiene 10 % sin recurrir a `mkForce`. El modo
+  Gaming de scx-loader es también un default, para que Elytra establezca Auto
+  sin prioridad forzada. El límite de `vm.max_map_count` de escritorio y la
+  capacidad ZRAM de Titan se expresan con asignaciones ordinarias.
+- Atlas deja de pasar `intel_pstate=active`: en el Alder Lake el modo activo
+  es el modo predeterminado del driver cuando HWP está disponible; se conserva
+  `powersave` como governor solicitado y se verifica HWP/EPP en runtime.
+- fastfetch y nix-output-monitor se trasladan del módulo común al de escritorio.
+  Fish deja de declararse como paquete explícito porque `programs.fish.enable`
+  ya lo añade a `environment.systemPackages`.
+- La CI construye las clausuras de Atlas y Pico además de evaluarlas; las
+  clausuras de escritorio continúan siendo evaluadas (y las recetas Nori se
+  construyen en el job existente) para no forzar builds grandes de IDEs y
+  multimedia en cada PR.
 - Atlas y Pico: se eliminan de las listas locales algunos paquetes ya heredados
   de `common-system.nix`.
 - Se elimina el archivo raíz `.conf`, que estaba vacío.
@@ -58,6 +77,11 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - No se cambia el tratamiento de tapa, suspensión, hibernación, brillo,
   refresco, USB/NVMe/PCIe ASPM ni límites de carga. Primero hay que descubrir
   las interfaces disponibles en el firmware/hardware real del LOQ.
+- `libz` y `zlib` no son alias ni el mismo paquete en el pin actual:
+  `libz` es el fork Sortix libz 1.2.8.2025.03.07 y `zlib` es zlib 1.3.2.
+  Se conservan ambos en nix-ld hasta comprobar con `ldd`/ejecución de los
+  binarios externos qué SONAME y símbolos necesita cada uno; quitarlos como
+  si fueran duplicados sería una suposición incorrecta.
 - No se migra NetworkManager a systemd-networkd en Atlas/Pico: ambos dependen
   de perfiles de red existentes, NetBird y redes Docker. Una migración necesita
   el inventario de direcciones, rutas, DNS, bridges y método de recuperación
@@ -78,7 +102,8 @@ repositorio. No se despliega ninguna generación desde GitHub.
   `authorized_keys` que permita demostrar que todos los accesos remotos están
   preparados para autenticación por clave. Deshabilitar password auth a ciegas
   puede bloquear el acceso a Atlas/Pico.
-- Se conserva `services.earlyoom` en el módulo común. Su impacto en procesos
+- Se conserva `services.earlyoom` en el módulo común. Elytra mantiene umbral
+  10 %; Atlas y Pico conservan 5 %. Su impacto en procesos
   de contenedores depende de los `oom_score_adj` y de la carga real; no se
   debe deshabilitar ni cambiar el umbral de Atlas sin capturar eventos bajo
   presión de memoria.
@@ -220,9 +245,9 @@ volúmenes, redes, logs y eventos, según la versión instalada).
 
 ## Build, cache y despliegue
 
-La CI actual evalúa los cinco toplevels y construye Nori solo cuando cambian sus
-recetas; no construye todas las clausuras de sistema. Es intencional no convertir
-cada PR en cinco builds completos: los escritorios tienen grandes clausuras
+La CI evalúa los cinco toplevels y construye las clausuras completas de Atlas y
+Pico, además de construir Nori cuando cambian sus recetas. No construye las
+clausuras completas de escritorio en cada PR: los escritorios tienen grandes clausuras
 (Android Studio, IDEs, multimedia y gaming) y un build simultáneo puede superar
 tiempo o memoria del runner. Para una prueba completa, construir el host que se
 va a desplegar en un runner/estación con recursos suficientes:

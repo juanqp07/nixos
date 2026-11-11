@@ -82,7 +82,6 @@
 
   # KDE Plasma 6 como único entorno gráfico, con SDDM como gestor de inicio.
   services.displayManager.sddm.enable = true;
-  services.xserver.displayManager.lightdm.enable = lib.mkForce false;
 
   services.desktopManager.plasma6.enable = true;
 
@@ -179,11 +178,7 @@
   #users.extraGroups.vboxusers.members = [ "juan" ];
 
   # --- PERMISOS DE USUARIO ---
-  users.users.juan = {
-    isNormalUser = true;
-
-    extraGroups = [
-      "wheel"
+  users.users.juan.extraGroups = [
       "video"
       "audio"
       "lp"
@@ -192,8 +187,7 @@
       "libvirtd"
       "uinput"
       "render"
-    ];
-  };
+  ];
 
 
   # ============================================================
@@ -292,6 +286,10 @@
   # ============================================================
 
   environment.systemPackages = with pkgs; [
+    # CLI y diagnóstico propios de los escritorios.
+    fastfetch
+    nix-output-monitor
+
     # Comunicación, navegación y acceso remoto.
     openvpn
     telegram-desktop
@@ -490,25 +488,24 @@
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 50;
+    # Usa el default upstream del módulo NixOS (50 %); Titan lo sobrescribe.
   };
 
   # scx-loader sustituye al módulo services.scx eliminado en nixpkgs.
-  # Titan usa el modo Gaming de scx_cosmos (-s 700); Elytra lo sobrescribe
-  # a Auto en hosts/portatil/configuration.nix.
+  # Gaming es el default compartido; Elytra selecciona Auto en su host.
   services.scx-loader = {
     enable = true;
 
     config = {
       default_sched = "scx_cosmos";
-      default_mode = "Gaming";
+      default_mode = lib.mkDefault "Gaming";
     };
   };
 
   boot.kernel.sysctl = {
     # El valor original común era 262144.
     # Se fuerza 1048576 para Proton y aplicaciones exigentes.
-    "vm.max_map_count" = lib.mkForce 1048576;
+    "vm.max_map_count" = 1048576;
 
     # vm.swappiness y vm.page-cluster se definen en el módulo común,
     # ya que ambos equipos utilizan zram.
