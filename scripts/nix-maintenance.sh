@@ -455,8 +455,10 @@ system_version() {
   local system_path="$1"
   local version=""
 
-  if [[ -x "$system_path/sw/bin/nixos-version" ]]; then
-    version="$("$system_path/sw/bin/nixos-version" 2>/dev/null | sed -n '1p' || true)"
+  # El toplevel contiene el valor de versión generado para esa generación.
+  # Leerlo evita ejecutar un nixos-version que pudiera consultar el sistema activo.
+  if [[ -r "$system_path/nixos-version" ]]; then
+    version="$(sed -n '1p' "$system_path/nixos-version" || true)"
   fi
   if [[ -n "$version" ]]; then
     printf '%s' "$version"
