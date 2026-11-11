@@ -185,8 +185,18 @@
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;
 
+  # Sunshine para Moonlight: instalado, pero sin arranque automático.
+  # En Wayland, CAP_SYS_ADMIN permite la captura DRM/KMS.
+  services.sunshine = {
+    enable = true;
+    autoStart = false;
+    capSysAdmin = true;
+    openFirewall = true;
+  };
+
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
+
 
   # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
   # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
