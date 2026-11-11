@@ -160,7 +160,7 @@
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 7d"; 
+    options = "--delete-older-than 7d";
   };
 
   # Este path usa el checkout local y el flake.lock presente en él. El timer NO
