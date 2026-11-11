@@ -58,7 +58,9 @@
     # algún contenedor o servicio ofrece DNS a clientes LAN/NetBird.
     allowedTCPPorts = [ 22 53 ];
     allowedUDPPorts = [ 53 ]; 
-    trustedInterfaces = [ "wt0" "docker0" ];
+    # Docker no es una interfaz de confianza: los contenedores no deben
+    # recibir acceso incondicional a todos los servicios del host.
+    trustedInterfaces = [ "wt0" ];
     checkReversePath = "loose";
   };
 

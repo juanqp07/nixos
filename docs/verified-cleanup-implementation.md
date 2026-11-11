@@ -81,10 +81,14 @@ repositorio. No se despliega ninguna generación desde GitHub.
   alimentación del LOQ, ni el comportamiento de PowerDevil/PPD en la sesión
   Plasma actual.
 - Se conservan `hardware.nvidia.powerManagement.finegrained`,
-  Dynamic Boost, PRIME offload y `NVreg_PreserveVideoMemoryAllocations`.
-  El dato de RTD3/S0ix no soportado y el consumo de reposo previamente medido
-  requieren comprobar el estado del controlador y la GPU de nuevo antes de
-  cambiar parámetros de energía.
+  Dynamic Boost, PRIME offload y la preservación de memoria de vídeo. Se elimina
+  el parámetro duplicado de kernel: en el nixpkgs fijado,
+  `hardware.nvidia.powerManagement.enable` ya genera
+  `nvidia.NVreg_PreserveVideoMemoryAllocations=1` en la configuración del
+  módulo. Se mantiene `kernelSuspendNotifier`. El dato de RTD3/S0ix no soportado
+  y el consumo de reposo previamente medido requieren comprobar el estado del
+  controlador y la GPU de nuevo antes de cambiar parámetros de energía.
+  Fuente: [módulo NVIDIA del nixpkgs fijado](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/nixos/modules/hardware/video/nvidia.nix#L803-L806).
 - Se conservan `wifi.powersave = false` y los parámetros rtw89 que desactivan
   PS/ASPM. Se añadieron por estabilidad; habilitar ahorro en batería o cambiar
   ASPM sin una prueba repetible podría reintroducir cortes o latencia.
@@ -142,9 +146,14 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - Se conserva `postgres:17-alpine`: fija la versión mayor 17 y permite recibir
   revisiones de seguridad dentro de esa rama; cambiar la versión mayor requiere
   una migración separada.
-- No se modifican `containerd-snapshotter`, el socket Docker del agente de Pico,
-  `trustedInterfaces` ni puertos DNS hasta conocer el estado de Arcane/Compose
-  y los requisitos del despliegue. Un bind mount de socket con `:ro` no convierte
+- No se modifican `containerd-snapshotter`, el socket Docker del agente de Pico
+  ni puertos DNS hasta conocer el estado de Arcane/Compose y los requisitos del
+  despliegue. En Pico se elimina `docker0` de `trustedInterfaces`: el módulo
+  de firewall de NixOS acepta incondicionalmente el tráfico recibido por una
+  interfaz marcada como confiable. El agente usa el socket Docker y establece
+  una conexión saliente con Atlas, así que no necesita esa excepción; se
+  mantiene `wt0` como interfaz confiable para la administración por NetBird.
+  Fuente: [opción trustedInterfaces en el módulo NixOS 26.05 fijado](https://github.com/NixOS/nixpkgs/blob/ac588ef1c914865dad517b337ea0eb9694a4021c/nixos/modules/services/networking/firewall.nix#L164-L172). Un bind mount de socket con `:ro` no convierte
   la API Docker en una API de solo lectura; reducir ese permiso requiere un
   proxy con allowlist validada contra las operaciones reales del agente.
 - Se conserva el overlay de DwarFS: la receta del pin todavía activa tests y

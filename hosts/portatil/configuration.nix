@@ -61,8 +61,9 @@
 
   boot.kernelParams = [
     "nvidia-drm.fbdev=1"
-    "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
   ];
+  # hardware.nvidia.powerManagement.enable ya declara
+  # NVreg_PreserveVideoMemoryAllocations=1 mediante modprobe.d.
 
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
