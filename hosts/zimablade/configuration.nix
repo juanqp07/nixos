@@ -20,8 +20,6 @@
     algorithm = "lz4"; # más ligero que zstd para el Celeron
   };
 
-  boot.loader.systemd-boot.configurationLimit = 10;
-
   # --- 2. GRÁFICOS (Intel QuickSync) ---
   hardware.graphics = {
     enable = true;
@@ -59,8 +57,9 @@
 
   networking.firewall = {
     enable = true; 
-    # Solo puertos esenciales. 53 eliminado (a menos que sea servidor DNS).
-    allowedTCPPorts = [ 22 53 ]; 
+    # 53/tcp y 53/udp siguen permitidos. No retirarlos hasta comprobar si
+    # algún contenedor o servicio ofrece DNS a clientes LAN/NetBird.
+    allowedTCPPorts = [ 22 53 ];
     allowedUDPPorts = [ 53 ]; 
     trustedInterfaces = [ "wt0" "docker0" ];
     checkReversePath = "loose";
@@ -167,7 +166,9 @@
     options = lib.mkForce "--delete-older-than 7d"; 
   };
 
-  # Usa las revisiones fijadas en flake.lock. El lock se actualiza y revisa de forma controlada.
+  # Este path usa el checkout local y el flake.lock presente en él. El timer NO
+  # ejecuta git pull ni sincroniza /home/juan/nixos con GitHub: esa sincronización
+  # debe hacerse y revisarse por separado antes de preparar una nueva generación.
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#pico";
@@ -184,14 +185,10 @@
 
   # --- 6. PAQUETES ---
   environment.systemPackages = with pkgs; [
-    intel-gpu-tools 
+    intel-gpu-tools
     libva-utils # vainfo para comprobar la ruta de vídeo
-    lm_sensors
-    ncdu
-    tmux
     lazydocker
     smartmontools
-    git
     htop
   ];
 

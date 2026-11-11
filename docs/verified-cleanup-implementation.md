@@ -1,0 +1,250 @@
+# Limpieza verificada y cambios que requieren validación en hardware
+
+Este documento acompaña la rama `chore/verified-nixos-cleanup-2026-11`.
+Los cambios se limitan a duplicidades o inconsistencias comprobables en el
+repositorio. No se despliega ninguna generación desde GitHub.
+
+## Cambios implementados
+
+- Elytra: se retiran las aperturas TCP 1701/9001 de Weylus. No existe paquete,
+  servicio ni declaración de Weylus en los módulos/hosts del repositorio; el
+  firewall continúa habilitado. Sunshine y los demás servicios mantienen sus
+  reglas actuales hasta poder definir una política por interfaz que preserve
+  el acceso LAN doméstico.
+- Escritorios: los toolchains de Python, Node/Bun, Go y Rust dejan de instalarse
+  globalmente en `desktop-gaming.nix`. Se ofrecen en devShells declarados en
+  `flake.nix`; Rust añade rustfmt/clippy y Go dispone de un shell propio.
+  Los runtimes que aparecen en `programs.nix-ld.libraries` se conservan: esa
+  lista sirve a bibliotecas compartidas de binarios externos, no equivale a
+  instalar toolchains en el PATH de todos los proyectos.
+- Elytra: se eliminan de su lista local `btop`, `lm_sensors`, `pciutils` y
+  `usbutils`, ya heredados de `common-system.nix`.
+- Atlas: se corrige el comentario de CPU (el governor declarado es
+  `powersave`, no `performance`), se retira la segunda declaración redundante
+  de NetworkManager, `LC_ALL` (el locale común ya configura `LANG`) y los
+  tmpfiles que recreaban directorios antiguos de Dockge. No se borra ningún
+  directorio/dato existente de `/mnt/datos`.
+- Atlas y Pico: se deja explícito en los comentarios de `system.autoUpgrade`
+  que `path:/home/juan/nixos` apunta a un checkout local y no hace `git pull`.
+  El timer no mantiene sincronizado el repositorio con GitHub.
+- Pico: se corrige el comentario de DNS; los puertos 53/tcp y 53/udp siguen
+  abiertos hasta confirmar qué contenedor/servicio los necesita.
+- Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
+  el parámetro de arranque `panic=10` permanece en `server-system.nix`.
+- Atlas y Pico: se eliminan de las listas locales algunos paquetes ya heredados
+  de `common-system.nix`.
+- Se elimina el archivo raíz `.conf`, que estaba vacío.
+- Se retira el overlay de OpenCode: el valor de `outputHash` que fijaba era
+  idéntico al valor de la derivación de OpenCode en la revisión de nixpkgs
+  bloqueada por `flake.lock` (`f4a03c008967841f2a0b3cb7c436fc6fc31671f6`).
+
+## Elementos preservados deliberadamente
+
+- No se cambia PPD, thermald, GameMode, scx_cosmos, governor/EPP, turbo ni
+  límites de potencia del i5-13450HX. No se implementa un cambio AC/batería
+  automático sin confirmar el nombre y los eventos reales del dispositivo de
+  alimentación del LOQ, ni el comportamiento de PowerDevil/PPD en la sesión
+  Plasma actual.
+- Se conservan `hardware.nvidia.powerManagement.finegrained`,
+  Dynamic Boost, PRIME offload y `NVreg_PreserveVideoMemoryAllocations`.
+  El dato de RTD3/S0ix no soportado y el consumo de reposo previamente medido
+  requieren comprobar el estado del controlador y la GPU de nuevo antes de
+  cambiar parámetros de energía.
+- Se conservan `wifi.powersave = false` y los parámetros rtw89 que desactivan
+  PS/ASPM. Se añadieron por estabilidad; habilitar ahorro en batería o cambiar
+  ASPM sin una prueba repetible podría reintroducir cortes o latencia.
+- No se cambia FastConnectable/Experimental de BlueZ sin medir el consumo ni
+  los dispositivos que utilizan ese modo.
+- No se cambia el tratamiento de tapa, suspensión, hibernación, brillo,
+  refresco, USB/NVMe/PCIe ASPM ni límites de carga. Primero hay que descubrir
+  las interfaces disponibles en el firmware/hardware real del LOQ.
+- No se migra NetworkManager a systemd-networkd en Atlas/Pico: ambos dependen
+  de perfiles de red existentes, NetBird y redes Docker. Una migración necesita
+  el inventario de direcciones, rutas, DNS, bridges y método de recuperación
+  fuera de banda.
+- No se altera todavía la política de firewall de los escritorios. Los servicios
+  declarados usan `openFirewall`/puertos globales (Sunshine, Syncthing,
+  Avahi, Steam Remote Play, Stremio y KDE Connect). Restringirlos por interfaz
+  requiere conocer las interfaces y la conexión/perfil doméstico real; usar
+  nombres de interfaz supuestos puede dejar Moonlight, Chromecast o Syncthing
+  sin acceso.
+- Cloudflare WARP y NetBird siguen habilitados. Hay un informe de NetBird que
+  considera no soportado el uso simultáneo por competir por rutas/DNS:
+  https://github.com/netbirdio/netbird/issues/672. No se desactiva ninguno sin
+  conocer qué tráfico debe ir por cada túnel. Revisar `ip rule`, tablas de
+  rutas y DNS antes de tomar una decisión.
+- Se conserva SSH por contraseña. El propio módulo común declara que es
+  deliberado y el repositorio no contiene una declaración de claves
+  `authorized_keys` que permita demostrar que todos los accesos remotos están
+  preparados para autenticación por clave. Deshabilitar password auth a ciegas
+  puede bloquear el acceso a Atlas/Pico.
+- Se conserva `services.earlyoom` en el módulo común. Su impacto en procesos
+  de contenedores depende de los `oom_score_adj` y de la carga real; no se
+  debe deshabilitar ni cambiar el umbral de Atlas sin capturar eventos bajo
+  presión de memoria.
+- Atlas mantiene journald limitado por `SystemMaxUse=1G`; Pico mantiene
+  `json-file` con rotación. No se unifican drivers sin comparar retención,
+  almacenamiento, consulta de logs y consumo real.
+- No se modifican `containerd-snapshotter`, imágenes `:latest`, el socket
+  Docker del agente de Pico, `trusted-users`, `trustedInterfaces` ni puertos
+  DNS hasta conocer el estado de Arcane/Compose y los requisitos del despliegue.
+  Un bind mount de socket con `:ro` no convierte la API Docker en una API de
+  solo lectura; reducir ese permiso requiere un proxy de socket con allowlist
+  validada contra las operaciones reales del agente.
+- Se conserva el overlay de DwarFS: la receta del pin todavía activa tests y
+  el workaround desactiva pruebas que fallaban en el entorno descrito.
+- Se conserva el overlay de CardWire: la receta del pin aún no contiene la
+  dependencia SQLite añadida por el override local.
+- Se conserva el overlay de Gear Lever: necesita validación funcional del
+  wrapper de AppImage y no es equivalente al paquete upstream sin ese wrapper.
+- Se conserva `rustdesk-privacy.nix`, sus scripts y su documentación: aunque
+  el módulo no se importa, el workflow valida la sintaxis de los scripts y el
+  README declara expresamente que se mantienen para posible reactivación.
+- Se conservan las recetas de Nori en `nixpkgs/pkgs/by-name/no`: son la fuente
+  única de receta; `packages/nori*.nix` son adaptadores del flake que las
+  importan, no copias divergentes.
+- No se cambia la lista de aplicaciones compartida entre Elytra y Titan:
+  dos clientes/editores/reproductores pueden ser alternativas intencionales.
+  El uso real no se deduce del hecho de que sus paquetes se solapen.
+
+## Comprobaciones necesarias en Elytra antes de diseñar perfiles AC/batería
+
+Ejecutar y guardar la salida con cargador conectado y desconectado:
+
+```bash
+for p in /sys/class/power_supply/*; do
+  printf '\n[%s] ' "$p"
+  cat "$p/type" 2>/dev/null || true
+  for f in online status capacity power_now energy_now; do
+    [ ! -r "$p/$f" ] || { printf '%s=' "$f"; cat "$p/$f"; }
+  done
+done
+sudo udevadm monitor --kernel --property --subsystem-match=power_supply
+upower -e
+powerprofilesctl list
+systemctl status power-profiles-daemon thermald --no-pager
+
+grep -H . /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference 2>/dev/null | head
+grep -H . /sys/devices/system/cpu/intel_pstate/{status,no_turbo,max_perf_pct,min_perf_pct} 2>/dev/null
+cpupower frequency-info
+
+nvidia-smi -q -d POWER
+nvidia-smi --query-gpu=name,pstate,power.draw,utilization.gpu --format=csv
+lspci -nnk | grep -A4 -E 'VGA|3D|Display'
+for d in /sys/bus/pci/devices/*; do
+  [ -r "$d/power/runtime_status" ] || continue
+  printf '%s ' "$d"; cat "$d/power/runtime_status"
+done
+
+nmcli -f DEVICE,TYPE,STATE,CONNECTION device
+iw dev
+modinfo rtw89_pci | grep -E 'disable_aspm|parm'
+modinfo rtw89_core | grep -E 'disable_ps_mode|parm'
+grep -H . /sys/module/rtw89_{pci,core}/parameters/* 2>/dev/null
+find /sys/class/power_supply /sys/devices/platform -type f \
+  \( -iname '*charge*' -o -iname '*threshold*' \) -print 2>/dev/null
+lsmod | grep -E 'ideapad|thinkpad|lenovo|wmi'
+```
+
+Medir autonomía y estabilidad con el mismo brillo, refresco, carga y ubicación:
+registrar descarga en W, desconexiones Wi-Fi, latencia/pérdida y eventos del
+kernel durante un periodo comparable. No habilitar ahorro de Wi-Fi ni ASPM
+hasta que la prueba confirme que no reaparecen fallos. Para Dynamic Boost,
+comparar una carga CPU+GPU repetible en AC; no se deduce su eficacia de la
+lectura en reposo.
+
+## Comprobaciones de red antes de cerrar puertos
+
+En Elytra y Titan:
+
+```bash
+sudo ss -lntup
+sudo nft list ruleset
+nmcli -f NAME,TYPE,DEVICE connection show
+nmcli -f GENERAL.DEVICE,GENERAL.STATE,GENERAL.CONNECTION device show
+ip -br address
+ip rule
+ip route show table all
+ip -6 route show table all
+resolvectl status
+netbird status -d
+warp-cli status
+```
+
+Comprobar desde otro dispositivo de la LAN doméstica que siguen accesibles
+Moonlight/Sunshine, Syncthing, KDE Connect, Chromecast/Stremio y los servicios
+que realmente se utilicen. Repetir desde un punto de acceso externo para
+confirmar que no se exponen servicios innecesarios. No usar solo `nmap
+localhost`: no representa el firewall de entrada visto desde otra máquina.
+
+En Pico, antes de cerrar DNS:
+
+```bash
+sudo ss -lntup | grep -E '(:53|:22)\b' || true
+sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
+sudo docker network ls
+```
+
+## Comprobaciones de servidores
+
+Atlas:
+
+```bash
+systemctl status earlyoom docker nixos-upgrade.service --no-pager
+journalctl -u earlyoom -b --no-pager
+docker stats --no-stream
+docker info --format 'log-driver={{.LoggingDriver}}'
+sudo iptables -vnL DOCKER-USER
+sudo ip6tables -vnL DOCKER-USER
+systemctl list-timers --all | grep -E 'nixos-upgrade|fstrim'
+git -C /home/juan/nixos status --short --branch
+git -C /home/juan/nixos rev-parse HEAD
+```
+
+Pico:
+
+```bash
+df -h /
+sudo du -xhd1 /nix /var/lib/docker 2>/dev/null | sort -h
+docker info --format 'log-driver={{.LoggingDriver}}'
+docker inspect arcane-agent --format '{{json .Mounts}}'
+nix show-config | grep -E 'trusted-users|allowed-users'
+sudo ss -lntup
+```
+
+El socket Docker del Arcane Edge Agent es una capacidad administrativa de alto
+impacto; no montar el socket con `:ro` como sustituto de un proxy. Un proxy
+solo debe desplegarse cuando su allowlist incluya y se pruebe cada API necesaria
+para operaciones del agente (descubrimiento, gestión de contenedores, imágenes,
+volúmenes, redes, logs y eventos, según la versión instalada).
+
+## Build, cache y despliegue
+
+La CI actual evalúa los cinco toplevels y construye Nori solo cuando cambian sus
+recetas; no construye todas las clausuras de sistema. Es intencional no convertir
+cada PR en cinco builds completos: los escritorios tienen grandes clausuras
+(Android Studio, IDEs, multimedia y gaming) y un build simultáneo puede superar
+tiempo o memoria del runner. Para una prueba completa, construir el host que se
+va a desplegar en un runner/estación con recursos suficientes:
+
+```bash
+nix flake check --no-build --show-trace
+nix build --no-link --show-trace .#nixosConfigurations.elytra.config.system.build.toplevel
+# Repetir cambiando el host por titan, atlas o pico.
+```
+
+Nix usa `https://cache.nixos.org` como caché binaria predeterminada. No se añade
+un substituter privado ni un token Cachix a este repositorio; solo tiene sentido
+cuando exista una caché propia que publique cierres de paquetes locales (por
+ejemplo Nori) o builds de sistema de manera deliberada.
+
+El timer `system.autoUpgrade` de Atlas/Pico no hace sincronización Git. Antes de
+esperar que prepare una generación nueva, actualizar/revisar el checkout local,
+comprobar el hash de Git y después revisar `journalctl -u nixos-upgrade.service`.
+
+## Fuera de alcance
+
+No se modifica ninguna configuración ni archivo que pertenezca solo a Palco.
+Los elementos de Palco enumerados en la solicitud permanecen como candidatos
+para una posible limpieza separada. Tampoco se elimina RustDesk Privacy ni se
+borra ningún dato persistente de Dockge/Arcane.

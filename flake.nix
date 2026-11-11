@@ -99,12 +99,19 @@
               python3
               uv
               ruff
+              mkdocs
             ];
           };
           node = pkgs.mkShell {
             packages = with pkgs; [
               nodejs_24
               pnpm
+              bun
+            ];
+          };
+          go = pkgs.mkShell {
+            packages = with pkgs; [
+              go
             ];
           };
           # Java/Kotlin para DAM: ajusta el JDK a la versión que pida el curso.
@@ -120,6 +127,8 @@
               rustc
               cargo
               rust-analyzer
+              rustfmt
+              clippy
               gcc
               pkg-config
             ];

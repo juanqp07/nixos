@@ -27,9 +27,6 @@
     # hung_task_panic eliminado: un bloqueo temporal de disco o Docker no debe
     # reiniciar el servidor entero (el kernel sigue avisando en el log).
 
-    # Tiempo antes de reiniciar después de kernel panic.
-    "kernel.panic" = 10;
-
     # La política de zram (swappiness y page-cluster) está en common-system.nix.
 
     # SysRq disponible para recuperación manual.

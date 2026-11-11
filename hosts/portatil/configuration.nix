@@ -198,12 +198,9 @@
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
 
-  # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
-  # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 1701 9001 ];
-  };
+  # Weylus no está instalado ni declarado en este host. No mantener puertos
+  # 1701/9001 abiertos sin un servicio que los necesite.
+  networking.firewall.enable = true;
 
   # ============================================================
   # CARDWIRE
@@ -245,12 +242,8 @@
     # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
 
     # Sistema
-    btop
     powertop
-    lm_sensors
     smartmontools
-    pciutils
-    usbutils
     cardwire
 
     # Portátil

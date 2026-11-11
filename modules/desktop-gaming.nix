@@ -337,26 +337,16 @@
     protonup-qt
     protontricks
 
-    # Desarrollo y herramientas CLI.
+    # Desarrollo: los toolchains de Python, Node/Bun, Go y Rust
+    # se proporcionan por proyecto mediante los devShells de flake.nix.
     android-studio
-    rustc
-    cargo
-    rustfmt
-    clippy
     vscode
     antigravity-ide
     jetbrains.idea
     opencode
     lmstudio
-    bun
     android-tools
     bashInteractive
-    go
-    nodejs_24
-    python3
-    python3Packages.pip
-    mkdocs
-    rustup
     stdenv.cc
 
     # Contenedores y gestión de AppImage.
@@ -601,16 +591,6 @@
         cmakeFlags =
           (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ]))
           ++ [ "-DWITH_TESTS=OFF" ];
-      });
-    })
-    # Workaround temporal para OpenCode 2.2.5 con Bun 1.4.4.
-    # NixOS/nixpkgs#582675 ya está fusionado, pero la corrección aún no
-    # ha llegado a nixos-unstable. Retirar este override cuando llegue.
-    (final: prev: {
-      opencode = prev.opencode.overrideAttrs (old: {
-        node_modules = old.node_modules.overrideAttrs (_: {
-          outputHash = "sha256-prx9dX7kUvs/E3zopkaPk5LXh3xJAy5sZeum/W8L7cA=";
-        });
       });
     })
     (final: prev: {
