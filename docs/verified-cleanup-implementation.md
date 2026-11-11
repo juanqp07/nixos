@@ -284,6 +284,10 @@ ejemplo Nori) o builds de sistema de manera deliberada.
 El timer `system.autoUpgrade` de Atlas/Pico no hace sincronización Git. Antes de
 esperar que prepare una generación nueva, actualizar/revisar el checkout local,
 comprobar el hash de Git y después revisar `journalctl -u nixos-upgrade.service`.
+Los helpers Fish `nix-up-atlas` y `nix-up-pico` primero ejecutan
+`nixos-rebuild build --flake .#host` localmente; si el build falla, abortan y no
+ejecutan el `switch --target-host`. El cambio remoto solo comienza después de
+un build satisfactorio del toplevel correspondiente.
 
 ## Fuera de alcance
 

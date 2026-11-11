@@ -26,6 +26,14 @@
       set_color brblack
       printf '  Destino: juan@192.168.1.143 · flake .#atlas\n'
       set_color normal
+      command nixos-rebuild build --flake .#atlas
+      set -l build_result $status
+      if test "$build_result" -ne 0
+        popd >/dev/null
+        __kigo_alias_result "$build_result" "Build local de Atlas fallido; no se ha desplegado"
+        return "$build_result"
+      end
+
       command nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --ask-sudo-password
       set -l result $status
       popd >/dev/null
@@ -43,6 +51,14 @@
       set_color brblack
       printf '  Destino: juan@192.168.1.147 · flake .#pico\n'
       set_color normal
+      command nixos-rebuild build --flake .#pico
+      set -l build_result $status
+      if test "$build_result" -ne 0
+        popd >/dev/null
+        __kigo_alias_result "$build_result" "Build local de Pico fallido; no se ha desplegado"
+        return "$build_result"
+      end
+
       command nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password
       set -l result $status
       popd >/dev/null
