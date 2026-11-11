@@ -42,6 +42,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check patch whitespace
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            git diff --check "$PR_BASE_SHA...$GITHUB_SHA"
+          else
+            git diff --check "$PUSH_BEFORE_SHA" "$GITHUB_SHA"
+          fi
+
       - name: Detect Nori package build changes
         id: nori
         if: matrix.host == 'elytra'

@@ -45,6 +45,26 @@ nix build --no-link .#nori
 nix build --no-link .#nori-cli
 ```
 
+## 🧰 Entornos de desarrollo
+
+Los toolchains de los proyectos no se instalan globalmente en los escritorios.
+Se activan bajo demanda desde la raíz del repositorio con los devShells del
+flake, que usan las versiones fijadas en `flake.lock`:
+
+```bash
+nix develop .#python  # Python, uv, Ruff y MkDocs
+nix develop .#node    # Node.js 24, pnpm y Bun
+nix develop .#go      # Go
+nix develop .#rust    # Rust, Cargo, rust-analyzer, rustfmt y Clippy
+nix develop .#java    # JDK 21, Gradle y Kotlin
+```
+
+Al salir del shell con `exit`, el entorno del proyecto deja de estar activo.
+Para trabajar automáticamente al entrar en el directorio, el repositorio ya
+incluye direnv + nix-direnv en el módulo común; puedes usar `direnv allow`
+cuando el proyecto tenga un archivo `.envrc` con `use flake .#python`,
+`use flake .#node`, etc.
+
 ## 🛑 RustDesk en los escritorios (temporalmente deshabilitado)
 
 El cliente y el servicio RustDesk se han retirado temporalmente de Elytra y Titan para evitar sus compilaciones locales mientras se resuelven los problemas del paquete en Nixpkgs. El código del modo privacidad se conserva, pero su módulo no se importa y sus comandos/atajos no están activos. La infraestructura autoalojada de relay `hbbs`/`hbbr` en Atlas no se modifica.
@@ -154,7 +174,7 @@ para mantenimiento), `palco-estado` (diagnóstico BT + audio).
    sudo nixos-rebuild switch --flake .#elytra
    ```
 
-Los hosts `atlas` y `pico` tienen `system.autoUpgrade` activado con `operation = "boot"`: se prepara una generación nueva usando las revisiones fijadas en `flake.lock`, pero no se activa en caliente ni se reinicia automáticamente. Las actualizaciones de paquetes requieren actualizar y revisar el lockfile de forma deliberada; después, despliega la configuración actualizada en la copia local del repositorio de cada servidor. Comprueba los registros con `journalctl -u nixos-upgrade.service` y mantén copias de seguridad de los datos persistentes.
+Los hosts `atlas` y `pico` tienen `system.autoUpgrade` activado con `operation = "boot"`: se prepara una generación nueva usando las revisiones fijadas en `flake.lock`, pero no se activa en caliente ni se reinicia automáticamente. El flake apunta a `path:/home/juan/nixos`: el timer no ejecuta `git pull` ni sincroniza ese checkout con GitHub. Actualiza la copia local de forma explícita y revisada antes de esperar una nueva generación. Comprueba los registros con `journalctl -u nixos-upgrade.service` y mantén copias de seguridad de los datos persistentes.
 ---
 
 ## 🧹 Mantenimiento y Limpieza
@@ -172,7 +192,7 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 
 ## ✅ Validación automática
 
-GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts y ejecuta `nix flake check --no-build --show-trace` en cada pull request y en los cambios que llegan a `main`. Son comprobaciones de evaluación; no sustituyen la compilación completa ni las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
+GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace` en cada pull request y en los cambios que llegan a `main`. Las recetas Nori se construyen cuando cambia alguno de sus archivos o dependencias declaradas. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
 

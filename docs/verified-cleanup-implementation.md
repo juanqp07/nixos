@@ -31,10 +31,10 @@ repositorio. No se despliega ninguna generación desde GitHub.
   abiertos hasta confirmar qué contenedor/servicio los necesita.
 - Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
   el parámetro de arranque `panic=10` permanece en `server-system.nix`.
-- Pico: se retira `juan` de `nix.settings.trusted-users`. La cuenta conserva
-  el grupo `wheel` y la administración con `sudo`; ser trusted-user concede
-  privilegios equivalentes a root en el daemon Nix y no hace falta para el
-  despliegue remoto ejecutado con sudo.
+- Pico: se elimina la declaración explícita de `nix.settings.trusted-users`.
+  El pin de NixOS ya define `[ "root" ]` como valor predeterminado; antes el
+  host añadía `juan`, que habría concedido privilegios equivalentes a root.
+  La cuenta conserva `wheel` y la administración mediante `sudo`.
 - La configuración compartida expresa los umbrales base de earlyoom como
   `lib.mkDefault`; Elytra mantiene 10 % sin recurrir a `mkForce`. El modo
   Gaming de scx-loader es también un default, para que Elytra establezca Auto

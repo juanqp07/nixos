@@ -41,9 +41,6 @@
     max-jobs = 1;
     cores = 1;
 
-    # Solo root es trusted-user. juan administra mediante sudo/wheel;
-    # trusted-users concede privilegios equivalentes a root en el daemon Nix.
-    trusted-users = [ "root" ];
   };
 
   # Límite de registros ajustado al almacenamiento de la ZimaBlade.
