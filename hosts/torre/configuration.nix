@@ -149,5 +149,6 @@
   # GameMode necesita este grupo para autorizar cambios temporales de governor y split-lock.
   users.users.juan.extraGroups = [ "gamemode" ];
 
-  system.stateVersion = "25.11"; 
+  system.stateVersion = "25.11";
 }
+

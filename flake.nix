@@ -24,7 +24,7 @@
     nix-flatpak.url =
       "github:gmodena/nix-flatpak/?ref=latest";
 
-    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";    
+    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, home-manager, home-manager-stable, ... }@inputs:

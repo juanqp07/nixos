@@ -96,7 +96,7 @@
     };
     daemon.settings = {
       "log-driver" = "journald";
-    
+
       features = {
         "containerd-snapshotter" = true;
       };
@@ -507,3 +507,4 @@
   services.fstrim.enable = true;
   system.stateVersion = "25.11";
 }
+

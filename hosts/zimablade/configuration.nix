@@ -53,11 +53,11 @@
   services.netbird.enable = true;
 
   networking.firewall = {
-    enable = true; 
+    enable = true;
     # Pico solo expone SSH a nivel del host. Los puertos publicados por
     # Docker se filtran en FORWARD/DOCKER-USER, no mediante estas reglas INPUT.
     allowedTCPPorts = [ 22 ];
-    allowedUDPPorts = [ ]; 
+    allowedUDPPorts = [ ];
     # Docker no es una interfaz de confianza: los contenedores no deben
     # recibir acceso incondicional a todos los servicios del host.
     trustedInterfaces = [ "wt0" ];
@@ -156,7 +156,7 @@
   ];
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
-  services.thermald.enable = true; 
+  services.thermald.enable = true;
   services.fstrim.enable = true;
   services.smartd.enable = false;
 
@@ -195,5 +195,6 @@
   # --- 7. USUARIO ---
   users.users.juan.extraGroups = [ "docker" "video" "render" ];
 
-  system.stateVersion = "25.11"; 
+  system.stateVersion = "25.11";
 }
+
