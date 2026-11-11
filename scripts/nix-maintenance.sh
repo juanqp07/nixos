@@ -586,7 +586,7 @@ show_closure_sizes() {
     "Calculando el tamaño total de las clausuras NAR" \
     nix path-info --closure-size --human-readable "$BASE_SYSTEM" "$NEW_SYSTEM")"; then
     term_info "Tamaño NAR de cada clausura (no equivale al espacio físico exclusivo ocupado):"
-    printf '%s\\n' "$size_report"
+    printf '%s\n' "$size_report"
   else
     warning "No se pudo obtener el tamaño de las clausuras."
   fi
