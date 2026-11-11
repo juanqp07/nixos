@@ -573,6 +573,25 @@ show_closure_changes() {
   fi
 }
 
+show_closure_sizes() {
+  local size_report=""
+
+  term_section "TAMAÑO DE LAS GENERACIONES"
+  if [[ -z "$BASE_SYSTEM" || ! -d "$BASE_SYSTEM" || -z "$NEW_SYSTEM" || ! -d "$NEW_SYSTEM" ]]; then
+    term_skip "No se pueden calcular ambos tamaños de clausura."
+    return 0
+  fi
+
+  if size_report="$(run_step_capture \
+    "Calculando el tamaño total de las clausuras NAR" \
+    nix path-info --closure-size --human-readable "$BASE_SYSTEM" "$NEW_SYSTEM")"; then
+    term_info "Tamaño NAR de cada clausura (no equivale al espacio físico exclusivo ocupado):"
+    printf '%s\\n' "$size_report"
+  else
+    warning "No se pudo obtener el tamaño de las clausuras."
+  fi
+}
+
 show_store_usage() {
   local label="$1"
 
@@ -716,6 +735,7 @@ build_and_show() {
 
   show_generation_metadata
   show_closure_changes
+  show_closure_sizes
 
   run_step_show "Comprobando la activación sin aplicar cambios" \
     sudo nixos-rebuild dry-activate --no-write-lock-file --flake ".#$HOST"
