@@ -59,11 +59,8 @@
   # Se conservan las mitigaciones de vulnerabilidades de CPU del kernel.
   # Desactivarlas no garantiza más FPS y reduce la protección frente a ciertos ataques.
 
-  boot.kernelParams = [
-    "nvidia-drm.fbdev=1"
-  ];
-  # hardware.nvidia.powerManagement.enable ya declara
-  # NVreg_PreserveVideoMemoryAllocations=1 mediante modprobe.d.
+  # El módulo NVIDIA del pin añade modeset/fbdev y la preservación de VRAM
+  # a modprobe.d cuando PRIME offload, modesetting y powerManagement están activos.
 
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 

@@ -84,14 +84,19 @@ repositorio. No se despliega ninguna generación desde GitHub.
   alimentación del LOQ, ni el comportamiento de PowerDevil/PPD en la sesión
   Plasma actual.
 - Se conservan `hardware.nvidia.powerManagement.finegrained`,
-  Dynamic Boost, PRIME offload y la preservación de memoria de vídeo. Se elimina
-  el parámetro duplicado de kernel: en el nixpkgs fijado,
-  `hardware.nvidia.powerManagement.enable` ya genera
-  `nvidia.NVreg_PreserveVideoMemoryAllocations=1` en la configuración del
-  módulo. Se mantiene `kernelSuspendNotifier`. El dato de RTD3/S0ix no soportado
-  y el consumo de reposo previamente medido requieren comprobar el estado del
+  Dynamic Boost, PRIME offload y la preservación de memoria de vídeo. Se eliminan
+  los parámetros de kernel duplicados `nvidia-drm.fbdev=1` y
+  `NVreg_PreserveVideoMemoryAllocations=1`: el driver del pin para la rama
+  `latest` es 615.78.08, y el módulo NixOS declara modeset/fbdev al habilitar
+  PRIME offload y modesetting (driver >=545), además de PreserveVideoMemoryAllocations
+  al habilitar powerManagement. La configuración del módulo se traduce a
+  `boot.extraModprobeConfig`; no hace falta repetirlos en `boot.kernelParams`.
+  Se mantiene `kernelSuspendNotifier`. El dato de RTD3/S0ix no soportado y el
+  consumo de reposo previamente medido requieren comprobar el estado del
   controlador y la GPU de nuevo antes de cambiar parámetros de energía.
-  Fuente: [módulo NVIDIA del nixpkgs fijado](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/nixos/modules/hardware/video/nvidia.nix#L803-L806).
+  Fuente: [versión latest y criterio de selección del driver en el pin](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/pkgs/os-specific/linux/nvidia-x11/default.nix#L25-L42),
+  [módulo NVIDIA del nixpkgs fijado](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/nixos/modules/hardware/video/nvidia.nix#L799-L806)
+  y [generación de modprobe config](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/nixos/modules/hardware/video/nvidia.nix#L828-L833).
 - Se conservan `wifi.powersave = false` y los parámetros rtw89 que desactivan
   PS/ASPM. Se añadieron por estabilidad; habilitar ahorro en batería o cambiar
   ASPM sin una prueba repetible podría reintroducir cortes o latencia.
