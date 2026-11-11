@@ -40,9 +40,10 @@ jobs:
       - name: Check out repository
         # SHA completo de actions/checkout v6: runtime Node 24 y credenciales
         # Git almacenadas en RUNNER_TEMP en lugar de .git/config.
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check patch whitespace
         env:
@@ -76,7 +77,7 @@ jobs:
           fi
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes

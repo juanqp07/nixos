@@ -267,11 +267,12 @@ volúmenes, redes, logs y eventos, según la versión instalada).
 
 ## CI y mantenimiento de Actions
 
-El workflow usa `actions/checkout` v6 fijado por SHA completo. v6 usa Node 24
-y almacena la credencial temporal de Git fuera de `.git/config`; el workflow
-debe ejecutarse en runners con versión compatible (v2.329.0 o posterior).
-Dependabot revisa semanalmente las Actions y propone PRs con nuevos SHAs, en
-vez de depender de etiquetas de versión mutables.
+El workflow fija `actions/checkout` v6 y `cachix/install-nix-action` v31.11.3
+por SHA completo. Checkout v6 usa Node 24; `persist-credentials = false` evita
+dejar el token de checkout disponible después de la descarga. El runner tiene
+que ser compatible con v6 (v2.329.0 o posterior). Dependabot revisa semanalmente
+las Actions y propone PRs con nuevos SHAs, en vez de depender de etiquetas de
+versión mutables.
 
 ## Build, cache y despliegue
 
