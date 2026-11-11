@@ -20,8 +20,6 @@
     algorithm = "lz4"; # más ligero que zstd para el Celeron
   };
 
-  boot.loader.systemd-boot.configurationLimit = 10;
-
   # --- 2. GRÁFICOS (Intel QuickSync) ---
   hardware.graphics = {
     enable = true;
@@ -43,9 +41,6 @@
     max-jobs = 1;
     cores = 1;
 
-    # Permite que juan reciba cierres Nix compilados en Elytra/Titan.
-    # trusted-users equivale a root: juan ya pertenece al grupo wheel.
-    trusted-users = [ "root" "juan" ];
   };
 
   # Límite de registros ajustado al almacenamiento de la ZimaBlade.
@@ -58,11 +53,14 @@
   services.netbird.enable = true;
 
   networking.firewall = {
-    enable = true; 
-    # Solo puertos esenciales. 53 eliminado (a menos que sea servidor DNS).
-    allowedTCPPorts = [ 22 53 ]; 
-    allowedUDPPorts = [ 53 ]; 
-    trustedInterfaces = [ "wt0" "docker0" ];
+    enable = true;
+    # Pico solo expone SSH a nivel del host. Los puertos publicados por
+    # Docker se filtran en FORWARD/DOCKER-USER, no mediante estas reglas INPUT.
+    allowedTCPPorts = [ 22 ];
+    allowedUDPPorts = [ ];
+    # Docker no es una interfaz de confianza: los contenedores no deben
+    # recibir acceso incondicional a todos los servicios del host.
+    trustedInterfaces = [ "wt0" ];
     checkReversePath = "loose";
   };
 
@@ -121,7 +119,8 @@
   # y se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.arcane-agent = {
-    image = "ghcr.io/getarcaneapp/agent:latest";
+    # Mantener Edge Agent alineado con el Manager estable de Atlas.
+    image = "ghcr.io/getarcaneapp/agent:v2.17.3";
     autoStart = true;
 
     environment = {
@@ -157,17 +156,19 @@
   ];
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
-  services.thermald.enable = true; 
+  services.thermald.enable = true;
   services.fstrim.enable = true;
   services.smartd.enable = false;
 
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = lib.mkForce "--delete-older-than 7d"; 
+    options = "--delete-older-than 7d";
   };
 
-  # Usa las revisiones fijadas en flake.lock. El lock se actualiza y revisa de forma controlada.
+  # Este path usa el checkout local y el flake.lock presente en él. El timer NO
+  # ejecuta git pull ni sincroniza /home/juan/nixos con GitHub: esa sincronización
+  # debe hacerse y revisarse por separado antes de preparar una nueva generación.
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#pico";
@@ -184,19 +185,15 @@
 
   # --- 6. PAQUETES ---
   environment.systemPackages = with pkgs; [
-    intel-gpu-tools 
+    intel-gpu-tools
     libva-utils # vainfo para comprobar la ruta de vídeo
-    lm_sensors
-    ncdu
-    tmux
     lazydocker
     smartmontools
-    git
     htop
   ];
 
   # --- 7. USUARIO ---
   users.users.juan.extraGroups = [ "docker" "video" "render" ];
 
-  system.stateVersion = "25.11"; 
+  system.stateVersion = "25.11";
 }

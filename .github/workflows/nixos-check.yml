@@ -38,9 +38,23 @@ jobs:
           - palco
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        # SHA completo de actions/checkout v6: runtime Node 24 y credenciales
+        # Git almacenadas en RUNNER_TEMP en lugar de .git/config.
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check patch whitespace
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            git diff --check "$PR_BASE_SHA...$GITHUB_SHA"
+          else
+            git diff --check "$PUSH_BEFORE_SHA" "$GITHUB_SHA"
+          fi
 
       - name: Detect Nori package build changes
         id: nori
@@ -63,7 +77,7 @@ jobs:
           fi
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
@@ -100,6 +114,19 @@ jobs:
       - name: Evaluate system closure
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
+
+      - name: Verify Elytra AC/battery profiles
+        if: matrix.host == 'elytra'
+        run: |
+          test "$(nix eval --json '.#nixosConfigurations.elytra.config.services.power-profiles-daemon.enable')" = "true"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.AC.Performance.PowerProfile')" = "performance"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.Battery.Performance.PowerProfile')" = "power-saver"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.LowBattery.Performance.PowerProfile')" = "power-saver"
+
+      - name: Build headless server closure
+        if: matrix.host == 'atlas' || matrix.host == 'pico'
+        run: |
+          nix build --no-link --show-trace ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
 
       - name: Build the declarative Nori desktop package
         if: matrix.host == 'elytra' && steps.nori.outputs.required == 'true'

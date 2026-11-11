@@ -82,7 +82,6 @@
 
   # KDE Plasma 6 como único entorno gráfico, con SDDM como gestor de inicio.
   services.displayManager.sddm.enable = true;
-  services.xserver.displayManager.lightdm.enable = lib.mkForce false;
 
   services.desktopManager.plasma6.enable = true;
 
@@ -136,7 +135,8 @@
     alsa.support32Bit = true;
 
     pulse.enable = true;
-    jack.enable = true;
+    # JACK se usa mediante pw-jack <aplicación> para evitar LD_LIBRARY_PATH global.
+    # services.pipewire.jack.enable está deprecado en el pin actual de nixpkgs.
   };
 
   hardware.bluetooth = {
@@ -179,21 +179,16 @@
   #users.extraGroups.vboxusers.members = [ "juan" ];
 
   # --- PERMISOS DE USUARIO ---
-  users.users.juan = {
-    isNormalUser = true;
-
-    extraGroups = [
-      "wheel"
-      "video"
-      "audio"
-      "lp"
-      "scanner"
-      "docker"
-      "libvirtd"
-      "uinput"
-      "render"
-    ];
-  };
+  users.users.juan.extraGroups = [
+    "video"
+    "audio"
+    "lp"
+    "scanner"
+    "docker"
+    "libvirtd"
+    "uinput"
+    "render"
+  ];
 
 
   # ============================================================
@@ -292,6 +287,10 @@
   # ============================================================
 
   environment.systemPackages = with pkgs; [
+    # CLI y diagnóstico propios de los escritorios.
+    fastfetch
+    nix-output-monitor
+
     # Comunicación, navegación y acceso remoto.
     openvpn
     telegram-desktop
@@ -314,7 +313,8 @@
     wl-clipboard
     libnotify
 
-    # Audio, vídeo y multimedia.
+    # Audio, vídeo y multimedia. pw-jack está disponible para clientes JACK.
+    pipewire.jack
     vlc
     mpv
     yt-dlp
@@ -337,26 +337,16 @@
     protonup-qt
     protontricks
 
-    # Desarrollo y herramientas CLI.
+    # Desarrollo: los toolchains de Python, Node/Bun, Go y Rust
+    # se proporcionan por proyecto mediante los devShells de flake.nix.
     android-studio
-    rustc
-    cargo
-    rustfmt
-    clippy
     vscode
     antigravity-ide
     jetbrains.idea
     opencode
     lmstudio
-    bun
     android-tools
     bashInteractive
-    go
-    nodejs_24
-    python3
-    python3Packages.pip
-    mkdocs
-    rustup
     stdenv.cc
 
     # Contenedores y gestión de AppImage.
@@ -366,7 +356,6 @@
     appimage-run
 
     # Hardware, monitorización y dispositivos.
-    lm_sensors
     openrgb-with-all-plugins
     rpi-imager
   ];
@@ -500,28 +489,23 @@
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 50;
+    # Usa el default upstream del módulo NixOS (50 %); Titan lo sobrescribe.
   };
 
   # scx-loader sustituye al módulo services.scx eliminado en nixpkgs.
-  # Titan usa el modo Gaming de scx_cosmos (-s 700); Elytra lo sobrescribe
-  # a Auto en hosts/portatil/configuration.nix.
+  # Gaming es el default compartido; Elytra selecciona Auto en su host.
   services.scx-loader = {
     enable = true;
 
     config = {
       default_sched = "scx_cosmos";
-      default_mode = "Gaming";
+      default_mode = lib.mkDefault "Gaming";
     };
   };
 
   boot.kernel.sysctl = {
-    # El valor original común era 262144.
-    # Se fuerza 1048576 para Proton y aplicaciones exigentes.
-    "vm.max_map_count" = lib.mkForce 1048576;
-
-    # vm.swappiness y vm.page-cluster se definen en el módulo común,
-    # ya que ambos equipos utilizan zram.
+    # vm.max_map_count ya usa el valor 1048576 predeterminado en este pin NixOS.
+    # vm.swappiness y vm.page-cluster se definen en el módulo común.
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
@@ -601,41 +585,6 @@
         cmakeFlags =
           (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ]))
           ++ [ "-DWITH_TESTS=OFF" ];
-      });
-    })
-    # Workaround temporal para OpenCode 2.2.5 con Bun 1.4.4.
-    # NixOS/nixpkgs#582675 ya está fusionado, pero la corrección aún no
-    # ha llegado a nixos-unstable. Retirar este override cuando llegue.
-    (final: prev: {
-      opencode = prev.opencode.overrideAttrs (old: {
-        node_modules = old.node_modules.overrideAttrs (_: {
-          outputHash = "sha256-prx9dX7kUvs/E3zopkaPk5LXh3xJAy5sZeum/W8L7cA=";
-        });
-      });
-    })
-    (final: prev: {
-      gearlever = prev.gearlever.overridePythonAttrs (old: {
-        makeWrapperArgs = [
-          "--prefix"
-          "PATH"
-          ":"
-          (prev.lib.makeBinPath [
-            prev.file
-            prev._7zz
-            prev.which
-            prev.appimage-run
-            prev.desktop-file-utils
-            prev.gtk4.dev
-            prev.bintools
-            prev.libnotify
-            prev.dwarfs
-            prev.squashfs-tools
-          ])
-        ];
-
-        preFixup = (old.preFixup or "") + ''
-          makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
-        '';
       });
     })
   ];

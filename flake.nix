@@ -24,7 +24,7 @@
     nix-flatpak.url =
       "github:gmodena/nix-flatpak/?ref=latest";
 
-    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";    
+    nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, home-manager, home-manager-stable, ... }@inputs:
@@ -97,14 +97,22 @@
           python = pkgs.mkShell {
             packages = with pkgs; [
               python3
+              python3Packages.pip
               uv
               ruff
+              mkdocs
             ];
           };
           node = pkgs.mkShell {
             packages = with pkgs; [
               nodejs_24
               pnpm
+              bun
+            ];
+          };
+          go = pkgs.mkShell {
+            packages = with pkgs; [
+              go
             ];
           };
           # Java/Kotlin para DAM: ajusta el JDK a la versión que pida el curso.
@@ -120,6 +128,8 @@
               rustc
               cargo
               rust-analyzer
+              rustfmt
+              clippy
               gcc
               pkg-config
             ];

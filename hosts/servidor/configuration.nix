@@ -5,14 +5,13 @@
 
   # --- KERNEL, CGROUPS Y RENDIMIENTO ---
   # cgroupv1 eliminado en kernel 6.x: no se fuerzan flags obsoletos.
-  # Servidor: gobernador performance fijo + irqbalance (reparte red/docker
-  # entre P-cores/E-cores del i5-1250P). Sin scx ni mitigations=off (expuesto).
+  # Servidor: intel_pstate/HWP con governor powersave; irqbalance distribuye
+  # interrupciones entre los P-cores/E-cores del i5-1250P. No se fuerza performance.
   boot.kernelPackages = pkgs.linuxPackages;
   hardware.enableRedistributableFirmware = true;
-  boot.kernelParams = [
-    "intel_pstate=active"
-  ];
 
+  # En Alder Lake, intel_pstate usa el modo activo por defecto cuando HWP está
+  # disponible; no hace falta forzarlo con intel_pstate=active.
   # Servidor: intel_pstate+HWP escala solo (powersave + EPP balance_performance
   # por defecto): 400MHz en idle (fresco/silencioso) y turbo bajo carga.
   # Rendimiento bajo demanda sin el ruido/consumo del governor fijo.
@@ -20,7 +19,7 @@
   services.irqbalance.enable = true;
 
   # --- RED ---
-  networking.networkmanager.enable = true;
+  # NetworkManager ya se habilita en modules/common-system.nix.
   networking.hostName = "atlas";
 
   # Prioriza los servicios Docker permanentes frente a compilaciones del sistema.
@@ -97,7 +96,7 @@
     };
     daemon.settings = {
       "log-driver" = "journald";
-    
+
       features = {
         "containerd-snapshotter" = true;
       };
@@ -273,7 +272,8 @@
     };
 
     arcane = {
-      image = "ghcr.io/getarcaneapp/manager:latest";
+      # Fijar la versión evita que :latest adelante el Manager a la rama v3-next.
+      image = "ghcr.io/getarcaneapp/manager:v2.17.3";
       autoStart = true;
 
       # NixOS gestiona el ciclo de vida; desactivar el updater interno evita
@@ -433,11 +433,6 @@
     after = [ "arcane-network.service" ];
   };
 
-  systemd.tmpfiles.rules = [
-    "d /mnt/datos/AppData/dockge/docker 0755 juan users -"
-    "d /mnt/datos/AppData/dockge/data 0755 juan users -"
-    "d /mnt/datos/AppData/dockge/stacks 0755 juan users -"
-  ];
   # --- ZRAM ---
   zramSwap = {
     enable = true;
@@ -458,8 +453,7 @@
   };
 
   environment.variables = {
-    LANG = "es_ES.UTF-8";
-    LC_ALL = "es_ES.UTF-8";
+    # LANG procede de i18n.defaultLocale en common-system.nix.
     LIBVA_DRIVER_NAME = "iHD";
   };
 
@@ -482,15 +476,16 @@
 
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
-    vim htop ncdu iotop ethtool smartmontools lm_sensors pass gnupg docker-credential-helpers
+    htop iotop ethtool smartmontools pass gnupg docker-credential-helpers
     intel-gpu-tools # intel_gpu_top: verificar QSV/iGPU en jellyfin/immich
     libva-utils # vainfo: comprobar VA-API antes de probar una transcodificación
     lazydocker # gestión TUI de los ~70 contenedores
   ];
 
   # --- ACTUALIZACIONES AUTOMÁTICAS ---
-  # Usa las revisiones fijadas en flake.lock: la actualización del lock se revisa
-  # y despliega de forma controlada, en lugar de resolver una rama distinta cada noche.
+  # Este path usa el checkout local y el flake.lock presente en él. El timer NO
+  # ejecuta git pull ni sincroniza /home/juan/nixos con GitHub: esa sincronización
+  # debe hacerse y revisarse por separado antes de preparar una nueva generación.
   system.autoUpgrade = {
     enable = true;
     flake = "path:/home/juan/nixos#atlas";

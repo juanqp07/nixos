@@ -18,13 +18,16 @@
   # En este portátil, empezar en 10 % permite que earlyoom envíe SIGTERM con
   # más margen; los umbrales SIGKILL implícitos quedan en el 5 %.
   services.earlyoom = {
-    freeMemThreshold = lib.mkForce 10;
-    freeSwapThreshold = lib.mkForce 10;
+    freeMemThreshold = 10;
+    freeSwapThreshold = 10;
   };
 
   # Elytra conserva scx_cosmos en modo Auto (sin argumentos de perfil Gaming).
   # Titan hereda el modo Gaming (-s 700) del módulo compartido.
-  services.scx-loader.config.default_mode = lib.mkForce "Auto";
+  services.scx-loader.config.default_mode = "Auto";
+
+  # Perfiles energéticos AC/batería declarados en PowerDevil (Plasma 6).
+  home-manager.users.juan.imports = [ ../../home/juan/laptop-power.nix ];
 
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
@@ -50,19 +53,17 @@
   # HARDWARE / FIRMWARE
   # ============================================================
 
+  # hardware-configuration.nix habilita el microcódigo mediante
+  # config.hardware.enableRedistributableFirmware (activado aquí).
   hardware.enableRedistributableFirmware = true;
-
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Se conservan las mitigaciones de vulnerabilidades de CPU del kernel.
   # Desactivarlas no garantiza más FPS y reduce la protección frente a ciertos ataques.
 
-  boot.kernelParams = [
-    "nvidia-drm.fbdev=1"
-    "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
-  ];
+  # El módulo NVIDIA del pin añade modeset/fbdev y la preservación de VRAM
+  # a modprobe.d cuando PRIME offload, modesetting y powerManagement están activos.
 
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
@@ -140,8 +141,6 @@
   # ============================================================
 
   networking.networkmanager = {
-    enable = true;
-
     wifi.powersave = false;
     wifi.macAddress = "preserve";
   };
@@ -180,7 +179,7 @@
 
   services.libinput.enable = true;
 
-  services.fstrim.enable = true;
+  # fstrim está habilitado en desktop-gaming.nix.
 
   # Dev remoto (VSCode Remote-SSH al portátil)
   services.openssh.enable = true;
@@ -197,13 +196,6 @@
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
-
-  # Weylus (control remoto por tablet): web 1701/tcp + websocket 9001/tcp.
-  # Sin esto el firewall por defecto de NixOS bloquea el acceso desde fuera.
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 1701 9001 ];
-  };
 
   # ============================================================
   # CARDWIRE
@@ -245,12 +237,8 @@
     # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
 
     # Sistema
-    btop
     powertop
-    lm_sensors
     smartmontools
-    pciutils
-    usbutils
     cardwire
 
     # Portátil

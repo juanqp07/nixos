@@ -24,8 +24,8 @@
     # --- Seguridad de red ---
     # La ruta inversa (rp_filter) se configura en networking.firewall por host:
     # los equipos con VPN necesitan tolerar rutas asimétricas.
-    "net.ipv6.conf.all.forwarding" = 0;
-    "net.ipv4.icmp_echo_ignore_all" = 0;
+    # Keep explicit hardening where it changes the kernel defaults. IPv6
+    # forwarding and ICMP echo replies retain their kernel defaults (0).
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.all.accept_source_route" = 0;
@@ -34,7 +34,9 @@
     # Todos los hosts usan zram; afinar más exige medir presión de RAM y carga.
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
-    "vm.max_map_count" = 262144;
+  } // lib.optionalAttrs (config.networking.hostName == "palco") {
+    # Preservar el valor anterior del host fuera del alcance de esta auditoría.
+    "vm.max_map_count" = lib.mkForce 262144;
   };
 
   # ============================================================
@@ -43,8 +45,9 @@
 
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 5;
-    freeSwapThreshold = 5;
+    # Host-specific thresholds can override these without mkForce.
+    freeMemThreshold = lib.mkDefault 5;
+    freeSwapThreshold = lib.mkDefault 5;
   };
 
   security.pam.loginLimits = [
@@ -145,7 +148,7 @@
     dates = "weekly";
     # 30d en general para no perder rollback si un kernel latest rompe nvidia.
     # pico (zimablade) lo fuerza a 7d por disco pequeño, palco lo desactiva.
-    options = "--delete-older-than 30d";
+    options = lib.mkDefault "--delete-older-than 30d";
   };
 
   # ============================================================
@@ -166,9 +169,7 @@
 
       # Terminal y monitorización
       vim
-      fish
       btop
-      fastfetch
       tmux
 
       # Archivos y búsqueda
@@ -190,7 +191,6 @@
 
       # NixOS
       nvd
-      nix-output-monitor
 
       # Diagnóstico y archivos comprimidos
       stress-ng

@@ -21,11 +21,13 @@
 
   # Permite construir la imagen SD de palco (aarch64) desde la torre.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+  # Firmware redistribuible necesario para AMDGPU y para que la declaración
+  # de microcódigo AMD del hardware-configuration.nix se active por mkDefault.
+  hardware.enableRedistributableFirmware = true;
+
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
   # ---------------------------------------------------------
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-
   # ---------------------------------------------------------
   # 2. GRÁFICOS Y GPU (Radeon RX 6700 XT)
   # ---------------------------------------------------------
@@ -49,7 +51,8 @@
   # scx/gamemode/zram/inotify/bluetooth heredados de desktop-gaming.nix
   # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
   # ---------------------------------------------------------
-  zramSwap.memoryPercent = lib.mkForce 25;
+  # 25 % de capacidad máxima: 8 GiB sobre 32 GiB de RAM, sin reserva física al arranque.
+  zramSwap.memoryPercent = 25;
 
   services.openssh.enable = true;
 
@@ -60,7 +63,7 @@
     openFirewall = true;
   };
 
-  services.fstrim.enable = true;
+  # fstrim está habilitado en desktop-gaming.nix.
   services.smartd.enable = true;
 
   environment.systemPackages = with pkgs; [
@@ -146,5 +149,5 @@
   # GameMode necesita este grupo para autorizar cambios temporales de governor y split-lock.
   users.users.juan.extraGroups = [ "gamemode" ];
 
-  system.stateVersion = "25.11"; 
+  system.stateVersion = "25.11";
 }
