@@ -26,6 +26,9 @@
   # Titan hereda el modo Gaming (-s 700) del módulo compartido.
   services.scx-loader.config.default_mode = "Auto";
 
+  # Perfiles energéticos AC/batería declarados en PowerDevil (Plasma 6).
+  home-manager.users.juan.imports = [ ../../home/juan/laptop-power.nix ];
+
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
 

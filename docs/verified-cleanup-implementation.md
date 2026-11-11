@@ -180,6 +180,206 @@ repositorio. No se despliega ninguna generación desde GitHub.
   dos clientes/editores/reproductores pueden ser alternativas intencionales.
   El uso real no se deduce del hecho de que sus paquetes se solapen.
 
+## Elytra: selección declarativa de perfiles AC/batería
+
+Elytra mantiene una sola pila de energía: `power-profiles-daemon` con
+`thermald`, ambos declarados en `desktop-gaming.nix`. Home Manager importa
+`home/juan/laptop-power.nix` solo desde `hosts/portatil/configuration.nix`,
+y configura `powerdevilrc` con estas asignaciones:
+
+- AC: `performance`, para permitir el presupuesto completo del equipo cuando
+  está conectado.
+- Battery: `power-saver`, para priorizar autonomía.
+- LowBattery: `power-saver`, para no aumentar consumo cuando queda poca carga.
+
+PowerDevil detecta la fuente de alimentación y selecciona el perfil PPD por
+estado. No hace falta añadir TLP, auto-cpufreq, reglas udev ni un servicio
+systemd adicional. La configuración usa `qt.kde.settings` del Home Manager
+fijado y el grupo `[<perfil>][Performance]` definido por el KConfig de KDE.
+
+GameMode continúa independiente: al ejecutar un juego puede solicitar su
+governor `performance`; al salir vuelve a `powersave`. La política PowerDevil
+sigue seleccionando el perfil PPD de AC/batería. Esta combinación no fija un
+límite PL1/PL2 ni demuestra que la dGPU entre en RTD3: eso depende del firmware,
+el driver y de medir el equipo.
+
+Después de activar la generación y entrar en Plasma, comprobar:
+
+```bash
+powerprofilesctl list
+powerprofilesctl get
+grep -n -A2 -E '^\\[(AC|Battery|LowBattery)\\]\\[Performance\\]
+Ejecutar y guardar la salida con cargador conectado y desconectado:
+
+```bash
+for p in /sys/class/power_supply/*; do
+  printf '\n[%s] ' "$p"
+  cat "$p/type" 2>/dev/null || true
+  for f in online status capacity power_now energy_now; do
+    [ ! -r "$p/$f" ] || { printf '%s=' "$f"; cat "$p/$f"; }
+  done
+done
+sudo udevadm monitor --kernel --property --subsystem-match=power_supply
+upower -e
+powerprofilesctl list
+systemctl status power-profiles-daemon thermald --no-pager
+
+grep -H . /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference 2>/dev/null | head
+grep -H . /sys/devices/system/cpu/intel_pstate/{status,no_turbo,max_perf_pct,min_perf_pct} 2>/dev/null
+cpupower frequency-info
+
+nvidia-smi -q -d POWER
+nvidia-smi --query-gpu=name,pstate,power.draw,utilization.gpu --format=csv
+lspci -nnk | grep -A4 -E 'VGA|3D|Display'
+for d in /sys/bus/pci/devices/*; do
+  [ -r "$d/power/runtime_status" ] || continue
+  printf '%s ' "$d"; cat "$d/power/runtime_status"
+done
+
+nmcli -f DEVICE,TYPE,STATE,CONNECTION device
+iw dev
+modinfo rtw89_pci | grep -E 'disable_aspm|parm'
+modinfo rtw89_core | grep -E 'disable_ps_mode|parm'
+grep -H . /sys/module/rtw89_{pci,core}/parameters/* 2>/dev/null
+find /sys/class/power_supply /sys/devices/platform -type f \
+  \( -iname '*charge*' -o -iname '*threshold*' \) -print 2>/dev/null
+lsmod | grep -E 'ideapad|thinkpad|lenovo|wmi'
+```
+
+Medir autonomía y estabilidad con el mismo brillo, refresco, carga y ubicación:
+registrar descarga en W, desconexiones Wi-Fi, latencia/pérdida y eventos del
+kernel durante un periodo comparable. No habilitar ahorro de Wi-Fi ni ASPM
+hasta que la prueba confirme que no reaparecen fallos. Para Dynamic Boost,
+comparar una carga CPU+GPU repetible en AC; no se deduce su eficacia de la
+lectura en reposo.
+
+## Comprobaciones de red antes de cerrar puertos
+
+En Elytra y Titan:
+
+```bash
+sudo ss -lntup
+sudo nft list ruleset
+nmcli -f NAME,TYPE,DEVICE connection show
+nmcli -f GENERAL.DEVICE,GENERAL.STATE,GENERAL.CONNECTION device show
+ip -br address
+ip rule
+ip route show table all
+ip -6 route show table all
+resolvectl status
+netbird status -d
+warp-cli status
+```
+
+Comprobar desde otro dispositivo de la LAN doméstica que siguen accesibles
+Moonlight/Sunshine, Syncthing, KDE Connect, Chromecast/Stremio y los servicios
+que realmente se utilicen. Repetir desde un punto de acceso externo para
+confirmar que no se exponen servicios innecesarios. No usar solo `nmap
+localhost`: no representa el firewall de entrada visto desde otra máquina.
+
+En Pico, antes de cerrar DNS:
+
+```bash
+sudo ss -lntup | grep -E '(:53|:22)\b' || true
+sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
+sudo docker network ls
+```
+
+## Comprobaciones de servidores
+
+Atlas:
+
+```bash
+systemctl status earlyoom docker nixos-upgrade.service --no-pager
+journalctl -u earlyoom -b --no-pager
+docker stats --no-stream
+docker info --format 'log-driver={{.LoggingDriver}}'
+sudo iptables -vnL DOCKER-USER
+sudo ip6tables -vnL DOCKER-USER
+systemctl list-timers --all | grep -E 'nixos-upgrade|fstrim'
+git -C /home/juan/nixos status --short --branch
+git -C /home/juan/nixos rev-parse HEAD
+```
+
+Pico:
+
+```bash
+df -h /
+sudo du -xhd1 /nix /var/lib/docker 2>/dev/null | sort -h
+docker info --format 'log-driver={{.LoggingDriver}}'
+docker inspect arcane-agent --format '{{json .Mounts}}'
+nix show-config | grep -E 'trusted-users|allowed-users'
+sudo ss -lntup
+```
+
+El socket Docker del Arcane Edge Agent es una capacidad administrativa de alto
+impacto; no montar el socket con `:ro` como sustituto de un proxy. Un proxy
+solo debe desplegarse cuando su allowlist incluya y se pruebe cada API necesaria
+para operaciones del agente (descubrimiento, gestión de contenedores, imágenes,
+volúmenes, redes, logs y eventos, según la versión instalada).
+
+## CI y mantenimiento de Actions
+
+El workflow fija `actions/checkout` v6 y `cachix/install-nix-action` v31.11.3
+por SHA completo. Checkout v6 usa Node 24; `persist-credentials = false` evita
+dejar el token de checkout disponible después de la descarga. El runner tiene
+que ser compatible con v6 (v2.329.0 o posterior). Dependabot revisa semanalmente
+las Actions y propone PRs con nuevos SHAs, en vez de depender de etiquetas de
+versión mutables.
+
+## Build, cache y despliegue
+
+La CI evalúa los cinco toplevels y construye las clausuras completas de Atlas y
+Pico, además de construir Nori cuando cambian sus recetas. No construye las
+clausuras completas de escritorio en cada PR: los escritorios tienen grandes clausuras
+(Android Studio, IDEs, multimedia y gaming) y un build simultáneo puede superar
+tiempo o memoria del runner. Para una prueba completa, construir el host que se
+va a desplegar en un runner/estación con recursos suficientes:
+
+```bash
+nix flake check --no-build --show-trace
+nix build --no-link --show-trace .#nixosConfigurations.elytra.config.system.build.toplevel
+# Repetir cambiando el host por titan, atlas o pico.
+```
+
+Nix usa `https://cache.nixos.org` como caché binaria predeterminada. No se añade
+un substituter privado ni un token Cachix a este repositorio; solo tiene sentido
+cuando exista una caché propia que publique cierres de paquetes locales (por
+ejemplo Nori) o builds de sistema de manera deliberada.
+
+El timer `system.autoUpgrade` de Atlas/Pico no hace sincronización Git. Antes de
+esperar que prepare una generación nueva, actualizar/revisar el checkout local,
+comprobar el hash de Git y después revisar `journalctl -u nixos-upgrade.service`.
+Los helpers Fish `nix-up-atlas` y `nix-up-pico` primero ejecutan
+`nixos-rebuild build --flake .#host` localmente; si el build falla, abortan y no
+ejecutan el `switch --target-host`. El cambio remoto solo comienza después de
+un build satisfactorio del toplevel correspondiente.
+
+## Fuera de alcance
+
+No se modifica ninguna configuración ni archivo que pertenezca solo a Palco.
+Los elementos de Palco enumerados en la solicitud permanecen como candidatos
+para una posible limpieza separada. Tampoco se elimina RustDesk Privacy ni se
+borra ningún dato persistente de Dockge/Arcane.
+ \
+  ~/.config/powerdevilrc
+```
+
+El fichero que escribe KDE es `~/.config/powerdevilrc`. Para comprobar el
+perfil realmente seleccionado tras enchufar/desenchufar, ejecutar
+`powerprofilesctl get` en ambos estados y revisar el log de
+`plasma-powerdevil.service` si no cambia. Probar también después de reanudar
+de suspensión; existen versiones de Plasma con incidencias al procesar un cambio
+de AC ocurrido mientras el equipo duerme.
+
+No se fija brillo, refresco, acción de tapa, temporizadores de suspensión ni
+umbral de carga: son preferencias/hardware dependientes. PowerDevil ya permite
+configurarlas por estado cuando el dispositivo las soporta.
+
+Referencias: [PowerDevil: configuración por estados AC/batería](https://docs.kde.org/stable_kf6/en/powerdevil/kcontrol/powerdevil/),
+[KConfig de los perfiles PowerDevil](https://github.com/KDE/powerdevil/blob/master/PowerDevilProfileSettings.kcfg),
+[opción qt.kde.settings del Home Manager fijado](https://github.com/nix-community/home-manager/blob/82ce401aa350502897c3f2e85f384d61cd3b0b6d/modules/misc/qt/kconfig.nix).
+
 ## Comprobaciones necesarias en Elytra antes de diseñar perfiles AC/batería
 
 Ejecutar y guardar la salida con cargador conectado y desconectado:
