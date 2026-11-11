@@ -166,6 +166,7 @@ LOCK_SNAPSHOT=""
 BUILD_OUT_LINK=""
 BASE_SYSTEM=""
 PREVIOUS_SELECTED_SYSTEM=""
+PREVIOUS_BOOTED_SYSTEM=""
 NEW_SYSTEM=""
 INPUTS_CHANGED=no
 PACKAGE_DIFF_AVAILABLE=no
@@ -427,12 +428,21 @@ prepare_report_context() {
 capture_baseline() {
   BASE_SYSTEM=""
   PREVIOUS_SELECTED_SYSTEM=""
+  PREVIOUS_BOOTED_SYSTEM=""
 
+  # /run/current-system representa el sistema en ejecución después de switch.
+  # /run/booted-system conserva la generación con la que arrancó el kernel.
+  if [[ -e /run/current-system ]]; then
+    BASE_SYSTEM="$(readlink -f /run/current-system 2>/dev/null || true)"
+  fi
   if [[ -e /run/booted-system ]]; then
-    BASE_SYSTEM="$(readlink -f /run/booted-system 2>/dev/null || true)"
+    PREVIOUS_BOOTED_SYSTEM="$(readlink -f /run/booted-system 2>/dev/null || true)"
   fi
   if [[ -e /nix/var/nix/profiles/system ]]; then
     PREVIOUS_SELECTED_SYSTEM="$(readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)"
+  fi
+  if [[ -z "$BASE_SYSTEM" || ! -d "$BASE_SYSTEM" ]]; then
+    BASE_SYSTEM="$PREVIOUS_BOOTED_SYSTEM"
   fi
   if [[ -z "$BASE_SYSTEM" || ! -d "$BASE_SYSTEM" ]]; then
     BASE_SYSTEM="$PREVIOUS_SELECTED_SYSTEM"
@@ -441,9 +451,12 @@ capture_baseline() {
 
   term_section "ESTADO INICIAL"
   if [[ -n "$BASE_SYSTEM" ]]; then
-    term_info "Generación arrancada: $BASE_SYSTEM"
+    term_info "Generación en ejecución: $BASE_SYSTEM"
   else
-    term_warning "No se ha podido identificar la generación arrancada."
+    term_warning "No se ha podido identificar la generación en ejecución."
+  fi
+  if [[ -n "$PREVIOUS_BOOTED_SYSTEM" ]]; then
+    term_info "Generación con la que arrancó el kernel: $PREVIOUS_BOOTED_SYSTEM"
   fi
   if [[ -n "$PREVIOUS_SELECTED_SYSTEM" ]]; then
     term_info "Generación seleccionada: $PREVIOUS_SELECTED_SYSTEM"
@@ -475,7 +488,8 @@ system_kernel() {
     kernel_path="$(readlink -f "$system_path/kernel" 2>/dev/null || true)"
   fi
   if [[ -n "$kernel_path" ]]; then
-    basename "$kernel_path"
+    # kernel apunta normalmente a .../<paquete-linux>/bzImage.
+    basename "$(dirname "$kernel_path")"
   else
     printf 'no disponible'
   fi
@@ -488,7 +502,7 @@ show_generation_metadata() {
   if [[ -n "$BASE_SYSTEM" ]]; then
     old_version="$(system_version "$BASE_SYSTEM")"
     old_kernel="$(system_kernel "$BASE_SYSTEM")"
-    term_info "Anterior: $old_version"
+    term_info "Anterior (en ejecución): $old_version"
     term_info "Kernel anterior: $old_kernel"
     term_info "Ruta anterior: $BASE_SYSTEM"
   else
@@ -602,16 +616,18 @@ show_store_usage() {
 }
 
 show_final_system_state() {
-  local selected booted
+  local selected running booted
 
   term_section "ESTADO FINAL DEL SISTEMA"
   selected="$(readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)"
+  running="$(readlink -f /run/current-system 2>/dev/null || true)"
   booted="$(readlink -f /run/booted-system 2>/dev/null || true)"
   [[ -n "$selected" ]] && term_info "Generación seleccionada: $selected"
-  [[ -n "$booted" ]] && term_info "Generación arrancada: $booted"
+  [[ -n "$running" ]] && term_info "Generación en ejecución: $running"
+  [[ -n "$booted" ]] && term_info "Generación con la que arrancó el kernel: $booted"
 
-  if [[ -n "$selected" && -n "$booted" && "$selected" != "$booted" ]]; then
-    warning "La generación seleccionada y la arrancada son distintas; puede quedar un reinicio pendiente."
+  if [[ -n "$selected" && -n "$running" && "$selected" != "$running" ]]; then
+    warning "Hay una generación seleccionada que aún no está en ejecución; el cambio queda pendiente de reinicio."
   fi
 
   if command -v nix-env >/dev/null 2>&1; then
