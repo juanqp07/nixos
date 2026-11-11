@@ -19,6 +19,11 @@ repositorio. No se despliega ninguna generación desde GitHub.
   instalar toolchains en el PATH de todos los proyectos.
 - Elytra: se eliminan de su lista local `btop`, `lm_sensors`, `pciutils` y
   `usbutils`, ya heredados de `common-system.nix`.
+- Elytra y Titan: se retiran declaraciones de microcódigo duplicadas en
+  `configuration.nix`; sus `hardware-configuration.nix` ya declaran
+  `updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware`.
+  Elytra mantiene `hardware.enableRedistributableFirmware = true`; Pico conserva
+  su ajuste explícito porque es distinto del valor heredado.
 - Atlas: se corrige el comentario de CPU (el governor declarado es
   `powersave`, no `performance`), se retira la segunda declaración redundante
   de NetworkManager, `LC_ALL` (el locale común ya configura `LANG`) y los

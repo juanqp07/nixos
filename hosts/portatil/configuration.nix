@@ -50,9 +50,9 @@
   # HARDWARE / FIRMWARE
   # ============================================================
 
+  # hardware-configuration.nix habilita el microcódigo mediante
+  # config.hardware.enableRedistributableFirmware (activado aquí).
   hardware.enableRedistributableFirmware = true;
-
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 

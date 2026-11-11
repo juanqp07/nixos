@@ -24,8 +24,6 @@
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
   # ---------------------------------------------------------
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-
   # ---------------------------------------------------------
   # 2. GRÁFICOS Y GPU (Radeon RX 6700 XT)
   # ---------------------------------------------------------
