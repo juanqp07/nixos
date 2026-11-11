@@ -139,9 +139,10 @@ SPINNER_ACTIVE=no
 
 clear_spinner() {
   if [[ "$SPINNER_ACTIVE" == yes ]]; then
-    # El área de actividad ocupa dos líneas: estado y última salida.
-    # Se restauran ambas sin dejar restos antes del siguiente mensaje.
-    printf '\033[u\033[2K\033[1B\033[2K\033[u' >&2
+    # wait_with_spinner deja el cursor al final de la segunda línea.
+    # Subimos al estado, limpiamos las dos líneas y dejamos el cursor en la
+    # posición inicial para que el siguiente mensaje no herede texto antiguo.
+    printf '\033[1A\r\033[2K\033[1B\r\033[2K\033[1A\r' >&2
     SPINNER_ACTIVE=no
   fi
 }
@@ -205,20 +206,29 @@ wait_with_spinner() {
   local status=0
   local elapsed
   local preview_line preview_width terminal_rows terminal_columns
+  local command_preview
+  local -a command_args=("${@:3}")
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+  # Los comandos de captura (nix eval --raw, por ejemplo) pueden no escribir
+  # nada hasta finalizar. Mostrar el comando desde el primer frame evita que
+  # "En curso" aparezca vacío; cuando haya salida, se sustituye por su última línea.
+  if (("${#command_args[@]}" > 0)); then
+    printf -v command_preview '%q ' "${command_args[@]}"
+    command_preview="${command_preview% }"
+  else
+    command_preview="proceso PID $command_pid"
+  fi
 
   spinner_started="$(get_clock_tenths)"
 
   if [[ -t 2 && "${TERM:-dumb}" != "dumb" && -z "${CI:-}" ]]; then
-    # Guardar la posición para refrescar el estado y la vista previa en sitio.
-    printf '\033[s' >&2
-    SPINNER_ACTIVE=yes
-
     while kill -0 "$command_pid" 2>/dev/null; do
       now_tenths="$(get_clock_tenths)"
       elapsed="$(format_elapsed "$((now_tenths - spinner_started))")"
 
-      # Leer solo la última línea del registro, sin mostrar secuencias ANSI.
+      # Leer la última línea del registro y eliminar ANSI/controles para que
+      # la vista previa no rompa el panel de dos líneas.
       if [[ -n "$log_file" && -s "$log_file" ]]; then
         preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null | \
           sed -E 's/\x1B\[[0-9;?]*[ -/]*[@-~]//g; s/\r/ /g; s/[[:cntrl:]]//g' || true)"
@@ -227,7 +237,7 @@ wait_with_spinner() {
       fi
 
       if [[ -z "$preview_line" ]]; then
-        preview_line="Esperando la primera línea del comando…"
+        preview_line="Ejecutando: $command_preview"
       fi
 
       # Usar el ancho real de la terminal; COLUMNS queda como alternativa.
@@ -243,8 +253,13 @@ wait_with_spinner() {
         preview_line="${preview_line:0:$((preview_width - 1))}…"
       fi
 
-      # El spinner se actualiza en la primera línea y el comando en la segunda.
-      printf '\033[u\033[2K%b  %s%b  En curso · %s\n\033[2K%b    ↳ %s%b' \
+      # El panel ocupa exactamente dos líneas. En cada refresco subimos una
+      # fila con CSI A y volvemos al inicio; así no dependemos de ESC[s/ESC[u
+      # (save/restore), que algunas capturas de terminal no reproducen bien.
+      if [[ "$SPINNER_ACTIVE" == yes ]]; then
+        printf '\033[1A\r' >&2
+      fi
+      printf '\033[2K%b  %s%b  En curso · %s\n\033[2K%b    ↳ %s%b' \
         "$TERM_STYLE_CYAN$TERM_STYLE_BOLD" \
         "${frames[$frame]}" \
         "$TERM_STYLE_RESET" \
@@ -252,6 +267,7 @@ wait_with_spinner() {
         "$TERM_STYLE_MUTED" \
         "$preview_line" \
         "$TERM_STYLE_RESET" >&2
+      SPINNER_ACTIVE=yes
 
       sleep 0.25 || true
       frame=$(((frame + 1) % ${#frames[@]}))
@@ -295,7 +311,7 @@ run_step_internal() {
   "$@" >"$log_file" 2>&1 &
   command_pid=$!
 
-  if wait_with_spinner "$command_pid" "$log_file"; then
+  if wait_with_spinner "$command_pid" "$log_file" "$@"; then
     finished_at="$(date +%s)"
     elapsed="$((finished_at - started_at))"
 
@@ -347,7 +363,7 @@ run_step_capture() {
   "$@" >"$stdout_file" 2>"$stderr_file" &
   command_pid=$!
 
-  if wait_with_spinner "$command_pid" "$stderr_file"; then
+  if wait_with_spinner "$command_pid" "$stderr_file" "$@"; then
     finished_at="$(date +%s)"
     elapsed="$((finished_at - started_at))"
 
@@ -376,7 +392,7 @@ run_step_capture() {
 }
 
 if ! run_step "Validando la configuración de $HOST" \
-  nix eval --raw ".#nixosConfigurations.$HOST.config.networking.hostName"; then
+  nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.networking.hostName"; then
   die "El host '$HOST' no existe o no se puede evaluar en flake.nix."
 fi
 
@@ -384,7 +400,7 @@ get_operation() {
   local operation
   operation="$(run_step_capture \
     "Consultando la estrategia de actualización de $HOST" \
-    nix eval --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
+    nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
     die "No se pudo consultar la estrategia de actualización de $HOST."
   case "$operation" in
     switch|boot) printf '%s' "$operation" ;;
@@ -410,7 +426,16 @@ confirm() {
 
 check_lock_clean() {
   if ! git diff --quiet HEAD -- flake.lock; then
-    die "flake.lock ya contiene cambios. Revísalos o guárdalos antes de actualizar."
+    local lock_status lock_summary
+    lock_status="$(git status --short -- flake.lock || true)"
+    lock_summary="$(git diff --stat HEAD -- flake.lock || true)"
+
+    warning "flake.lock contiene cambios locales respecto a HEAD."
+    [[ -z "$lock_status" ]] || term_info "Estado: $lock_status"
+    [[ -z "$lock_summary" ]] || term_info "$lock_summary"
+    note "Inspección: git diff HEAD -- flake.lock"
+    note "Para conservarlos, crea un commit o guárdalos con: git stash push -m 'flake.lock pendiente' -- flake.lock"
+    die "No se han descartado ni sobrescrito cambios. Revisa flake.lock y vuelve a ejecutar."
   fi
 }
 
@@ -420,7 +445,7 @@ get_gc_args() {
 
   gc_options="$(run_step_capture \
     "Consultando la política de limpieza de $HOST" \
-    nix eval --raw ".#nixosConfigurations.$HOST.config.nix.gc.options")" ||
+    nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.nix.gc.options")" ||
     die "No se pudo consultar la política de limpieza de $HOST."
 
   # Solo se acepta la política de retención declarada para este repositorio.
