@@ -115,6 +115,14 @@ jobs:
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
 
+      - name: Verify Elytra AC/battery profiles
+        if: matrix.host == 'elytra'
+        run: |
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.services.power-profiles-daemon.enable')" = "true"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.AC.Performance.PowerProfile')" = "performance"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.Battery.Performance.PowerProfile')" = "power-saver"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.LowBattery.Performance.PowerProfile')" = "power-saver"
+
       - name: Build headless server closure
         if: matrix.host == 'atlas' || matrix.host == 'pico'
         run: |
