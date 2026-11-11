@@ -135,7 +135,8 @@
     alsa.support32Bit = true;
 
     pulse.enable = true;
-    jack.enable = true;
+    # JACK se usa mediante pw-jack <aplicación> para evitar LD_LIBRARY_PATH global.
+    # services.pipewire.jack.enable está deprecado en el pin actual de nixpkgs.
   };
 
   hardware.bluetooth = {
@@ -312,7 +313,8 @@
     wl-clipboard
     libnotify
 
-    # Audio, vídeo y multimedia.
+    # Audio, vídeo y multimedia. pw-jack está disponible para clientes JACK.
+    pipewire.jack
     vlc
     mpv
     yt-dlp

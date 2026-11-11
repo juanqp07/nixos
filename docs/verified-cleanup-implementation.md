@@ -20,6 +20,14 @@ repositorio. No se despliega ninguna generación desde GitHub.
   instalar toolchains en el PATH de todos los proyectos.
 - Elytra: se eliminan de su lista local `btop`, `lm_sensors`, `pciutils` y
   `usbutils`, ya heredados de `common-system.nix`.
+- Escritorios: se elimina `services.pipewire.jack.enable`, deprecado en el pin
+  de nixpkgs porque inyecta `LD_LIBRARY_PATH` globalmente. Se conserva la
+  compatibilidad JACK instalando el output `pipewire.jack`, que aporta
+  `pw-jack`; lanzar clientes JACK como `pw-jack aplicación` limita el entorno
+  de bibliotecas al proceso que lo necesita. Así se evita una variable global
+  de sesión que afecta a aplicaciones no relacionadas.
+  Referencia: [módulo PipeWire del pin](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/nixos/modules/services/desktops/pipewire/pipewire.nix)
+  y [salida JACK de PipeWire](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/pkgs/by-name/pi/pipewire/package.nix).
 - Elytra y Titan: se retiran declaraciones de microcódigo duplicadas en
   `configuration.nix`; sus `hardware-configuration.nix` ya declaran
   `updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware`.
