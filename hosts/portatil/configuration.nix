@@ -196,10 +196,6 @@
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
 
-  # Weylus no está instalado ni declarado en este host. No mantener puertos
-  # 1701/9001 abiertos sin un servicio que los necesite.
-  networking.firewall.enable = true;
-
   # ============================================================
   # CARDWIRE
   # Workaround temporal para la revisión nixpkgs f4a03c0.

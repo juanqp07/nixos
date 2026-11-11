@@ -8,9 +8,10 @@ repositorio. No se despliega ninguna generación desde GitHub.
 
 - Elytra: se retiran las aperturas TCP 1701/9001 de Weylus. No existe paquete,
   servicio ni declaración de Weylus en los módulos/hosts del repositorio; el
-  firewall continúa habilitado. Sunshine y los demás servicios mantienen sus
-  reglas actuales hasta poder definir una política por interfaz que preserve
-  el acceso LAN doméstico.
+  firewall sigue habilitado por el default `networking.firewall.enable = true`
+  del pin NixOS, así que se elimina la asignación redundante. Sunshine y los
+  demás servicios mantienen sus reglas actuales hasta poder definir una política
+  por interfaz que preserve el acceso LAN doméstico.
 - Escritorios: los toolchains de Python, Node/Bun, Go y Rust dejan de instalarse
   globalmente en `desktop-gaming.nix`. Se ofrecen en devShells declarados en
   `flake.nix`; Rust añade rustfmt/clippy y Go dispone de un shell propio.
@@ -22,8 +23,10 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - Elytra y Titan: se retiran declaraciones de microcódigo duplicadas en
   `configuration.nix`; sus `hardware-configuration.nix` ya declaran
   `updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware`.
-  Elytra mantiene `hardware.enableRedistributableFirmware = true`; Pico conserva
-  su ajuste explícito porque es distinto del valor heredado.
+  Elytra, Atlas y Titan activan `hardware.enableRedistributableFirmware = true`;
+  en Titan esto habilita además el microcódigo AMD que hereda del archivo hardware.
+  Pico conserva su ajuste explícito porque es distinto del valor heredado.
+  Referencia del pin: [all-firmware.nix](https://github.com/NixOS/nixpkgs/blob/f4a03c008967841f2a0b3cb7c436fc6fc31671f6/nixos/modules/hardware/all-firmware.nix).
 - Atlas: se corrige el comentario de CPU (el governor declarado es
   `powersave`, no `performance`), se retira la segunda declaración redundante
   de NetworkManager, `LC_ALL` (el locale común ya configura `LANG`) y los

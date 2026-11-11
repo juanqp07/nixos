@@ -21,6 +21,10 @@
 
   # Permite construir la imagen SD de palco (aarch64) desde la torre.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+  # Firmware redistribuible necesario para AMDGPU y para que la declaración
+  # de microcódigo AMD del hardware-configuration.nix se active por mkDefault.
+  hardware.enableRedistributableFirmware = true;
+
   # ---------------------------------------------------------
   # 1. OPTIMIZACIÓN CPU (Ryzen 5 5600X)
   # ---------------------------------------------------------
