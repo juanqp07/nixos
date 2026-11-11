@@ -117,15 +117,19 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - Atlas mantiene journald limitado por `SystemMaxUse=1G`; Pico mantiene
   `json-file` con rotación. No se unifican drivers sin comparar retención,
   almacenamiento, consulta de logs y consumo real.
-- Atlas y Pico fijan Arcane Manager y Edge Agent a `v2.17.3` en vez de `:latest`.
-  El upstream etiqueta las imágenes estables como `v<versión>`; los builds
-  `next` no actualizan la etiqueta estable. En GHCR, el Manager de desarrollo
-  estaba publicando `v3.0.0-next.73`, mientras la release estable publicada era
-  `v2.17.3`. Se fija la misma release en Manager y Agent para evitar mezclar
-  ramas. Próximas actualizaciones: copia de seguridad de base de datos/volúmenes
-  y datos Arcane; cambiar Manager y Agent juntos, revisar changelog/migraciones,
-  construir la generación y desplegar primero Atlas y después Pico. No usar
-  `:latest` ni `:next` en estos servicios persistentes.
+- Atlas y Pico fijan Arcane Manager y Edge Agent a `v2.17.3` en vez de
+  `:latest`. El `.goreleaser.yaml` de la propia release `v2.17.3` confirma los
+  nombres de imagen GHCR y que ambas se etiquetan como `v<versión>`; los builds
+  `BUILD_NEXT` usan la etiqueta `next` separada. Se elige la misma release para
+  ambos componentes y se evita que una referencia móvil introduzca una versión
+  distinta sin revisar el flake. Próximas actualizaciones: copia de seguridad de
+  base de datos/volúmenes y datos Arcane; cambiar Manager y Agent juntos, revisar
+  changelog/migraciones, construir la generación y desplegar primero Atlas y
+  después Pico. No usar `:latest` ni `:next` en estos servicios persistentes.
+
+  Fuentes upstream: [release v2.17.3](https://github.com/getarcaneapp/arcane/releases/tag/v2.17.3),
+  [Changelog](https://getarcane.app/changelog) y
+  [manifiesto de publicación de imágenes de esa versión](https://github.com/getarcaneapp/arcane/blob/v2.17.3/.goreleaser.yaml).
 - Se conserva `postgres:17-alpine`: fija la versión mayor 17 y permite recibir
   revisiones de seguridad dentro de esa rama; cambiar la versión mayor requiere
   una migración separada.
