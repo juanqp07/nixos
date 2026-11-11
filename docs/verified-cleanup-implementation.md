@@ -117,12 +117,23 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - Atlas mantiene journald limitado por `SystemMaxUse=1G`; Pico mantiene
   `json-file` con rotación. No se unifican drivers sin comparar retención,
   almacenamiento, consulta de logs y consumo real.
-- No se modifican `containerd-snapshotter`, imágenes `:latest`, el socket
-  Docker del agente de Pico, `trustedInterfaces` ni puertos DNS hasta conocer
-  el estado de Arcane/Compose y los requisitos del despliegue.
-  Un bind mount de socket con `:ro` no convierte la API Docker en una API de
-  solo lectura; reducir ese permiso requiere un proxy de socket con allowlist
-  validada contra las operaciones reales del agente.
+- Atlas y Pico fijan Arcane Manager y Edge Agent a `v2.17.3` en vez de `:latest`.
+  El upstream etiqueta las imágenes estables como `v<versión>`; los builds
+  `next` no actualizan la etiqueta estable. En GHCR, el Manager de desarrollo
+  estaba publicando `v3.0.0-next.73`, mientras la release estable publicada era
+  `v2.17.3`. Se fija la misma release en Manager y Agent para evitar mezclar
+  ramas. Próximas actualizaciones: copia de seguridad de base de datos/volúmenes
+  y datos Arcane; cambiar Manager y Agent juntos, revisar changelog/migraciones,
+  construir la generación y desplegar primero Atlas y después Pico. No usar
+  `:latest` ni `:next` en estos servicios persistentes.
+- Se conserva `postgres:17-alpine`: fija la versión mayor 17 y permite recibir
+  revisiones de seguridad dentro de esa rama; cambiar la versión mayor requiere
+  una migración separada.
+- No se modifican `containerd-snapshotter`, el socket Docker del agente de Pico,
+  `trustedInterfaces` ni puertos DNS hasta conocer el estado de Arcane/Compose
+  y los requisitos del despliegue. Un bind mount de socket con `:ro` no convierte
+  la API Docker en una API de solo lectura; reducir ese permiso requiere un
+  proxy con allowlist validada contra las operaciones reales del agente.
 - Se conserva el overlay de DwarFS: la receta del pin todavía activa tests y
   el workaround desactiva pruebas que fallaban en el entorno descrito.
 - Se conserva el overlay de CardWire: la receta del pin aún no contiene la

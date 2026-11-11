@@ -272,7 +272,8 @@
     };
 
     arcane = {
-      image = "ghcr.io/getarcaneapp/manager:latest";
+      # Fijar la versión evita que :latest adelante el Manager a la rama v3-next.
+      image = "ghcr.io/getarcaneapp/manager:v2.17.3";
       autoStart = true;
 
       # NixOS gestiona el ciclo de vida; desactivar el updater interno evita

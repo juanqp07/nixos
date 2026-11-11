@@ -117,7 +117,8 @@
   # y se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
   virtualisation.oci-containers.backend = "docker";
   virtualisation.oci-containers.containers.arcane-agent = {
-    image = "ghcr.io/getarcaneapp/agent:latest";
+    # Mantener Edge Agent alineado con el Manager estable de Atlas.
+    image = "ghcr.io/getarcaneapp/agent:v2.17.3";
     autoStart = true;
 
     environment = {
