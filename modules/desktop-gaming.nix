@@ -354,7 +354,6 @@
     appimage-run
 
     # Hardware, monitorización y dispositivos.
-    lm_sensors
     openrgb-with-all-plugins
     rpi-imager
   ];

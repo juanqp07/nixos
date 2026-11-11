@@ -53,7 +53,10 @@ repositorio. No se despliega ninguna generación desde GitHub.
   construyen en el job existente) para no forzar builds grandes de IDEs y
   multimedia en cada PR.
 - Atlas y Pico: se eliminan de las listas locales algunos paquetes ya heredados
-  de `common-system.nix`.
+  de `common-system.nix`; también se quita `lm_sensors` de `desktop-gaming.nix`
+  porque los escritorios ya lo reciben del módulo común.
+- El devShell Python incluye `pip` además de uv, Ruff y MkDocs, para conservar
+  el flujo de trabajo disponible anteriormente sin instalarlo globalmente.
 - Se elimina el archivo raíz `.conf`, que estaba vacío.
 - Se retira el overlay de OpenCode: el valor de `outputHash` que fijaba era
   idéntico al valor de la derivación de OpenCode en la revisión de nixpkgs
