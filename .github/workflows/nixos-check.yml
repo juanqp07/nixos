@@ -118,7 +118,7 @@ jobs:
       - name: Verify Elytra AC/battery profiles
         if: matrix.host == 'elytra'
         run: |
-          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.services.power-profiles-daemon.enable')" = "true"
+          test "$(nix eval --json '.#nixosConfigurations.elytra.config.services.power-profiles-daemon.enable')" = "true"
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.AC.Performance.PowerProfile')" = "performance"
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.Battery.Performance.PowerProfile')" = "power-saver"
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.LowBattery.Performance.PowerProfile')" = "power-saver"
