@@ -58,9 +58,11 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - El devShell Python incluye `pip` además de uv, Ruff y MkDocs, para conservar
   el flujo de trabajo disponible anteriormente sin instalarlo globalmente.
 - Se elimina el archivo raíz `.conf`, que estaba vacío.
-- Se retira el overlay de OpenCode: el valor de `outputHash` que fijaba era
-  idéntico al valor de la derivación de OpenCode en la revisión de nixpkgs
-  bloqueada por `flake.lock` (`f4a03c008967841f2a0b3cb7c436fc6fc31671f6`).
+- Se retiran los overlays de OpenCode (el hash que fijaba era idéntico al del
+  pin) y Gear Lever. El overlay de Gear Lever copiaba exactamente el
+  `makeWrapperArgs` y el `preFixup` de la receta upstream incluida en
+  `f4a03c008967841f2a0b3cb7c436fc6fc31671f6`, por lo que no alteraba el paquete.
+
 
 ## Elementos preservados deliberadamente
 
@@ -125,8 +127,8 @@ repositorio. No se despliega ninguna generación desde GitHub.
   el workaround desactiva pruebas que fallaban en el entorno descrito.
 - Se conserva el overlay de CardWire: la receta del pin aún no contiene la
   dependencia SQLite añadida por el override local.
-- Se conserva el overlay de Gear Lever: necesita validación funcional del
-  wrapper de AppImage y no es equivalente al paquete upstream sin ese wrapper.
+- El overlay de Gear Lever se elimina porque la receta upstream del pin ya
+  contiene el mismo wrapper y los mismos argumentos.
 - Se conserva `rustdesk-privacy.nix`, sus scripts y su documentación: aunque
   el módulo no se importa, el workflow valida la sintaxis de los scripts y el
   README declara expresamente que se mantienen para posible reactivación.

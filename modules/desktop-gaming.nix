@@ -591,31 +591,6 @@
           ++ [ "-DWITH_TESTS=OFF" ];
       });
     })
-    (final: prev: {
-      gearlever = prev.gearlever.overridePythonAttrs (old: {
-        makeWrapperArgs = [
-          "--prefix"
-          "PATH"
-          ":"
-          (prev.lib.makeBinPath [
-            prev.file
-            prev._7zz
-            prev.which
-            prev.appimage-run
-            prev.desktop-file-utils
-            prev.gtk4.dev
-            prev.bintools
-            prev.libnotify
-            prev.dwarfs
-            prev.squashfs-tools
-          ])
-        ];
-
-        preFixup = (old.preFixup or "") + ''
-          makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
-        '';
-      });
-    })
   ];
 
 }
