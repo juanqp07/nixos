@@ -265,6 +265,14 @@ solo debe desplegarse cuando su allowlist incluya y se pruebe cada API necesaria
 para operaciones del agente (descubrimiento, gestión de contenedores, imágenes,
 volúmenes, redes, logs y eventos, según la versión instalada).
 
+## CI y mantenimiento de Actions
+
+El workflow usa `actions/checkout` v6 fijado por SHA completo. v6 usa Node 24
+y almacena la credencial temporal de Git fuera de `.git/config`; el workflow
+debe ejecutarse en runners con versión compatible (v2.329.0 o posterior).
+Dependabot revisa semanalmente las Actions y propone PRs con nuevos SHAs, en
+vez de depender de etiquetas de versión mutables.
+
 ## Build, cache y despliegue
 
 La CI evalúa los cinco toplevels y construye las clausuras completas de Atlas y
