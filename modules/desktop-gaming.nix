@@ -179,14 +179,14 @@
 
   # --- PERMISOS DE USUARIO ---
   users.users.juan.extraGroups = [
-      "video"
-      "audio"
-      "lp"
-      "scanner"
-      "docker"
-      "libvirtd"
-      "uinput"
-      "render"
+    "video"
+    "audio"
+    "lp"
+    "scanner"
+    "docker"
+    "libvirtd"
+    "uinput"
+    "render"
   ];
 
 

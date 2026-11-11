@@ -111,8 +111,8 @@ repositorio. No se despliega ninguna generación desde GitHub.
   `json-file` con rotación. No se unifican drivers sin comparar retención,
   almacenamiento, consulta de logs y consumo real.
 - No se modifican `containerd-snapshotter`, imágenes `:latest`, el socket
-  Docker del agente de Pico, `trusted-users`, `trustedInterfaces` ni puertos
-  DNS hasta conocer el estado de Arcane/Compose y los requisitos del despliegue.
+  Docker del agente de Pico, `trustedInterfaces` ni puertos DNS hasta conocer
+  el estado de Arcane/Compose y los requisitos del despliegue.
   Un bind mount de socket con `:ro` no convierte la API Docker en una API de
   solo lectura; reducir ese permiso requiere un proxy de socket con allowlist
   validada contra las operaciones reales del agente.

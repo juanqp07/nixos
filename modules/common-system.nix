@@ -34,7 +34,7 @@
     # Todos los hosts usan zram; afinar más exige medir presión de RAM y carga.
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
-    "vm.max_map_count" = 262144;
+    "vm.max_map_count" = lib.mkDefault 262144;
   };
 
   # ============================================================
@@ -146,7 +146,7 @@
     dates = "weekly";
     # 30d en general para no perder rollback si un kernel latest rompe nvidia.
     # pico (zimablade) lo fuerza a 7d por disco pequeño, palco lo desactiva.
-    options = "--delete-older-than 30d";
+    options = lib.mkDefault "--delete-older-than 30d";
   };
 
   # ============================================================
