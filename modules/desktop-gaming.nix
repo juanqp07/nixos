@@ -505,7 +505,9 @@
   boot.kernel.sysctl = {
     # El valor original común era 262144.
     # Se fuerza 1048576 para Proton y aplicaciones exigentes.
-    "vm.max_map_count" = 1048576;
+    # sysctl es de valor único; el perfil de escritorio debe prevalecer
+    # sobre el valor común mediante prioridad explícita.
+    "vm.max_map_count" = lib.mkForce 1048576;
 
     # vm.swappiness y vm.page-cluster se definen en el módulo común,
     # ya que ambos equipos utilizan zram.
