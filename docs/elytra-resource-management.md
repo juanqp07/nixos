@@ -1,119 +1,119 @@
-# Gestión general de recursos de Elytra
+# Gestión de recursos de Elytra
 
-Auditoría y ajustes específicos de **Elytra** (Lenovo LOQ Essential, Intel Core i5-13450HX, RTX 5050 Laptop, 16 GiB RAM, NixOS 26.11). No se modifican Titan ni el módulo compartido que utiliza.
+Auditoría específica de **Elytra** (Lenovo LOQ Essential 15IRX11, Intel Core i5-13450HX, RTX 5050 Laptop, 16 GiB RAM, NixOS 26.11). Los cambios de este documento se limitan al portátil; Titan y los servidores conservan su configuración.
 
-La finalidad es que el equipo se comporte de forma equilibrada con cualquier carga: escritorio KDE, navegador, desarrollo, compilaciones, juegos, contenedores y máquinas virtuales. Ningún ajuste está asociado a una aplicación concreta.
+La prioridad es mantener el escritorio KDE/Wayland fluido mientras se usan navegador, herramientas de desarrollo, compilaciones y juegos. Los registros del 12 de noviembre de 2026 sirven como línea base, no como prueba de que una única pieza sea la causa de todos los bloqueos.
 
-## Cambios propuestos en esta rama
+## Cambios de esta revisión
 
-### 1. earlyoom: recuperar margen antes de una situación crítica
+### 1. Nix: ejecutar compilaciones como carga de fondo
 
-`modules/common-system.nix` configura earlyoom al 5 % de memoria disponible y al 5 % de swap libre. Ese valor se conserva para los demás hosts. Elytra lo sobrescribe localmente con:
+En `hosts/portatil/configuration.nix`:
 
 ```nix
-services.earlyoom = {
-  freeMemThreshold = lib.mkForce 10;
-  freeSwapThreshold = lib.mkForce 10;
+nix.settings = {
+  max-jobs = 2;
+  cores = 2;
 };
+
+nix.daemonCPUSchedPolicy = "idle";
 ```
 
-earlyoom empieza enviando SIGTERM cuando **ambas** condiciones (memoria disponible y swap libre) caen por debajo de sus umbrales. Si no se recupera margen y ambas cruzan los umbrales de terminación, envía SIGKILL. Como no se fijan explícitamente los umbrales SIGKILL, quedan en la mitad de los valores SIGTERM:
+Antes Elytra permitía 4 derivaciones simultáneas y solicitaba 2 cores por derivación: hasta 8 cores de build para los builders que respetasen `NIX_BUILD_CORES`. Ahora se limita a 2 derivaciones y 2 cores por derivación: 4 cores solicitados como máximo.
 
-| Ajuste | SIGTERM | SIGKILL implícito |
-|---|---:|---:|
-| Antes | 5 % memoria + 5 % swap | 2,5 % + 2,5 % |
-| Elytra | 10 % memoria + 10 % swap | 5 % + 5 % |
+Además, `nix.daemonCPUSchedPolicy = "idle"` hace que el daemon y sus procesos de compilación hereden la política de CPU `SCHED_IDLE`. El módulo de NixOS documenta expresamente este modo para equipos de escritorio y portátiles con periodos puntuales de compilación: los builds ceden CPU a las tareas interactivas. La contrapartida es que pueden tardar más si el equipo mantiene una carga interactiva continua.
 
-Esto adelanta la primera señal y da más oportunidad de cerrar procesos de forma ordenada. No limita la RAM de ninguna aplicación. earlyoom sigue necesitando que memoria y swap estén simultáneamente por debajo de sus umbrales.
-
-La configuración se aplica solo a Elytra. La opción `lib.mkForce` es necesaria porque los valores 5 % están declarados en el módulo común con prioridad normal.
-
-Referencia: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/system/earlyoom.nix
-
-### 2. scx_cosmos: usar los valores generales del scheduler
-
-`modules/desktop-gaming.nix` aplica `-s 700` al scheduler de los dos equipos de escritorio. La documentación del ecosistema sched-ext clasifica esa opción dentro del perfil Gaming de scx_cosmos; el perfil Auto no añade argumentos. El scheduler describe su objetivo principal como propósito general para cargas de escritorio y servidor.
-
-Elytra sobrescribe únicamente sus argumentos:
-
-```nix
-services.scx.extraArgs = lib.mkForce [ ];
-```
-
-Así se conservan `scx_cosmos` y sched-ext, pero se evita imponer de forma permanente el quantum del perfil gaming a todas las cargas. No se modifica `desktop-gaming.nix`, por lo que Titan conserva su configuración.
-
-Esto es una elección de equilibrio, no una afirmación de que el perfil automático vaya a dar más FPS en todos los juegos. Se deberá comparar con la configuración anterior en las mismas escenas y medir FPS medios, 1 % lows y consistencia de frametimes antes de considerar otro ajuste.
+No es una cuota rígida: `cores` se traduce en `NIX_BUILD_CORES`, y cada builder debe respetar esa sugerencia. `max-jobs` sí limita cuántas derivaciones se ejecutan en paralelo.
 
 Referencias:
+- https://nix.dev/manual/nix/2.34/advanced-topics/cores-vs-jobs.html
+- https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/system/nix-daemon.nix
+
+### 2. sched-ext / scx_cosmos: conservar el scheduler, con vigilancia
+
+El módulo compartido activa `services.scx-loader` y selecciona `scx_cosmos`; Elytra utiliza el modo `Auto` desde `hosts/portatil/configuration.nix`. No se desactiva en esta revisión.
+
+Hay una incidencia upstream de `scx_cosmos` (#3247) que registró un `runnable task stall` y un hilo de KWin ejecutándose con clase real-time. El mantenedor explicó que el servidor de deadlines de sched_ext del kernel 7.0 mitigaba ese caso. En el `flake.lock` actual de este repositorio, `linuxPackages_latest` resuelve a Linux 7.3, por lo que esa incidencia concreta no justifica retirar ahora sched-ext. Esto no garantiza que cualquier versión o configuración de sched-ext esté libre de regresiones.
+
+Si vuelve a haber una congelación, hay que conservar el journal de `scx_loader` y buscar mensajes `runnable task stall`, reinicios del scheduler o avisos del watchdog antes de atribuir el problema a ZRAM o a NVIDIA.
+
+Referencias:
+- https://github.com/sched-ext/scx/issues/3247
 - https://github.com/sched-ext/scx/blob/main/scheds/rust/scx_cosmos/README.md
-- https://github.com/sched-ext/scx-loader/blob/main/crates/scx_loader/configuration.md
+- https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/linux-kernels.nix
 
-### 3. NVIDIA Dynamic Boost
+### 3. ZRAM: conservarla hasta tener evidencia contraria
 
-Se habilita `hardware.nvidia.dynamicBoost.enable` solo en Elytra. El diagnóstico aportado para la RTX 5050 indicaba que el firmware/controlador anunciaba soporte. NixOS activa con esta opción el servicio `nvidia-powerd`, que redistribuye dinámicamente presupuesto de potencia entre CPU y GPU en portátiles compatibles.
+Elytra tiene `zramSwap.enable = true`, algoritmo `zstd`, una capacidad lógica máxima predeterminada del 50 % (8 GiB) y ningún dispositivo de swap en disco (`swapDevices = [ ]`). Ese 50 % es un límite lógico; no reserva 8 GiB de RAM física al arrancar.
 
-Es una función para repartir potencia bajo carga, no un ajuste de consumo en reposo. No se fuerzan RTD3 ni S0ix porque el controlador informó de que la plataforma no los soporta. Tampoco se presupone que Dynamic Boost aumente siempre la potencia: depende del firmware, la temperatura, el cargador y la carga de trabajo.
+En el informe aportado se observaron aproximadamente 3,3 GiB de datos almacenados en ZRAM y 935 MiB comprimidos. La presión de memoria PSI era 0 en la captura y quedaban unos 3,4 GiB disponibles. No estaba cerca de la capacidad máxima lógica y no hay evidencia de que ZRAM estuviera provocando presión sostenida en ese momento.
 
-Referencia: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/hardware/video/nvidia.nix
+Desactivarla ahora dejaría a Elytra sin swap. Con 16 GiB y cargas de desarrollo, navegador y emuladores, eso podría adelantar situaciones de OOM en lugar de resolver los bloqueos. Se conserva `zstd`, el límite del 50 %, `vm.swappiness = 100` y `vm.page-cluster = 0`. No se cambia el algoritmo o la política de intercambio sin comparar presión de memoria, latencia y compresión durante una carga reproducible.
 
-## Ajustes existentes que se conservan
+Referencia: https://docs.kernel.org/admin-guide/blockdev/zram.html
 
-| Área | Estado actual | Decisión |
+## Decisiones que se mantienen
+
+| Área | Configuración | Motivo |
 |---|---|---|
-| RAM / zram | zstd, tamaño máximo lógico del 50 % de RAM | Mantener; no confundir capacidad de swap con RAM física ocupada |
-| Swappiness | 100 | Mantener mientras zram sea el swap principal |
-| page-cluster | 0 | Mantener para el swap comprimido |
-| systemd-oomd | Umbral predeterminado 60 % PSI durante 30 s | No cambiar: las mediciones no registraron kills ni presión de memoria |
-| Nix builds | 4 trabajos × 2 cores por trabajo | Mantener; es un máximo de concurrencia, no una reserva permanente de CPU |
-| Scheduler | scx_cosmos | Mantener el scheduler; solo retirar el argumento gaming fijo en Elytra |
-| GameMode | habilitado, renice y perfil de rendimiento | Mantener; actúa al solicitar modo de juego |
-| Energía / térmicas | power-profiles-daemon + thermald | Mantener; no se han medido problemas que justifiquen sustituirlos |
-| NVIDIA PRIME | offload + fine-grained habilitados | Mantener; no forzar modos de energía no soportados |
-| Kernel / mitigaciones | linuxPackages_latest y mitigaciones activas | Mantener; no introducir riesgos de seguridad por supuestas ganancias de FPS |
+| earlyoom | Umbrales locales de 10 % para memoria y swap | Mantener margen para actuar antes de una situación crítica; no se observaron kills en el informe |
+| systemd-oomd | Política existente | PSI de memoria a cero en la captura; no hay base para hacerla más agresiva |
+| ZRAM | zstd, máximo lógico 50 % | Hay uso real de swap comprimido y no existe swap en disco |
+| Swappiness / page-cluster | 100 / 0 | Ajustes coherentes con swap comprimido; no se han medido beneficios de alterarlos |
+| Nix builds | 2 trabajos × 2 cores solicitados + `SCHED_IDLE` | Priorizar la respuesta del escritorio durante `nix-maintain` |
+| Scheduler | `scx_cosmos`, modo `Auto` | El kernel fijado es 7.3; se conserva y se vigila el watchdog |
+| Kernel | `linuxPackages_latest` | Mantener el soporte de hardware reciente; la revisión del lockfile resuelve a 7.3 |
+| NVIDIA | PRIME offload y Dynamic Boost | No se ha demostrado un problema de potencia sostenida ni de temperatura |
+| Térmicas | thermald + perfiles PowerDevil | CPU a unos 64 °C en la captura, sin evidencia de throttling |
 
 ### Por qué no se cambia systemd-oomd
 
-El diagnóstico anterior mostró presión de memoria y E/S en 0 %, contadores `oom`/`oom_kill` a cero y ningún registro de eliminación en el journal consultado. Las unidades de la sesión tenían `ManagedOOMMemoryPressure=kill`, pero esa propiedad habilita vigilancia: systemd-oomd espera a que el PSI supere el umbral durante el periodo configurado y solo puede terminar cgroups descendientes elegibles.
+El diagnóstico anterior mostró PSI de memoria a cero y no registró eventos OOM/OOM-kill. Las unidades de la sesión tenían vigilancia de presión de memoria, pero no se observó el umbral mantenido necesario para que systemd-oomd actuara. Se conserva la política actual en vez de terminar procesos de forma más agresiva.
 
-No hay evidencia suficiente para bajar globalmente el umbral o cambiar qué cgroups pueden ser candidatos. Se conserva el comportamiento predeterminado de systemd (60 % durante 30 s) como margen de seguridad y se mejora únicamente el umbral de aviso temprano de earlyoom en Elytra.
+## Hallazgos del diagnóstico del 12 de noviembre de 2026
 
-Referencia: https://www.freedesktop.org/software/systemd/man/262/oomd.conf.d.html
+- **Waterfox fue el proceso más llamativo.** Un proceso `WebExtensions` rondaba 4,2 GiB RSS y aproximadamente el 37 % de un core lógico; otros procesos de Waterfox también consumían CPU y memoria. El porcentaje de `ps` es por core, no porcentaje de toda la CPU del equipo. Esto merece revisión desde `about:processes` y `about:memory`; no se modifica la configuración del navegador a ciegas ni se atribuye el consumo a una extensión sin identificarla.
+- **RAM/ZRAM:** había memoria disponible y PSI de memoria a cero. El uso de ZRAM no demuestra por sí mismo thrashing.
+- **CPU:** la temperatura del paquete rondaba 64 °C, sin señal clara de throttling térmico en esa muestra.
+- **NVIDIA:** la RTX 5050 estaba en P8 con unos 3,5 W en reposo; el límite actual reportado era 50 W (por defecto 35 W, máximo 65 W). No estaba demostrado que se quedase bloqueada en 35 W. Los avisos ACPI/SBIOS del arranque no bastan para justificar overrides de ACPI, cambios de límites de potencia o parámetros forzados.
+- **Almacenamiento:** la raíz estaba al 83 % con unos 76 GB libres. Las muestras no mostraron espera de E/S sostenida que justifique cambiar ahora la optimización del almacén Nix.
 
-### Memoria: por qué se conserva zram al 50 %
+Estos datos son una captura puntual. Para encontrar la causa de un bloqueo hay que repetir la recogida mientras ocurre y conservar los registros del kernel y del scheduler.
 
-En NixOS, `zramSwap.memoryPercent` define la capacidad máxima del dispositivo zram como porcentaje de RAM; no reserva ese porcentaje de RAM física desde el arranque. El 50 % ya es el valor predeterminado del módulo de NixOS. Se mantiene zstd y `vm.swappiness=100`; cambiar compresión o capacidad sin observar `zramctl`, PSI y la carga real sería especulativo.
+## Recogida de datos si vuelve a ocurrir
 
-Referencia: https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/config/zram.nix
+Ejecutar durante la carga problemática:
 
-## Medición y validación en el equipo
+```sh
+zramctl
+swapon --show
+free -h
+vmstat 1
+cat /proc/pressure/cpu
+cat /proc/pressure/memory
+cat /proc/pressure/io
+cat /sys/kernel/sched_ext/state
+systemctl show nix-daemon.service -p CPUSchedulingPolicy
+systemctl status scx_loader.service earlyoom.service systemd-oomd.service
+journalctl -b -k -g 'sched_ext|runnable task stall|NVRM|Xid|oom|Out of memory|i915' --no-pager
+journalctl -b -u scx_loader.service -u nix-daemon.service --no-pager
+```
 
-La evaluación de GitHub verifica la evaluación Nix de las configuraciones, pero no puede medir latencia, consumo o temperatura en el portátil. Antes de activar la generación:
+En Waterfox, abrir `about:processes` y ordenar por CPU y memoria. Anotar la pestaña o extensión asociada al proceso que crece; no basta con mirar el consumo total del navegador.
 
-1. Revisar el diff y confirmar que solo cambia `hosts/portatil/configuration.nix` y este documento.
-2. Construir `.#elytra` localmente sin activar todavía.
-3. Tras desplegar y reiniciar si procede, comprobar:
-   ```sh
-   systemctl status earlyoom systemd-oomd scx nvidia-powerd
-   systemctl show scx -p Environment
-   oomctl
-   zramctl
-   swapon --show
-   cat /proc/pressure/cpu /proc/pressure/memory /proc/pressure/io
-   journalctl -b -u earlyoom -u systemd-oomd -u scx -u nvidia-powerd --no-pager
-   ```
-4. Probar el uso habitual de forma repetible: escritorio y navegador, desarrollo/compilación, juego, y una carga combinada. Registrar temperatura, frecuencias, potencia, RAM disponible, zram usada, PSI y frametimes.
-5. Para valorar el cambio de scheduler, repetir la misma escena con el quantum anterior y con los valores generales, sin cambiar simultáneamente GameMode, perfil energético, resolución ni configuración gráfica. Comparar FPS medios, 1 % lows y variabilidad de frametimes.
-6. Para Dynamic Boost, comparar una carga CPU+GPU con el cargador conectado y las mismas condiciones térmicas. Una lectura en reposo no valida esta función.
+Para comparar el cambio de Nix, repetir el mismo mantenimiento con las mismas entradas del flake. Registrar duración, respuesta del escritorio, CPU, memoria disponible y PSI. La configuración reduce la concurrencia y baja la prioridad de las compilaciones; no promete que una aplicación con un proceso descontrolado deje de consumir recursos.
 
-## Pendiente de investigar con mediciones
+## Pendiente de medir
 
-- El consumo en batería del Wi-Fi: Elytra desactiva el ahorro de energía de NetworkManager y el ahorro de energía de rtw89/ASPM mediante opciones del driver. No se han retirado porque podrían ser mitigaciones de estabilidad; medir primero desconexiones, latencia y autonomía.
-- El consumo en reposo de la RTX 5050: el controlador reportó RTD3/S0ix no soportados y unos 7 W en la medición anterior. No forzar ACPI ni parámetros del módulo sin confirmar soporte del firmware.
-- El paralelismo de Nix y las cargas de VM/contenedores: ajustar solo si se observa presión de CPU o memoria durante compilaciones reales.
+- Identificar qué pestaña o extensión provoca el uso elevado de Waterfox.
+- Comparar latencia y frametimes con el mismo juego y escena, sin cambiar simultáneamente scheduler, GameMode o perfil energético.
+- Medir el uso de ZRAM y PSI durante una compilación que reproduzca el problema.
+- Comprobar el límite de potencia de NVIDIA bajo una carga CPU+GPU sostenida, no solo en reposo.
+- Medir consumo y autonomía del Wi-Fi antes de retirar las opciones de ahorro/ASPM de rtw89.
 
 ## Alcance
 
-- Solo se ajusta Elytra.
-- Titan, Atlas, Pico y Palco no reciben cambios de configuración en esta propuesta.
-- No se asignan límites de memoria ni prioridades especiales a Kilo, Konsole, KDE o aplicaciones concretas.
+- Cambios de configuración limitados a Elytra.
+- Titan conserva sus límites de build, su scheduler y su configuración de ZRAM.
+- No se alteran los límites de potencia NVIDIA, ACPI, kernel parameters de memoria, extensiones de Waterfox ni los parámetros de OOM sin evidencia reproducible.
 - No se ejecuta `nixos-rebuild switch` ni se despliega automáticamente.
