@@ -1,0 +1,95 @@
+name: Update Nori packages
+
+on:
+  schedule:
+    - cron: "23 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-nori-packages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Check and update Nori releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prepare update branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="automation/nori-updates"
+          git fetch origin main
+
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            git fetch origin "$branch"
+            git switch --force-create "$branch" FETCH_HEAD
+            git rebase origin/main
+          else
+            git switch --create "$branch" origin/main
+          fi
+
+      - name: Check the latest stable Nori release
+        id: update
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/update-nori.py
+
+      - name: Install Nix
+        if: steps.update.outputs.changed == 'true'
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Build both updated packages
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          nix build --no-link --show-trace \
+            .#packages.x86_64-linux.nori \
+            .#packages.x86_64-linux.nori-cli
+
+      - name: Commit changes and open or update pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.update.outputs.version }}
+        run: |
+          branch="automation/nori-updates"
+          title="chore(nori): update packages to v$VERSION"
+          body="This PR was generated automatically from the latest stable [Nori release](https://github.com/norifm/nori/releases/tag/v$VERSION).
+
+          It updates the desktop AppImage and CLI package versions and their SHA-256 hashes for both x86_64 and aarch64. The workflow builds both Nix packages before opening or updating this PR."
+
+          git add \
+            nixpkgs/pkgs/by-name/no/nori/package.nix \
+            nixpkgs/pkgs/by-name/no/nori-cli/package.nix
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(nori): update packages to v$VERSION"
+
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 --wrap=0)"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" push --force origin "$branch"
+
+          existing_pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+            --head "$GITHUB_REPOSITORY_OWNER:$branch" --json number --jq '.[0].number // empty')"
+
+          if [[ -n "$existing_pr" ]]; then
+            gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" \
+              --title "$title" --body "$body"
+            echo "Updated existing Nori PR #$existing_pr"
+          else
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+              --title "$title" --body "$body"
+          fi
