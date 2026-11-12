@@ -7,11 +7,18 @@
 
   networking.hostName = "elytra";
 
-  # El portátil tiene 16 GiB; limita la memoria y el impacto interactivo durante compilaciones.
+  # Elytra es un portátil interactivo de 16 GiB: limitar builds concurrentes
+  # reduce los picos de memoria y deja margen al escritorio durante nix-maintain.
+  # Nix solicita hasta 2 cores por derivación y ejecuta como máximo 2 derivaciones:
+  # 4 cores de build solicitados en total (no es una cuota CPU rígida).
   nix.settings = {
-    max-jobs = 4;
+    max-jobs = 2;
     cores = 2;
   };
+
+  # El daemon y sus procesos de build heredan SCHED_IDLE. El kernel solo les
+  # da CPU cuando no compiten con tareas interactivas de prioridad normal.
+  nix.daemonCPUSchedPolicy = "idle";
 
   # Gestión global de memoria para Elytra.
   # common-system.nix conserva los valores generales de los demás hosts (5 %).

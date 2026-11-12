@@ -45,7 +45,7 @@ La presencia de `vainfo` no garantiza que el contenedor tenga acceso a `/dev/dri
 
 ### Límites de recursos y estabilidad compartida
 
-- **Compilaciones Nix:** presupuesto específico: `elytra` 4 trabajos × 2 cores, `titan` 6 × 2, `atlas` 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. El objetivo es que los builds no desplacen el uso principal de cada máquina. Se puede afinar según duración, memoria libre y temperatura real.
+- **Compilaciones Nix:** presupuesto específico: `elytra` 2 trabajos × 2 cores solicitados y política `SCHED_IDLE` heredada por los builders; `titan` 6 × 2, `atlas` 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. En Elytra se prioriza la respuesta del escritorio frente a la duración de los builds. `cores` es una sugerencia (`NIX_BUILD_CORES`), no una cuota CPU rígida.
 - **SSH:** `MaxAuthTries = 3` y `LoginGraceTime = 30s`. La contraseña y la prohibición de acceso SSH directo como root se mantienen para no perder la administración remota antes de desplegar y comprobar claves en todos los hosts.
 - **Escritorios:** Fail2ban para el servicio SSH y registros persistentes limitados a 512 MiB/2 semanas.
 - **RustDesk en los escritorios:** cliente, servicio systemd y modo privacidad deshabilitados temporalmente en Elytra y Titan para evitar compilar el paquete Flutter/Rust mientras se resuelven los fallos del paquete. La infraestructura de relay autoalojada en Atlas permanece intacta. Se podrá reactivar cuando el paquete vuelva a estar disponible de forma fiable desde la caché o su build quede corregido.

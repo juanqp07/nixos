@@ -115,9 +115,15 @@ jobs:
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
 
-      - name: Verify Elytra AC/battery profiles
+      - name: Verify Elytra resource policy
         if: matrix.host == 'elytra'
         run: |
+          test "$(nix eval --json '.#nixosConfigurations.elytra.config.nix.settings.max-jobs')" = "2"
+          test "$(nix eval --json '.#nixosConfigurations.elytra.config.nix.settings.cores')" = "2"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.nix.daemonCPUSchedPolicy')" = "idle"
+          test "$(nix eval --json '.#nixosConfigurations.elytra.config.zramSwap.enable')" = "true"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.zramSwap.algorithm')" = "zstd"
+          test "$(nix eval --raw '.#nixosConfigurations.elytra.config.services.scx-loader.config.default_mode')" = "Auto"
           test "$(nix eval --json '.#nixosConfigurations.elytra.config.services.power-profiles-daemon.enable')" = "true"
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.AC.Performance.PowerProfile')" = "performance"
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.Battery.Performance.PowerProfile')" = "power-saver"
