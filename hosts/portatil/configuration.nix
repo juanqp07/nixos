@@ -198,28 +198,6 @@
 
 
   # ============================================================
-  # CARDWIRE
-  # Workaround temporal para la revisión nixpkgs f4a03c0.
-  # Nixpkgs corrigió CardWire 0.12.3 usando SQLite del sistema:
-  # https://github.com/NixOS/nixpkgs/pull/585159
-  # Aplicado solo a Elytra, que es donde se instala CardWire.
-  # Evita duplicar SQLite cuando la corrección llegue al pin de nixpkgs.
-  # ============================================================
-
-  nixpkgs.overlays = [
-    (final: prev: {
-      cardwire = prev.cardwire.overrideAttrs (old:
-        let
-          buildInputs = old.buildInputs or [ ];
-        in
-        {
-          buildInputs = buildInputs ++ lib.optional (!(lib.elem final.sqlite buildInputs)) final.sqlite;
-        }
-      );
-    })
-  ];
-
-  # ============================================================
   # UTILIDADES
   # ============================================================
 
