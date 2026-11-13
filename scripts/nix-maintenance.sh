@@ -776,6 +776,38 @@ apply_generation() {
   show_final_system_state
 }
 
+# Actualiza ambos ámbitos de Flatpak sin convertir sus fallos en un fallo del
+# mantenimiento NixOS. nix-flatpak (módulo NixOS) instala en system; las
+# instalaciones manuales del usuario viven en --user.
+update_flatpak_apps() {
+  local user_apps
+
+  if ! command -v flatpak >/dev/null 2>&1; then
+    term_skip "Flatpak no está instalado en este host."
+    return 0
+  fi
+
+  section "06" "ACTUALIZACIONES FLATPAK" "Actualizando aplicaciones y runtimes fuera de /nix/store"
+
+  if ! run_step_show "Actualizando aplicaciones Flatpak del sistema" \
+    sudo flatpak update --system --assumeyes --noninteractive; then
+    warning "No se pudieron actualizar los Flatpaks del sistema. El mantenimiento NixOS continúa."
+  fi
+
+  if user_apps="$(flatpak list --user --app --columns=application 2>/dev/null)"; then
+    if [[ -n "${user_apps//[[:space:]]/}" ]]; then
+      if ! run_step_show "Actualizando aplicaciones Flatpak del usuario" \
+        flatpak update --user --assumeyes --noninteractive; then
+        warning "No se pudieron actualizar los Flatpaks del usuario. El mantenimiento NixOS continúa."
+      fi
+    else
+      term_skip "No hay aplicaciones Flatpak instaladas para el usuario."
+    fi
+  else
+    warning "No se pudo consultar la instalación Flatpak del usuario; se omite esa actualización."
+  fi
+}
+
 run_update() {
   section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
   check_lock_clean
@@ -848,6 +880,18 @@ run_maintenance() {
   esac
   APPLY_RESULT="Sin aplicar"
   run_build_apply "$automatic" yes
+
+  case "$APPLY_RESULT" in
+    "Configuración aplicada")
+      update_flatpak_apps
+      ;;
+    "Preparada para el próximo arranque")
+      term_skip "Actualizaciones Flatpak omitidas: la nueva generación todavía no está activa y se aplicará al reiniciar."
+      ;;
+    *)
+      term_skip "Actualizaciones Flatpak omitidas porque no se ha aplicado la nueva configuración."
+      ;;
+  esac
 
   finished_at="$(date +%s)"
   print_summary "$((finished_at - started_at))" "$APPLY_RESULT"
