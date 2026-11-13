@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -39,8 +40,11 @@ class ReleaseAssetTests(unittest.TestCase):
 
 class PackageUpdateTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.package = Path("package.nix")
-        self.source = '''version = "0.8.0";
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.package = Path(self.tempdir.name) / "package.nix"
+        self.package.write_text(
+            '''version = "0.8.0";
 
 sources = {
   "x86_64-linux" = {
@@ -52,7 +56,9 @@ sources = {
     hash = "sha256-old-arm";
   };
 };
-'''
+''',
+            encoding="utf-8",
+        )
 
     def test_update_package_changes_version_and_both_architecture_hashes(self) -> None:
         updated = update_nori.update_package(
