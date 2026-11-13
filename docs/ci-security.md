@@ -5,7 +5,7 @@
 Las pull requests que modifican configuración, scripts, tests o workflows ejecutan dos workflows:
 
 - **NixOS configuration evaluation** evalúa las cinco configuraciones y mantiene las compilaciones selectivas de servidores y Nori.
-- **Code quality and security** ejecuta, sobre los archivos modificados, nixfmt, statix, deadnix, bash -n, ShellCheck, Ruff y Actionlint. También ejecuta los tests unitarios del actualizador de Nori y Gitleaks.
+- **Code quality and security** ejecuta, sobre los archivos modificados, nixfmt, statix, deadnix, bash -n, shfmt, ShellCheck, Ruff y Actionlint. También ejecuta los tests unitarios del actualizador de Nori y Gitleaks.
 
 Las herramientas de análisis se obtienen de la revisión de nixpkgs fijada en flake.lock. Así se evita que un cambio de versión de los linters altere los resultados sin que cambie el lockfile. Gitleaks examina los commits del rango y redacta los secretos que pudiera mostrar en sus diagnósticos.
 
