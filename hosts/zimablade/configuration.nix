@@ -193,6 +193,8 @@
   ];
 
   # --- 7. USUARIO ---
+  # docker permite controlar el daemon como root; el acceso se conserva porque
+  # Arcane Edge Agent y la administración local requieren gestionar el Engine.
   users.users.juan.extraGroups = [ "docker" "video" "render" ];
 
   system.stateVersion = "25.11";
