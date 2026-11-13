@@ -179,8 +179,6 @@
   #users.extraGroups.vboxusers.members = [ "juan" ];
 
   # --- PERMISOS DE USUARIO ---
-  # docker permite controlar el daemon como root. Se conserva por Distrobox,
-  # administración local de contenedores y las herramientas del escritorio.
   users.users.juan.extraGroups = [
     "video"
     "audio"
