@@ -68,6 +68,9 @@ if (("${#shell_files[@]}" > 0)); then
     if ! bash -n "$file"; then
       failed=1
     fi
+    if ! shfmt -d -i 2 "$file"; then
+      failed=1
+    fi
     if ! shellcheck --severity=warning "$file"; then
       failed=1
     fi
