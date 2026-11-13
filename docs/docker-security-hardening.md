@@ -7,8 +7,8 @@
 
 | Equipo | Estado | Cambios de esta rama |
 |---|---|---|
-| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados. |
-| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Edge Agent conectado al Manager de Atlas; sin panel adicional ni puertos entrantes publicados. |
+| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados, incluidos DNS y consolas Technitium. |
+| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Edge Agent y política DOCKER-USER para DNS y consolas Technitium; sin panel adicional de Arcane ni puerto entrante de agente. |
 | Titan | Ya está en el flake como host NixOS. La SSD de juegos y Avahi se corrigieron en PR #18. | No se cambian kernel, AMDGPU, scheduler ni ajustes de overdrive sin pruebas físicas. |
 
 Los paneles de administración de Atlas y Pico no están redirigidos desde el router a Internet, según la información del propietario. Las reglas DOCKER-USER son defensa en profundidad ante una publicación accidental de puertos, no una afirmación de que esos paneles estuvieran expuestos públicamente.
@@ -54,6 +54,7 @@ Tras desplegar, comprobar en ambos hosts el `NetworkMode` y los
 DNS y las consolas desde LAN, NetBird y una red no confiable. Las reglas de
 firewall no sustituyen la política de recursión/ACL configurada dentro de
 Technitium ni las reglas del router.
+
 ## Atlas
 
 ### Arcane y Docker socket

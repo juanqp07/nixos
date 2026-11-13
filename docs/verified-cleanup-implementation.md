@@ -44,14 +44,16 @@ repositorio. No se despliega ninguna generación desde GitHub.
   que `path:/home/juan/nixos` apunta a un checkout local y no hace `git pull`.
   El timer no mantiene sincronizado el repositorio con GitHub.
 - Atlas y Pico: Technitium DNS se ejecuta como contenedor Docker, no como
-  servicio DNS nativo declarado en NixOS. En Atlas, 53/tcp y 53/udp no están
-  abiertos en INPUT y sí figuran en `PRIVATE_PORTS` de DOCKER-USER: LAN y
-  NetBird conservan acceso y otros orígenes quedan bloqueados. En Pico, INPUT
-  solo abre SSH y no hay una política DOCKER-USER específica para DNS declarada
-  en el flake. Las publicaciones bridge usan el forwarding de Docker; si el
-  contenedor cambia a `network_mode: host`, hay que revisar INPUT. El modo de
-  red y los mapeos Compose deben comprobarse en los hosts, porque no están
-  versionados en este repositorio.
+  servicio DNS nativo declarado en NixOS. En ambos hosts, INPUT no abre DNS
+  porque el Compose compartido publica los puertos mediante Docker bridge.
+  Atlas protege en `ATLAS-DOCKER-PRIVATE` DNS 53/tcp+udp y las consolas
+  8665/tcp y 53443/tcp. Pico añade la unidad
+  `pico-technitium-docker-firewall`, que instala la cadena
+  `PICO-TECHNITIUM-PRIVATE` para proteger los mismos puertos desde redes no
+  confiables y mantener acceso desde LAN/NetBird. Los Compose no están
+  versionados en el flake: el modo bridge se confirmó mediante `docker inspect`
+  en Atlas y debe comprobarse en Pico después del despliegue. Si se cambia a
+  `network_mode: host`, revisar INPUT porque DOCKER-USER no filtra ese tráfico.
 - Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
   el parámetro de arranque `panic=10` permanece en `server-system.nix`.
 - Pico: se elimina la declaración explícita de `nix.settings.trusted-users`.
@@ -168,8 +170,9 @@ repositorio. No se despliega ninguna generación desde GitHub.
   una migración separada.
 - No se modifican `containerd-snapshotter`, el socket Docker del agente de Pico
   ni los mapeos de puertos de Technitium DNS: sus Compose externos no forman
-  parte del flake y su modo de red/publicación debe comprobarse antes de ajustar
-  el firewall. En Pico se elimina `docker0` de `trustedInterfaces`: el módulo
+  parte del flake. El firewall se limita a los puertos publicados conocidos y
+  debe revisarse si cambia el Compose. En Pico se elimina `docker0` de
+  `trustedInterfaces`: el módulo
   de firewall de NixOS acepta incondicionalmente el tráfico recibido por una
   interfaz marcada como confiable. El agente usa el socket Docker y establece
   una conexión saliente con Atlas, así que no necesita esa excepción; se
@@ -313,12 +316,15 @@ que realmente se utilicen. Repetir desde un punto de acceso externo para
 confirmar que no se exponen servicios innecesarios. No usar solo `nmap
 localhost`: no representa el firewall de entrada visto desde otra máquina.
 
-Auditar el contenedor Technitium DNS en Pico antes de cambiar el firewall:
+Después de desplegar en Pico, verificar el contenedor y la cadena de Technitium:
 
 ```bash
 sudo ss -lntup | grep -E '(:53|:22)\b' || true
 sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
 sudo docker network ls
+sudo iptables -vnL DOCKER-USER
+sudo iptables -vnL PICO-TECHNITIUM-PRIVATE
+sudo ip6tables -vnL PICO-TECHNITIUM-PRIVATE
 ```
 
 ## Comprobaciones de servidores
@@ -486,12 +492,15 @@ que realmente se utilicen. Repetir desde un punto de acceso externo para
 confirmar que no se exponen servicios innecesarios. No usar solo `nmap
 localhost`: no representa el firewall de entrada visto desde otra máquina.
 
-Auditar el contenedor Technitium DNS en Pico antes de cambiar el firewall:
+Después de desplegar en Pico, verificar el contenedor y la cadena de Technitium:
 
 ```bash
 sudo ss -lntup | grep -E '(:53|:22)\b' || true
 sudo docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
 sudo docker network ls
+sudo iptables -vnL DOCKER-USER
+sudo iptables -vnL PICO-TECHNITIUM-PRIVATE
+sudo ip6tables -vnL PICO-TECHNITIUM-PRIVATE
 ```
 
 ## Comprobaciones de servidores

@@ -10,8 +10,9 @@ Este documento describe el endurecimiento de red y acceso Docker de Atlas declar
 - La restricción se instala en `DOCKER-USER`, ya que los puertos publicados por Docker pueden saltarse las reglas normales de INPUT de NixOS.
 - No se filtran los puertos públicos de Zoraxy (80/443), SSH (22), RustDesk, Syncthing ni Minecraft (25565).
 
-La lista protegida incluye Technitium DNS (53/tcp y 53/udp), IPFS RPC (5553),
-Gluetun API/proxies (8001, 1800, 8888), Zoraxy Admin (8000), Arcane (3552),
+La lista protegida incluye Technitium DNS (53/tcp y 53/udp), su consola web
+HTTP (8665/tcp) y HTTPS (53443/tcp), IPFS RPC (5553), Gluetun API/proxies
+(8001, 1800, 8888), Zoraxy Admin (8000), Arcane (3552),
 paneles de administración y puertos HTTP directos de aplicaciones. Para DNS,
 LAN y NetBird conservan acceso antes de la regla de bloqueo; otros orígenes
 quedan bloqueados por `DOCKER-USER`. Esto presupone publicación Docker mediante

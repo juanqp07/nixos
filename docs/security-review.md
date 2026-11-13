@@ -22,9 +22,9 @@ El firewall del host permite actualmente:
 
 Se retiraron TCP/UDP 53 de `networking.firewall.allowed*Ports`: Technitium
 DNS se ejecuta como contenedor, no como servicio DNS nativo declarado en NixOS.
-El puerto 53 continúa en `PRIVATE_PORTS` de DOCKER-USER: LAN
-(`192.168.1.0/24`) y NetBird (`wt0`) conservan acceso, mientras que otros
-orígenes quedan bloqueados por esta política.
+`ATLAS-DOCKER-PRIVATE` filtra DNS 53/tcp+udp y las consolas HTTP 8665/tcp y
+HTTPS 53443/tcp: LAN (`192.168.1.0/24`) y NetBird (`wt0`) conservan acceso,
+mientras que otros orígenes quedan bloqueados por esta política.
 
 Esta explicación del forwarding presupone que el Compose publica DNS mediante
 una red bridge. Si Technitium usa `network_mode: host`, el tráfico llega a
