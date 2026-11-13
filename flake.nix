@@ -19,18 +19,35 @@
       inputs.nixpkgs.follows = "nixpkgs-stable";
     };
 
+    # Gestión declarativa de secretos cifrados con SOPS + age.
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
-    nix-flatpak.url =
-      "github:gmodena/nix-flatpak/?ref=latest";
+    nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, home-manager, home-manager-stable, ... }@inputs:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixpkgs-stable,
+      nix-flatpak,
+      nixos-hardware,
+      home-manager,
+      home-manager-stable,
+      sops-nix,
+      ...
+    }@inputs:
     let
       # pkgsInput: nixpkgs (unstable) o nixpkgs-stable según el equipo.
-      mkHost = pkgsInput: homeManagerInput: hostName: system: extraModules:
+      mkHost =
+        pkgsInput: homeManagerInput: hostName: system: extraModules:
         pkgsInput.lib.nixosSystem {
           inherit system;
 
@@ -42,50 +59,53 @@
             ./modules/common-system.nix
             homeManagerInput.nixosModules.home-manager
             ./modules/home-manager.nix
+            sops-nix.nixosModules.sops
+            ./modules/sops-secrets.nix
             ./hosts/${hostName}/configuration.nix
-          ] ++ extraModules;
+          ]
+          ++ extraModules;
         };
     in
     {
-  nixosConfigurations = {
-    elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
-      ./modules/desktop-gaming.nix
-      nix-flatpak.nixosModules.nix-flatpak
-    ];
+      nixosConfigurations = {
+        elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
+          ./modules/desktop-gaming.nix
+          nix-flatpak.nixosModules.nix-flatpak
+        ];
 
-    titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
-      ./modules/desktop-gaming.nix
-      nix-flatpak.nixosModules.nix-flatpak
-    ];
+        titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
+          ./modules/desktop-gaming.nix
+          nix-flatpak.nixosModules.nix-flatpak
+        ];
 
-    atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
-      ./modules/server-system.nix
-    ];
+        atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
+          ./modules/server-system.nix
+        ];
 
-    pico = mkHost nixpkgs-stable home-manager-stable "zimablade" "x86_64-linux" [
-      ./modules/server-system.nix
-    ];
+        pico = mkHost nixpkgs-stable home-manager-stable "zimablade" "x86_64-linux" [
+          ./modules/server-system.nix
+        ];
 
-    palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
-      nixos-hardware.nixosModules.raspberry-pi-4
-      "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-      ./modules/palco-audio.nix
-    ];
-  };
+        palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
+          nixos-hardware.nixosModules.raspberry-pi-4
+          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ./modules/palco-audio.nix
+        ];
+      };
 
       # Paquete declarativo para Nori (AppImage oficial + WebKitGTK 4.1).
       packages.x86_64-linux.nori =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix { };
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix
+          { };
 
       # Cliente de terminal de Nori, empaquetado con sus dependencias FHS.
       packages.x86_64-linux.nori-cli =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori-cli.nix { };
+        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori-cli.nix
+          { };
 
-      formatter.x86_64-linux =
-        nixpkgs.legacyPackages.x86_64-linux.nixfmt;
+      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
-      formatter.aarch64-linux =
-        nixpkgs.legacyPackages.aarch64-linux.nixfmt;
+      formatter.aarch64-linux = nixpkgs.legacyPackages.aarch64-linux.nixfmt;
 
       # devShells por proyecto: `nix develop .#python` etc. o auto con direnv.
       # Evitan meter toolchains globales en systemPackages.
@@ -132,6 +152,14 @@
               clippy
               gcc
               pkg-config
+            ];
+          };
+          # Herramientas para cifrar/editar secretos sin instalarlas globalmente.
+          secrets = pkgs.mkShell {
+            packages = with pkgs; [
+              sops
+              age
+              ssh-to-age
             ];
           };
         };

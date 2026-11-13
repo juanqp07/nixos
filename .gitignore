@@ -1,3 +1,9 @@
 result
 .vscode/
 .kilo
+
+# Claves privadas age/SOPS y volcados descifrados locales
+.age/
+**/keys.txt
+*.decrypted
+*.plain.env
