@@ -22,8 +22,7 @@
       };
     };
 
-
-  # --- ARCANE ---
+    # --- ARCANE ---
     oci-containers = {
       backend = "docker";
 
@@ -144,7 +143,10 @@
             DOCKER_HOST = "tcp://arcane-docker-proxy:2375";
           };
 
-          dependsOn = [ "arcane-postgres" "arcane-docker-proxy" ];
+          dependsOn = [
+            "arcane-postgres"
+            "arcane-docker-proxy"
+          ];
 
           extraOptions = [
             "--network=arcane-net"
@@ -178,7 +180,6 @@
         };
       };
     };
-
 
   };
 
@@ -260,7 +261,6 @@
           fi
         '';
       };
-
 
       # Crear la red Docker privada antes de iniciar Arcane, el proxy y PostgreSQL.
       arcane-network = {
