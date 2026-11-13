@@ -28,8 +28,8 @@
 
 
     journald.extraConfig = ''
-    SystemMaxUse=1G
-    MaxRetentionSec=2week
+      SystemMaxUse=1G
+      MaxRetentionSec=2week
   '';
 
 
@@ -37,42 +37,42 @@
 
 
     fail2ban = {
-    enable = true;
-
-    maxretry = 3;
-    bantime = "24h";
-
-    bantime-increment = {
       enable = true;
-      rndtime = "15m";
-      overalljails = true;
-      maxtime = "90d";
-      multipliers = "1 2 4 8 16 32 64";
-    };
 
-    jails = {
-      sshd = {
-        enabled = true;
-        filter = "sshd[mode=aggressive]";
+      maxretry = 3;
+      bantime = "24h";
 
-        settings = {
-          maxretry = 3;
-          findtime = "10m";
+      bantime-increment = {
+        enable = true;
+        rndtime = "15m";
+        overalljails = true;
+        maxtime = "90d";
+        multipliers = "1 2 4 8 16 32 64";
+      };
+
+      jails = {
+        sshd = {
+          enabled = true;
+          filter = "sshd[mode=aggressive]";
+
+          settings = {
+            maxretry = 3;
+            findtime = "10m";
+          };
         };
       };
     };
-  };
     openssh = {
-    enable = true;
-    settings.PermitRootLogin = "no";
-    # Servidor secundario: login con contraseña permitido (igual que pico).
-    settings.PasswordAuthentication = true;
-  };
+      enable = true;
+      settings.PermitRootLogin = "no";
+      # Servidor secundario: login con contraseña permitido (igual que pico).
+      settings.PasswordAuthentication = true;
+    };
 
     thermald.enable = true;
-  # SMART: aviso temprano de fallo de disco (complementa a beszel).
+    # SMART: aviso temprano de fallo de disco (complementa a beszel).
     smartd.enable = true;
-  # TRIM semanal para el NVMe (desktops y titan ya lo tienen).
+    # TRIM semanal para el NVMe (desktops y titan ya lo tienen).
     fstrim.enable = true;
   };
 
