@@ -19,11 +19,62 @@
   # por defecto): 400MHz en idle (fresco/silencioso) y turbo bajo carga.
   # Rendimiento bajo demanda sin el ruido/consumo del governor fijo.
   powerManagement.cpuFreqGovernor = "powersave";
-  services.irqbalance.enable = true;
-
   # --- RED ---
   # NetworkManager ya se habilita en modules/common-system.nix.
   networking.hostName = "atlas";
+
+  services = {
+    irqbalance.enable = true;
+
+
+    journald.extraConfig = ''
+    SystemMaxUse=1G
+    MaxRetentionSec=2week
+  '';
+
+
+    netbird.enable = true;
+
+
+    fail2ban = {
+    enable = true;
+
+    maxretry = 3;
+    bantime = "24h";
+
+    bantime-increment = {
+      enable = true;
+      rndtime = "15m";
+      overalljails = true;
+      maxtime = "90d";
+      multipliers = "1 2 4 8 16 32 64";
+    };
+
+    jails = {
+      sshd = {
+        enabled = true;
+        filter = "sshd[mode=aggressive]";
+
+        settings = {
+          maxretry = 3;
+          findtime = "10m";
+        };
+      };
+    };
+  };
+    openssh = {
+    enable = true;
+    settings.PermitRootLogin = "no";
+    # Servidor secundario: login con contraseña permitido (igual que pico).
+    settings.PasswordAuthentication = true;
+  };
+
+    thermald.enable = true;
+  # SMART: aviso temprano de fallo de disco (complementa a beszel).
+    smartd.enable = true;
+  # TRIM semanal para el NVMe (desktops y titan ya lo tienen).
+    fstrim.enable = true;
+  };
 
   # Prioriza los servicios Docker permanentes frente a compilaciones del sistema.
   nix.settings = {
@@ -32,14 +83,7 @@
   };
 
   # Docker usa journald como backend; limita el espacio de los registros persistentes.
-  services.journald.extraConfig = ''
-    SystemMaxUse=1G
-    MaxRetentionSec=2week
-  '';
-
   # Red privada con el resto de máquinas (interfaz wt0).
-  services.netbird.enable = true;
-
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [
@@ -72,38 +116,6 @@
     # a LAN, filtra por interfaz con interfaces.wt0.allowed* en vez de global.
   };
 
-  services.fail2ban = {
-    enable = true;
-
-    maxretry = 3;
-    bantime = "24h";
-
-    bantime-increment = {
-      enable = true;
-      rndtime = "15m";
-      overalljails = true;
-      maxtime = "90d";
-      multipliers = "1 2 4 8 16 32 64";
-    };
-
-    jails = {
-      sshd = {
-        enabled = true;
-        filter = "sshd[mode=aggressive]";
-
-        settings = {
-          maxretry = 3;
-          findtime = "10m";
-        };
-      };
-    };
-  };
-  services.openssh = {
-    enable = true;
-    settings.PermitRootLogin = "no";
-    # Servidor secundario: login con contraseña permitido (igual que pico).
-    settings.PasswordAuthentication = true;
-  };
   # --- AGENTE GPG ---
   programs.gnupg.agent = {
     enable = true;
@@ -194,10 +206,5 @@
     randomizedDelaySec = "45min";
   };
 
-  services.thermald.enable = true;
-  # SMART: aviso temprano de fallo de disco (complementa a beszel).
-  services.smartd.enable = true;
-  # TRIM semanal para el NVMe (desktops y titan ya lo tienen).
-  services.fstrim.enable = true;
   system.stateVersion = "25.11";
 }
