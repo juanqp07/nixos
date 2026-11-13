@@ -82,15 +82,25 @@ jobs:
             echo "has_changes=$has_changes"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Find existing Nori pull request
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          existing_pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
+            --head "$GITHUB_REPOSITORY_OWNER:$BRANCH" --json number --jq '.[0].number // empty')"
+          echo "number=$existing_pr" >> "$GITHUB_OUTPUT"
+
       - name: Install Nix
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.changes.outputs.has_changes == 'true' && (steps.changes.outputs.working_changes == 'true' || steps.pull-request.outputs.number == '')
         uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
       - name: Build both updated packages
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.changes.outputs.has_changes == 'true' && (steps.changes.outputs.working_changes == 'true' || steps.pull-request.outputs.number == '')
         run: |
           nix build --no-link --show-trace \
             .#packages.x86_64-linux.nori \
@@ -126,6 +136,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.branch.outputs.branch }}
+          PR_NUMBER: ${{ steps.pull-request.outputs.number }}
           VERSION: ${{ steps.update.outputs.version }}
         run: |
           set -Eeuo pipefail
@@ -134,8 +145,7 @@ jobs:
 
           It updates the desktop AppImage and CLI package versions and their SHA-256 hashes for both x86_64 and aarch64. The workflow builds both Nix packages before creating or updating this PR."
 
-          existing_pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open \
-            --head "$GITHUB_REPOSITORY_OWNER:$BRANCH" --json number --jq '.[0].number // empty')"
+          existing_pr="$PR_NUMBER"
 
           if [[ -n "$existing_pr" ]]; then
             gh pr edit "$existing_pr" --repo "$GITHUB_REPOSITORY" \
