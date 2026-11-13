@@ -17,7 +17,7 @@ IMAGE_FILES = (
     ROOT / "hosts/zimablade/configuration.nix",
 )
 IMAGE_LINE = re.compile(
-    r'^(?P<prefix>\s*image\s*=\s*")(?P<reference>[^"]+)(?P<suffix>";)$',
+    r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")(?P<reference>[^"]+)(?P<suffix>";)$',
     re.MULTILINE,
 )
 DIGEST_PATTERN = re.compile(r"sha256:[0-9a-f]{64}")
@@ -134,7 +134,7 @@ def update_image_references(
 
     def replace(match: re.Match[str]) -> str:
         reference = match.group("reference")
-        repository, tag, old_digest = parse_image_reference(reference)
+        repository, tag, _ = parse_image_reference(reference)
         new_digest = resolve(repository, tag)
         if not DIGEST_PATTERN.fullmatch(new_digest):
             raise ValueError(
