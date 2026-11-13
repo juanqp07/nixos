@@ -1,4 +1,10 @@
-{ config, pkgs, lib, inputs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 {
   imports = [ ./hardware-configuration.nix ];
@@ -24,7 +30,7 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # VA-API/media path; verify with vainfo on this GPU
+      intel-media-driver # VA-API/media path; verify with vainfo on this GPU
       intel-compute-runtime-legacy1 # OpenCL for Gen8/Gen9/Gen11 (Apollo Lake is Gen9)
       libvdpau-va-gl
     ];
@@ -43,30 +49,15 @@
 
   };
 
-  # Límite de registros ajustado al almacenamiento de la ZimaBlade.
-  services.journald.extraConfig = ''
-    SystemMaxUse=256M
-    MaxRetentionSec=1week
-  '';
+  # Servicios del host.
+  services = {
+    journald.extraConfig = ''
+      SystemMaxUse=256M
+      MaxRetentionSec=1week
+    '';
 
-  # Red privada con el resto de máquinas (interfaz wt0).
-  services.netbird.enable = true;
-
-  networking.firewall = {
-    enable = true;
-    # Technitium DNS se ejecuta como contenedor Docker en Pico, fuera de esta
-    # declaración NixOS. Este firewall INPUT solo abre SSH; si Compose publica
-    # DNS mediante bridge, el tráfico va por el forwarding de Docker, no por
-    # estas reglas INPUT. Si se usa network_mode: host, revisar INPUT.
-    allowedTCPPorts = [ 22 ];
-    allowedUDPPorts = [ ];
-    # Docker no es una interfaz de confianza: los contenedores no deben
-    # recibir acceso incondicional a todos los servicios del host.
-    trustedInterfaces = [ "wt0" ];
-    checkReversePath = "loose";
-  };
-
-  services.fail2ban = {
+    netbird.enable = true;
+    fail2ban = {
     enable = true;
 
     maxretry = 3;
@@ -92,15 +83,36 @@
       };
     };
   };
-  services.openssh = {
+    openssh = {
     enable = true;
     settings.PermitRootLogin = "no";
     # Servidor secundario: login con contraseña permitido (igual que atlas).
     settings.PasswordAuthentication = true;
   };
+    thermald.enable = true;
+    fstrim.enable = true;
+    smartd.enable = false;
+  };
+
+  # El firewall INPUT del host solo abre SSH. Technitium se filtra en
+  # DOCKER-USER cuando sus puertos están publicados por Docker bridge.
+  networking.firewall = {
+    enable = true;
+    # Technitium DNS se ejecuta como contenedor Docker en Pico, fuera de esta
+    # declaración NixOS. Este firewall INPUT solo abre SSH; si Compose publica
+    # DNS mediante bridge, el tráfico va por el forwarding de Docker, no por
+    # estas reglas INPUT. Si se usa network_mode: host, revisar INPUT.
+    allowedTCPPorts = [ 22 ];
+    allowedUDPPorts = [ ];
+    # Docker no es una interfaz de confianza: los contenedores no deben
+    # recibir acceso incondicional a todos los servicios del host.
+    trustedInterfaces = [ "wt0" ];
+    checkReversePath = "loose";
+  };
 
   # --- 4. DOCKER Y ARCANE EDGE AGENT ---
-  virtualisation.docker = {
+  virtualisation = {
+    docker = {
     enable = true;
     autoPrune = {
       enable = true;
@@ -112,6 +124,43 @@
         "max-size" = "10m";
         "max-file" = "3";
       };
+    };
+  };
+    oci-containers = {
+      backend = "docker";
+
+      # Arcane Agent conecta Pico con el único Manager instalado en Atlas.
+      # El modo Edge abre una conexión saliente: no publica el puerto 3553.
+      # El token se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
+      containers.arcane-agent = {
+    # Mantener Edge Agent alineado con el Manager estable de Atlas.
+    image = "ghcr.io/getarcaneapp/agent:v2.17.3";
+    autoStart = true;
+
+    environment = {
+      EDGE_AGENT = "true";
+      # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
+      # latencia de activación al operar sobre el entorno remoto.
+      EDGE_TRANSPORT = "auto";
+      MANAGER_API_URL = "http://192.168.1.143:3552";
+    };
+
+    environmentFiles = [
+      "/var/lib/arcane-agent/agent.env"
+    ];
+
+    volumes = [
+      "/var/run/docker.sock:/var/run/docker.sock"
+      "arcane-agent-data:/app/data"
+      # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
+      "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
+    ];
+
+    extraOptions = [
+      "--cap-drop=ALL"
+      "--security-opt=no-new-privileges:true"
+    ];
+  };
     };
   };
 
@@ -191,42 +240,6 @@
       fi
     '';
   };
-
-  # Arcane Agent conecta Pico con el único Manager instalado en Atlas.
-  # El modo Edge abre una conexión saliente: no publica el puerto 3553.
-  # El token se obtiene desde Environments -> Add Environment -> Edge en Arcane
-  # y se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
-  virtualisation.oci-containers.backend = "docker";
-  virtualisation.oci-containers.containers.arcane-agent = {
-    # Mantener Edge Agent alineado con el Manager estable de Atlas.
-    image = "ghcr.io/getarcaneapp/agent:v2.17.3";
-    autoStart = true;
-
-    environment = {
-      EDGE_AGENT = "true";
-      # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
-      # latencia de activación al operar sobre el entorno remoto.
-      EDGE_TRANSPORT = "auto";
-      MANAGER_API_URL = "http://192.168.1.143:3552";
-    };
-
-    environmentFiles = [
-      "/var/lib/arcane-agent/agent.env"
-    ];
-
-    volumes = [
-      "/var/run/docker.sock:/var/run/docker.sock"
-      "arcane-agent-data:/app/data"
-      # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
-      "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
-    ];
-
-    extraOptions = [
-      "--cap-drop=ALL"
-      "--security-opt=no-new-privileges:true"
-    ];
-  };
-
   # Directorio persistente del agente y conservación de los stacks existentes.
   # No se elimina /var/lib/dockge/stacks durante la migración.
   systemd.tmpfiles.rules = [
@@ -235,10 +248,6 @@
   ];
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
-  services.thermald.enable = true;
-  services.fstrim.enable = true;
-  services.smartd.enable = false;
-
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -272,7 +281,11 @@
   ];
 
   # --- 7. USUARIO ---
-  users.users.juan.extraGroups = [ "docker" "video" "render" ];
+  users.users.juan.extraGroups = [
+    "docker"
+    "video"
+    "render"
+  ];
 
   system.stateVersion = "25.11";
 }
