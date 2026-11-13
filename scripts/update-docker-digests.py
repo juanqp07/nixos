@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 IMAGE_FILES = (
     ROOT / "hosts/servidor/configuration.nix",
+    ROOT / "modules/atlas-docker.nix",
     ROOT / "hosts/zimablade/configuration.nix",
 )
 IMAGE_LINE = re.compile(
