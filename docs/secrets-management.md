@@ -60,15 +60,30 @@ hosts), crea .sops.yaml en la raíz. La estructura recomendada es:
 
     creation_rules:
       - path_regex: ^secrets/atlas/.*
-        age: *admin,*atlas
+        key_groups:
+          - age:
+              - *admin
+              - *atlas
       - path_regex: ^secrets/pico/.*
-        age: *admin,*pico
+        key_groups:
+          - age:
+              - *admin
+              - *pico
       - path_regex: ^secrets/elytra/.*
-        age: *admin,*elytra
+        key_groups:
+          - age:
+              - *admin
+              - *elytra
       - path_regex: ^secrets/titan/.*
-        age: *admin,*titan
+        key_groups:
+          - age:
+              - *admin
+              - *titan
       - path_regex: ^secrets/palco/.*
-        age: *admin,*palco
+        key_groups:
+          - age:
+              - *admin
+              - *palco
 
 Sustituye todos los marcadores. Los archivos de cada host se cifran para que
 puedan descifrarlos la clave de administración y ese host, no los otros
