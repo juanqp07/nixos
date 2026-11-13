@@ -47,9 +47,7 @@ class ImageReferenceTests(unittest.TestCase):
 
     def test_registry_coordinates_preserve_ghcr_repository(self) -> None:
         self.assertEqual(
-            update_docker_digests.registry_coordinates(
-                "ghcr.io/getarcaneapp/manager"
-            ),
+            update_docker_digests.registry_coordinates("ghcr.io/getarcaneapp/manager"),
             ("ghcr.io", "getarcaneapp/manager"),
         )
 
