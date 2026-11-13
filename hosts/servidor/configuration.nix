@@ -26,15 +26,13 @@
   services = {
     irqbalance.enable = true;
 
-
     journald.extraConfig = ''
       SystemMaxUse=1G
       MaxRetentionSec=2week
-  '';
+    '';
 
 
     netbird.enable = true;
-
 
     fail2ban = {
       enable = true;
