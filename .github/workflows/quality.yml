@@ -97,6 +97,7 @@ jobs:
             "github:NixOS/nixpkgs/$nixpkgs_rev#statix" \
             "github:NixOS/nixpkgs/$nixpkgs_rev#deadnix" \
             "github:NixOS/nixpkgs/$nixpkgs_rev#shellcheck" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#shfmt" \
             "github:NixOS/nixpkgs/$nixpkgs_rev#ruff" \
             "github:NixOS/nixpkgs/$nixpkgs_rev#actionlint" \
             "github:NixOS/nixpkgs/$nixpkgs_rev#gitleaks" \
