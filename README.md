@@ -192,7 +192,7 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 
 ## ✅ Validación automática
 
-GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace` en cada pull request y en los cambios que llegan a `main`. Las recetas Nori se construyen cuando cambia alguno de sus archivos o dependencias declaradas. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores.
+GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. El workflow de calidad añade formato y análisis estático de los archivos modificados, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
 

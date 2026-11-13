@@ -8,7 +8,7 @@ on:
       - "flake.lock"
       - "scripts/**"
       - "docs/**"
-      - ".github/workflows/nixos-check.yml"
+      - ".github/workflows/**"
   push:
     branches:
       - main
@@ -18,10 +18,14 @@ on:
       - "flake.lock"
       - "scripts/**"
       - "docs/**"
-      - ".github/workflows/nixos-check.yml"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
+
+concurrency:
+  group: nixos-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   evaluate:
@@ -38,8 +42,7 @@ jobs:
           - palco
     steps:
       - name: Check out repository
-        # SHA completo de actions/checkout v6: runtime Node 24 y credenciales
-        # Git almacenadas en RUNNER_TEMP en lugar de .git/config.
+        # SHA completo de actions/checkout v7.0.1; las credenciales quedan fuera de .git/config.
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
