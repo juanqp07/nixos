@@ -42,8 +42,26 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 80 443 8384 21115 21116 21117 21118 21119 22000 8621 25565 ];
-    allowedUDPPorts = [ 21027 21116 22000 8621 ];
+    allowedTCPPorts = [
+      22
+      80
+      443
+      8384
+      21115
+      21116
+      21117
+      21118
+      21119
+      22000
+      8621
+      25565
+    ];
+    allowedUDPPorts = [
+      21027
+      21116
+      22000
+      8621
+    ];
     # El DNS de AdGuard se publica desde Docker y pasa por FORWARD/DOCKER-USER,
     # no por INPUT. No abrir 53 en el firewall del host si no hay un DNS nativo.
 
@@ -89,7 +107,7 @@
   # --- AGENTE GPG ---
   programs.gnupg.agent = {
     enable = true;
-    pinentryPackage = pkgs.pinentry-curses;  # o pinentry-gtk2 si tienes GUI
+    pinentryPackage = pkgs.pinentry-curses; # o pinentry-gtk2 si tienes GUI
   };
   # --- ZRAM ---
   zramSwap = {
@@ -97,11 +115,10 @@
     algorithm = "lz4";
     memoryPercent = 75;
     priority = 100;
-   };
-
+  };
 
   # --- GPU / VA-API (Intel iGPU, headless: solo transcodificación) ---
-    hardware.graphics = {
+  hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
       intel-media-driver
@@ -120,14 +137,25 @@
     isNormalUser = true;
     # El grupo docker concede privilegios equivalentes a root; se mantiene porque
     # el flujo de administración de este homelab y sus herramientas lo requieren.
-    extraGroups = [ "docker" "video" "render" "dialout" ];
+    extraGroups = [
+      "docker"
+      "video"
+      "render"
+      "dialout"
+    ];
   };
 
   # --- ALMACENAMIENTO ---
   fileSystems."/mnt/datos" = {
     device = "/dev/disk/by-uuid/d1908c00-4835-41fd-851b-cb2903898ec7";
     fsType = "ext4";
-    options = [ "defaults" "nofail" "noatime" "x-systemd.automount" "x-systemd.device-timeout=5" ];
+    options = [
+      "defaults"
+      "nofail"
+      "noatime"
+      "x-systemd.automount"
+      "x-systemd.device-timeout=5"
+    ];
   };
 
   # El disco contiene datos persistentes de contenedores. Si no monta, no arranques
@@ -136,7 +164,13 @@
 
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
-    htop iotop ethtool smartmontools pass gnupg docker-credential-helpers
+    htop
+    iotop
+    ethtool
+    smartmontools
+    pass
+    gnupg
+    docker-credential-helpers
     intel-gpu-tools # intel_gpu_top: verificar QSV/iGPU en jellyfin/immich
     libva-utils # vainfo: comprobar VA-API antes de probar una transcodificación
     lazydocker # gestión TUI de los ~70 contenedores
