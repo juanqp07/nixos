@@ -46,9 +46,11 @@ if (("${#nix_files[@]}" > 0)); then
   echo "::endgroup::"
 
   echo "::group::Statix"
-  if ! statix check "${nix_files[@]}"; then
-    failed=1
-  fi
+  for file in "${nix_files[@]}"; do
+    if ! statix check "$file"; then
+      failed=1
+    fi
+  done
   echo "::endgroup::"
 
   echo "::group::Dead Nix code"
