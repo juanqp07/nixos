@@ -35,7 +35,9 @@ class ReleaseAssetTests(unittest.TestCase):
 
     def test_asset_sri_rejects_untrusted_fallback_url(self) -> None:
         with self.assertRaises(ValueError):
-            update_nori.asset_sri({"browser_download_url": "https://example.invalid/file"})
+            update_nori.asset_sri(
+                {"browser_download_url": "https://example.invalid/file"}
+            )
 
 
 class PackageUpdateTests(unittest.TestCase):
@@ -44,7 +46,7 @@ class PackageUpdateTests(unittest.TestCase):
         self.addCleanup(self.tempdir.cleanup)
         self.package = Path(self.tempdir.name) / "package.nix"
         self.package.write_text(
-            '''version = "0.8.0";
+            """version = "0.8.0";
 
 sources = {
   "x86_64-linux" = {
@@ -56,7 +58,7 @@ sources = {
     hash = "sha256-old-arm";
   };
 };
-''',
+""",
             encoding="utf-8",
         )
 
