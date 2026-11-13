@@ -7,7 +7,10 @@ on:
       - "flake.nix"
       - "flake.lock"
       - "scripts/**"
+      - "tests/**"
       - "docs/**"
+      - "README.md"
+      - ".github/dependabot.yml"
       - ".github/workflows/**"
   push:
     branches:
@@ -17,7 +20,10 @@ on:
       - "flake.nix"
       - "flake.lock"
       - "scripts/**"
+      - "tests/**"
       - "docs/**"
+      - "README.md"
+      - ".github/dependabot.yml"
       - ".github/workflows/**"
 
 permissions:
@@ -28,11 +34,90 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quality:
+    name: Static analysis and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Resolve commit range
+        id: range
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -Eeuo pipefail
+          head_sha="$GITHUB_SHA"
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base_sha="$PR_BASE_SHA"
+              ;;
+            push)
+              base_sha="$PUSH_BEFORE_SHA"
+              if [[ "$base_sha" =~ ^0{40}$ ]]; then
+                base_sha="$(git rev-parse "$head_sha^" 2>/dev/null || printf '%s' "$head_sha")"
+              fi
+              ;;
+            workflow_dispatch)
+              base_sha="$(git rev-parse "$head_sha^" 2>/dev/null || printf '%s' "$head_sha")"
+              ;;
+            *)
+              echo "::error::Unsupported event: $GITHUB_EVENT_NAME"
+              exit 1
+              ;;
+          esac
+
+          [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          {
+            echo "base_sha=$base_sha"
+            echo "head_sha=$head_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run format, lint, tests and secret scanning
+        env:
+          BASE_SHA: ${{ steps.range.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.range.outputs.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          nixpkgs_rev="$(jq -r '.nodes.nixpkgs.locked.rev // empty' flake.lock)"
+          [[ "$nixpkgs_rev" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::Could not read a pinned nixpkgs revision from flake.lock."
+            exit 1
+          }
+
+          # Tool versions come from the repository's locked nixpkgs revision.
+          nix shell \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#nixfmt" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#statix" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#deadnix" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#shellcheck" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#shfmt" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#ruff" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#actionlint" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#gitleaks" \
+            "github:NixOS/nixpkgs/$nixpkgs_rev#python3" \
+            --command bash scripts/ci-quality.sh "$BASE_SHA" "$HEAD_SHA"
+
   evaluate:
+    needs: quality
     name: Evaluate ${{ matrix.host }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         host:
           - elytra
