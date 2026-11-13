@@ -3,6 +3,7 @@
 {
   # Atlas: motor Docker, política de puertos publicados y stack privado de Arcane.
   # Este módulo es específico del servidor y solo debe importarse en Atlas.
+
   virtualisation = {
     docker = {
     enable = true;
@@ -21,90 +22,6 @@
     };
   };
 
-  # --- DOCKER: RESTRINGIR PUERTOS PUBLICADOS DE APLICACIONES ---
-  # Docker publica puertos fuera de la cadena INPUT de NixOS. DOCKER-USER
-  # filtra el tráfico reenviado y compara el puerto original anterior al DNAT.
-  # La LAN 192.168.1.0/24, NetBird (wt0) y los bridges Docker (Zoraxy y
-  # comunicación interna) conservan el acceso. 80/443, SSH, RustDesk,
-  # Syncthing y Minecraft no se incluyen en esta lista.
-  systemd = {
-    services = {
-      docker-published-ports-private = {
-    description = "Restrict direct access to Atlas Docker application ports";
-    wantedBy = [ "multi-user.target" ];
-    requires = [ "docker.service" ];
-    after = [ "docker.service" ];
-    partOf = [ "docker.service" ];
-
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-
-    script = ''
-      set -eu
-
-      IPTABLES=${pkgs.iptables}/bin/iptables
-      CHAIN="ATLAS-DOCKER-PRIVATE"
-      CONTROL_PORTS="5553 8001 8019"
-      PRIVATE_PORTS="53 1080 1231 1800 2283 2322 2450 3000 3004 3067 3131 3160 3232 3421 3422 3455 3456 3535 3552 3590 4533 4534 5000 7575 7644 8000 8090 8288 8555 8665 8888 9180 9191 9192 9920 9999"
-
-      $IPTABLES -w -N "$CHAIN" 2>/dev/null || true
-      $IPTABLES -w -F "$CHAIN"
-
-      # Docker-to-Docker traffic is required by Zoraxy and internal services.
-      $IPTABLES -w -A "$CHAIN" -i br+ -j RETURN
-      $IPTABLES -w -A "$CHAIN" -i docker0 -j RETURN
-
-      # Never expose privileged control APIs on the host, even to the LAN.
-      for port in $CONTROL_PORTS; do
-        for protocol in tcp udp; do
-          $IPTABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
-        done
-      done
-
-      # Keep user-facing panels and app ports available only to trusted clients.
-      $IPTABLES -w -A "$CHAIN" -i wt0 -j RETURN
-      $IPTABLES -w -A "$CHAIN" -s 192.168.1.0/24 -j RETURN
-
-      # Block direct WAN access to app UIs and proxy ports; Zoraxy's bridge
-      # traffic was allowed above and public 80/443 are not in this list.
-      for port in $PRIVATE_PORTS; do
-        for protocol in tcp udp; do
-          $IPTABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
-        done
-      done
-
-      $IPTABLES -w -A "$CHAIN" -j RETURN
-      $IPTABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || \
-        $IPTABLES -w -I DOCKER-USER 1 -j "$CHAIN"
-
-      # Protect IPv6-published containers too, when Docker created its
-      # DOCKER-USER chain. Global IPv6 clients are not on the trusted allowlist.
-      IP6TABLES=${pkgs.iptables}/bin/ip6tables
-      if $IP6TABLES -w -S DOCKER-USER >/dev/null 2>&1; then
-        $IP6TABLES -w -N "$CHAIN" 2>/dev/null || true
-        $IP6TABLES -w -F "$CHAIN"
-        $IP6TABLES -w -A "$CHAIN" -i br+ -j RETURN
-        $IP6TABLES -w -A "$CHAIN" -i docker0 -j RETURN
-        for port in $CONTROL_PORTS; do
-          for protocol in tcp udp; do
-            $IP6TABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
-          done
-        done
-        $IP6TABLES -w -A "$CHAIN" -i wt0 -j RETURN
-        $IP6TABLES -w -A "$CHAIN" -s fc00::/7 -j RETURN
-        for port in $PRIVATE_PORTS; do
-          for protocol in tcp udp; do
-            $IP6TABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
-          done
-        done
-        $IP6TABLES -w -A "$CHAIN" -j RETURN
-        $IP6TABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || \
-          $IP6TABLES -w -I DOCKER-USER 1 -j "$CHAIN"
-      fi
-    '';
-  };
 
   # --- ARCANE ---
     oci-containers = {
@@ -227,10 +144,7 @@
         DOCKER_HOST = "tcp://arcane-docker-proxy:2375";
       };
 
-      dependsOn = [
-        "arcane-postgres"
-        "arcane-docker-proxy"
-      ];
+      dependsOn = [ "arcane-postgres" "arcane-docker-proxy" ];
 
       extraOptions = [
         "--network=arcane-net"
@@ -265,17 +179,17 @@
       };
     };
 
-  # Crear la red Docker privada antes de iniciar Arcane, el proxy y PostgreSQL.
-      arcane-network = {
-    description = "Docker network for Arcane";
+
+  };
+
+  systemd = {
+    services = {
+      docker-published-ports-private = {
+    description = "Restrict direct access to Atlas Docker application ports";
     wantedBy = [ "multi-user.target" ];
     requires = [ "docker.service" ];
     after = [ "docker.service" ];
-    before = [
-      "docker-arcane-docker-proxy.service"
-      "docker-arcane.service"
-      "docker-arcane-postgres.service"
-    ];
+    partOf = [ "docker.service" ];
 
     serviceConfig = {
       Type = "oneshot";
@@ -283,81 +197,71 @@
     };
 
     script = ''
-      ${config.virtualisation.docker.package}/bin/docker \
-        network inspect arcane-net >/dev/null 2>&1 || \
-      ${config.virtualisation.docker.package}/bin/docker \
-        network create arcane-net
-    '';
-  };
+      set -eu
 
-  # Orden explícito: la red existe antes de los tres contenedores.
-      docker-arcane-docker-proxy = {
-    requires = [ "arcane-network.service" ];
-    after = [ "arcane-network.service" ];
-  };
+      IPTABLES=${pkgs.iptables}/bin/iptables
+      CHAIN="ATLAS-DOCKER-PRIVATE"
+      CONTROL_PORTS="5553 8001 8019"
+      PRIVATE_PORTS="53 1080 1231 1800 2283 2322 2450 3000 3004 3067 3131 3160 3232 3421 3422 3455 3456 3535 3552 3590 4533 4534 5000 7575 7644 8000 8090 8288 8555 8665 8888 9180 9191 9192 9920 9999"
 
-  # Esperar a que el proxy pase su healthcheck antes de arrancar Arcane.
-  # dependsOn solo ordena los servicios; esta unidad espera al estado healthy real.
-      arcane-proxy-ready = {
-    description = "Wait for Arcane Docker socket proxy health";
-    requires = [ "docker-arcane-docker-proxy.service" ];
-    after = [ "docker-arcane-docker-proxy.service" ];
-    before = [ "docker-arcane.service" ];
+      $IPTABLES -w -N "$CHAIN" 2>/dev/null || true
+      $IPTABLES -w -F "$CHAIN"
 
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      TimeoutStartSec = "190s";
-    };
+      # Docker-to-Docker traffic is required by Zoraxy and internal services.
+      $IPTABLES -w -A "$CHAIN" -i br+ -j RETURN
+      $IPTABLES -w -A "$CHAIN" -i docker0 -j RETURN
 
-    script = ''
-      docker="${config.virtualisation.docker.package}/bin/docker"
-      attempt=0
-
-      while [ "$attempt" -lt 90 ]; do
-        attempt=$((attempt + 1))
-
-        # Ejecuta el binario healthcheck en formato exec (sin /bin/sh).
-        if "$docker" exec arcane-docker-proxy ./healthcheck >/dev/null 2>&1; then
-          echo "Arcane Docker socket proxy está saludable."
-          exit 0
-        fi
-
-        state="$("$docker" inspect --format '{{.State.Status}}' arcane-docker-proxy 2>/dev/null || true)"
-        case "$state" in
-          exited|dead)
-            echo "Arcane no se inicia: el socket proxy está en estado $state." >&2
-            "$docker" logs --tail=100 arcane-docker-proxy >&2 || true
-            exit 1
-            ;;
-        esac
-
-        ${pkgs.coreutils}/bin/sleep 2
+      # Never expose privileged control APIs on the host, even to the LAN.
+      for port in $CONTROL_PORTS; do
+        for protocol in tcp udp; do
+          $IPTABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
+        done
       done
 
-      echo "Arcane no se inicia: el healthcheck exec del socket proxy falló durante 180 segundos." >&2
-      "$docker" inspect --format 'Estado: {{.State.Status}}' arcane-docker-proxy >&2 || true
-      "$docker" logs --tail=100 arcane-docker-proxy >&2 || true
-      exit 1
+      # Keep user-facing panels and app ports available only to trusted clients.
+      $IPTABLES -w -A "$CHAIN" -i wt0 -j RETURN
+      $IPTABLES -w -A "$CHAIN" -s 192.168.1.0/24 -j RETURN
+
+      # Block direct WAN access to app UIs and proxy ports; Zoraxy's bridge
+      # traffic was allowed above and public 80/443 are not in this list.
+      for port in $PRIVATE_PORTS; do
+        for protocol in tcp udp; do
+          $IPTABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
+        done
+      done
+
+      $IPTABLES -w -A "$CHAIN" -j RETURN
+      $IPTABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || \
+        $IPTABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+
+      # Protect IPv6-published containers too, when Docker created its
+      # DOCKER-USER chain. Global IPv6 clients are not on the trusted allowlist.
+      IP6TABLES=${pkgs.iptables}/bin/ip6tables
+      if $IP6TABLES -w -S DOCKER-USER >/dev/null 2>&1; then
+        $IP6TABLES -w -N "$CHAIN" 2>/dev/null || true
+        $IP6TABLES -w -F "$CHAIN"
+        $IP6TABLES -w -A "$CHAIN" -i br+ -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -i docker0 -j RETURN
+        for port in $CONTROL_PORTS; do
+          for protocol in tcp udp; do
+            $IP6TABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
+          done
+        done
+        $IP6TABLES -w -A "$CHAIN" -i wt0 -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -s fc00::/7 -j RETURN
+        for port in $PRIVATE_PORTS; do
+          for protocol in tcp udp; do
+            $IP6TABLES -w -A "$CHAIN" -p "$protocol" -m conntrack --ctorigdstport "$port" -j DROP
+          done
+        done
+        $IP6TABLES -w -A "$CHAIN" -j RETURN
+        $IP6TABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || \
+          $IP6TABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+      fi
     '';
   };
 
-      docker-arcane = {
-    requires = [
-      "arcane-network.service"
-      "arcane-proxy-ready.service"
-    ];
-    after = [
-      "arcane-network.service"
-      "arcane-proxy-ready.service"
-    ];
-  };
 
-      docker-arcane-postgres = {
-    requires = [ "arcane-network.service" ];
-    after = [ "arcane-network.service" ];
-  };
-}
   # Crear la red Docker privada antes de iniciar Arcane, el proxy y PostgreSQL.
       arcane-network = {
     description = "Docker network for Arcane";
