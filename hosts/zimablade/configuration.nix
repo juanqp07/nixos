@@ -115,6 +115,83 @@
     };
   };
 
+  # Technitium DNS se publica mediante Docker bridge. DOCKER-USER filtra
+  # los puertos publicados antes de que lleguen al contenedor:
+  # DNS 53/tcp+udp y consolas HTTP/HTTPS 8665/tcp y 53443/tcp.
+  systemd.services.pico-technitium-docker-firewall = {
+    description = "Restrict direct access to Pico Technitium published ports";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "docker.service" ];
+    after = [ "docker.service" ];
+    partOf = [ "docker.service" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    script = ''
+      set -eu
+
+      IPTABLES=${pkgs.iptables}/bin/iptables
+      CHAIN="PICO-TECHNITIUM-PRIVATE"
+      TCP_PORTS="53 8665 53443"
+      UDP_PORTS="53"
+
+      # Docker debe haber creado DOCKER-USER antes de instalar la política.
+      if ! $IPTABLES -w -S DOCKER-USER >/dev/null 2>&1; then
+        echo "No existe DOCKER-USER; no se puede proteger Technitium en Pico." >&2
+        exit 1
+      fi
+
+      $IPTABLES -w -N "$CHAIN" 2>/dev/null || true
+      $IPTABLES -w -F "$CHAIN"
+
+      # Mantener la comunicación iniciada desde otros contenedores Docker.
+      $IPTABLES -w -A "$CHAIN" -i br+ -j RETURN
+      $IPTABLES -w -A "$CHAIN" -i docker0 -j RETURN
+
+      # DNS y consolas solo desde LAN y NetBird.
+      $IPTABLES -w -A "$CHAIN" -i wt0 -j RETURN
+      $IPTABLES -w -A "$CHAIN" -s 192.168.1.0/24 -j RETURN
+
+      for port in $TCP_PORTS; do
+        $IPTABLES -w -A "$CHAIN" -p tcp -m conntrack --ctorigdstport "$port" -j DROP
+      done
+
+      for port in $UDP_PORTS; do
+        $IPTABLES -w -A "$CHAIN" -p udp -m conntrack --ctorigdstport "$port" -j DROP
+      done
+
+      $IPTABLES -w -A "$CHAIN" -j RETURN
+      $IPTABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || $IPTABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+
+      # Misma protección para publicaciones IPv6 cuando Docker crea DOCKER-USER.
+      IP6TABLES=${pkgs.iptables}/bin/ip6tables
+      if $IP6TABLES -w -S DOCKER-USER >/dev/null 2>&1; then
+        $IP6TABLES -w -N "$CHAIN" 2>/dev/null || true
+        $IP6TABLES -w -F "$CHAIN"
+
+        $IP6TABLES -w -A "$CHAIN" -i br+ -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -i docker0 -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -i wt0 -j RETURN
+        # LAN IPv6 ULA; las direcciones globales requieren añadir el prefijo real.
+        $IP6TABLES -w -A "$CHAIN" -s fc00::/7 -j RETURN
+
+        for port in $TCP_PORTS; do
+          $IP6TABLES -w -A "$CHAIN" -p tcp -m conntrack --ctorigdstport "$port" -j DROP
+        done
+
+        for port in $UDP_PORTS; do
+          $IP6TABLES -w -A "$CHAIN" -p udp -m conntrack --ctorigdstport "$port" -j DROP
+        done
+
+        $IP6TABLES -w -A "$CHAIN" -j RETURN
+        $IP6TABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || $IP6TABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+      fi
+    '';
+  };
+
   # Arcane Agent conecta Pico con el único Manager instalado en Atlas.
   # El modo Edge abre una conexión saliente: no publica el puerto 3553.
   # El token se obtiene desde Environments -> Add Environment -> Edge en Arcane

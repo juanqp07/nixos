@@ -15,31 +15,45 @@ Los paneles de administración de Atlas y Pico no están redirigidos desde el ro
 
 ## Technitium DNS en Atlas y Pico
 
-Technitium DNS es el servicio DNS utilizado actualmente en ambos servidores y
-se ejecuta en contenedores Docker. Sus Compose no están declarados en el flake,
-por lo que este repositorio no fija el modo de red ni los mapeos efectivos de
-puertos. No se deben deducir las publicaciones reales únicamente a partir del
-firewall INPUT de NixOS.
+Technitium DNS se ejecuta en contenedores Docker en ambos servidores. El
+Compose no está versionado en este flake, así que los mapeos deben comprobarse
+en los hosts y no se modifican desde Nix.
 
-- **Atlas:** el puerto DNS 53/tcp y 53/udp figura en `PRIVATE_PORTS` de
-  `ATLAS-DOCKER-PRIVATE`. La cadena permite primero LAN
-  (`192.168.1.0/24`) y NetBird (`wt0`), y bloquea después esos puertos para
-  otros orígenes. El puerto 53 no se abre en INPUT porque el caso previsto es
-  publicación mediante Docker bridge. Si el Compose cambia a
-  `network_mode: host`, hay que revisar INPUT.
-- **Pico:** el firewall INPUT de NixOS solo abre SSH TCP/22. Si Technitium
-  publica 53/tcp y 53/udp mediante bridge, el tráfico utiliza el forwarding de
-  Docker y no esas reglas INPUT. El flake no declara una cadena
-  `DOCKER-USER` específica para DNS en Pico, así que hay que verificar las
-  publicaciones del Compose y las reglas del router para conocer la exposición
-  efectiva. Si utiliza `network_mode: host`, el tráfico sí queda sujeto a
-  INPUT y habría que revisar las aperturas del host.
+Los mapeos observados en Atlas y compartidos para ambos servidores son:
 
-Antes de cambiar puertos, redes o el firewall, comprobar en ambos hosts el
-`network_mode` real del contenedor, sus publicaciones y el acceso DNS desde
-LAN/NetBird y desde una red externa no confiable. Esta documentación no cambia
-ni despliega los Compose.
+| Puerto del host | Destino del contenedor | Protocolo | Función |
+|---|---|---|---|
+| 53 | 53 | TCP/UDP | Resolución DNS |
+| 8665 | 5380 | TCP | Consola web HTTP |
+| 53443 | 53443 | TCP | Consola web HTTPS |
 
+Los puertos 853, 443, 80, 8053 y 67 aparecen como expuestos por la imagen,
+pero no como puertos publicados en la salida de Docker compartida. No se
+abren ni se alteran aquí.
+
+- **Atlas:** `ATLAS-DOCKER-PRIVATE` filtra los tres puertos publicados
+  (53/tcp+udp, 8665/tcp y 53443/tcp) en `DOCKER-USER`. LAN
+  (`192.168.1.0/24`) y NetBird (`wt0`) mantienen acceso. Los demás orígenes
+  quedan bloqueados. La regla IPv6 permite NetBird y direcciones ULA
+  (`fc00::/7`).
+- **Pico:** la unidad systemd `pico-technitium-docker-firewall` instala
+  `PICO-TECHNITIUM-PRIVATE` en `DOCKER-USER` y aplica la misma política:
+  LAN/NetBird permitidos, otros orígenes bloqueados y comunicación entre
+  bridges Docker conservada. La política IPv6 se aplica si Docker crea
+  `DOCKER-USER` para IPv6 y permite NetBird y ULA (`fc00::/7`).
+
+Las políticas presuponen Docker bridge. En ese modo el tráfico publicado
+atraviesa el forwarding de Docker y no la cadena INPUT de NixOS. Si un
+Compose cambia a `network_mode: host`, `DOCKER-USER` deja de filtrar ese
+tráfico y será necesario revisar INPUT. Una LAN que use IPv6 global fuera de
+ULA debe añadir su prefijo real a la lista de orígenes confiables si necesita
+acceso DNS/consola por IPv6 directo.
+
+Tras desplegar, comprobar en ambos hosts el `NetworkMode` y los
+`PortBindings` del contenedor, revisar los contadores de las cadenas y probar
+DNS y las consolas desde LAN, NetBird y una red no confiable. Las reglas de
+firewall no sustituyen la política de recursión/ACL configurada dentro de
+Technitium ni las reglas del router.
 ## Atlas
 
 ### Arcane y Docker socket

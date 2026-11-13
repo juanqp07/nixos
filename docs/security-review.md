@@ -3,11 +3,12 @@
 **Alcance:** revisión estática de la configuración NixOS de los cinco hosts.
 No se ha inspeccionado el estado runtime de iptables/nftables, interfaces
 activas, puertos escuchando ni publicación real de los Compose externos.
-Los cambios de firewall de esta revisión se limitan a retirar DNS/53 de la
-cadena INPUT de Atlas; no se cambian los mapeos de puertos de los Compose.
-Technitium DNS se ejecuta como contenedor en Atlas y Pico, pero sus Compose no
-están declarados en este repositorio y no se ha verificado su modo de red ni
-el estado runtime de las publicaciones.
+Los cambios de firewall retiran DNS/53 de la cadena INPUT de Atlas y añaden
+políticas DOCKER-USER para los puertos publicados de Technitium en Atlas y Pico.
+No se cambian los Compose ni sus mapeos de puertos. Los Compose no están
+declarados en este repositorio; el modo bridge de Atlas sí se ha confirmado
+mediante `docker inspect`, mientras que el estado runtime de Pico debe
+comprobarse después de desplegar la generación.
 
 ## Atlas
 
@@ -98,14 +99,23 @@ en ambos escritorios.
 ## Pico
 
 Pico permite SSH TCP/22 en el firewall INPUT del host y confía en la interfaz
-NetBird `wt0`. Technitium DNS también se ejecuta en un contenedor Docker en
-Pico, pero su Compose no está declarado en este repositorio. Si publica DNS
-mediante bridge, el tráfico utiliza el forwarding de Docker y no las
-excepciones INPUT del host. La configuración NixOS revisada no declara una
-política `DOCKER-USER` específica para DNS en Pico; por tanto, el firewall
-INPUT por sí solo no demuestra que los puertos publicados estén bloqueados
-desde redes no confiables. Hay que verificar el modo de red, los mapeos del
-Compose y las reglas del router. Si usa `network_mode: host`, revisar INPUT.
+NetBird `wt0`. La unidad systemd `pico-technitium-docker-firewall` instala
+la cadena `PICO-TECHNITIUM-PRIVATE` en `DOCKER-USER` para restringir
+Technitium DNS cuando usa Docker bridge:
+
+- Permite DNS 53/tcp y 53/udp y las consolas 8665/tcp y 53443/tcp desde
+  `192.168.1.0/24` y NetBird (`wt0`).
+- Bloquea esos puertos publicados desde otros orígenes.
+- Conserva el tráfico entre bridges Docker para que los contenedores puedan
+  comunicarse entre sí.
+- Aplica la misma política a IPv6 si Docker crea la cadena IPv6
+  `DOCKER-USER`; permite NetBird y direcciones ULA `fc00::/7`.
+
+El Compose de Technitium no está versionado en este repositorio. La política
+presupone publicación mediante bridge, como se ha verificado en Atlas. Si Pico
+usa `network_mode: host`, `DOCKER-USER` no filtra ese tráfico y habrá que
+revisar INPUT antes de aplicar la generación. Una LAN con IPv6 global fuera
+de ULA necesitará añadir su prefijo real para mantener acceso IPv6 directo.
 
 El Arcane Edge Agent abre una conexión saliente hacia el Manager de Atlas, no
 necesita un puerto entrante de agente publicado.
@@ -145,20 +155,22 @@ El bloque específico de Docker de Atlas se ha extraído de
 - Proxy de socket, Arcane Manager y PostgreSQL.
 - Red privada Arcane y dependencias systemd para el inicio ordenado.
 
-El archivo del host queda centrado en hardware, kernel, firewall INPUT,
-almacenamiento, rendimiento y configuración específica del equipo. El nuevo
-módulo solo se importa desde Atlas, por lo que no afecta a Pico ni a los
-escritorios.
+El archivo de Atlas queda centrado en hardware, kernel, firewall INPUT,
+almacenamiento, rendimiento y configuración específica del equipo. El módulo
+de Docker solo se importa desde Atlas. Pico mantiene su política Technitium
+declarada directamente en `hosts/zimablade/configuration.nix`; ambas reglas
+son independientes y específicas de cada servidor.
 
 ## Comprobaciones pendientes en hardware
 
 1. Capturar `ss -lntup` en Atlas y confirmar los puertos nativos que realmente
    escuchan.
-2. Verificar Technitium DNS en Atlas y Pico desde LAN/NetBird; comprobar el
-   modo de red y los mapeos TCP/UDP 53 de cada Compose. En Atlas revisar
-   `DOCKER-USER`; en Pico comprobar también el forwarding de Docker y que el
-   router no publique DNS hacia redes no confiables. Si un contenedor usa
-   `network_mode: host`, revisar INPUT.
+2. Verificar Technitium DNS en Atlas y Pico desde LAN/NetBird. Confirmar que
+   ambos contenedores usan bridge y publican 53/tcp+udp, 8665/tcp y
+   53443/tcp. Revisar las cadenas `ATLAS-DOCKER-PRIVATE` y
+   `PICO-TECHNITIUM-PRIVATE`, y comprobar que el router no publique esos
+   puertos hacia redes no confiables. Si un contenedor usa `network_mode: host`,
+   revisar INPUT porque DOCKER-USER no se aplica.
 3. Validar los paneles de Atlas desde LAN, NetBird y una red no confiable.
 4. En Elytra y Titan, recoger `ip -br link`, `ip route` e IP/subred LAN para
    estudiar reglas por interfaz sin cortar Chromecast, Sunshine, Steam,
