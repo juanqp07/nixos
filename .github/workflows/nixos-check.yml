@@ -2,16 +2,6 @@ name: NixOS configuration evaluation
 
 on:
   pull_request:
-    paths:
-      - "**.nix"
-      - "flake.nix"
-      - "flake.lock"
-      - "scripts/**"
-      - "tests/**"
-      - "docs/**"
-      - "README.md"
-      - ".github/dependabot.yml"
-      - ".github/workflows/**"
   push:
     branches:
       - main
