@@ -67,31 +67,31 @@
         };
     in
     {
-    nixosConfigurations = {
-      elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
-        ./modules/desktop-gaming.nix
-        nix-flatpak.nixosModules.nix-flatpak
-      ];
+      nixosConfigurations = {
+        elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
+          ./modules/desktop-gaming.nix
+          nix-flatpak.nixosModules.nix-flatpak
+        ];
 
-      titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
-        ./modules/desktop-gaming.nix
-        nix-flatpak.nixosModules.nix-flatpak
-      ];
+        titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
+          ./modules/desktop-gaming.nix
+          nix-flatpak.nixosModules.nix-flatpak
+        ];
 
-      atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
-        ./modules/server-system.nix
-      ];
+        atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
+          ./modules/server-system.nix
+        ];
 
-      pico = mkHost nixpkgs-stable home-manager-stable "zimablade" "x86_64-linux" [
-        ./modules/server-system.nix
-      ];
+        pico = mkHost nixpkgs-stable home-manager-stable "zimablade" "x86_64-linux" [
+          ./modules/server-system.nix
+        ];
 
-      palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
-        nixos-hardware.nixosModules.raspberry-pi-4
-        "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-        ./modules/palco-audio.nix
-      ];
-    };
+        palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
+          nixos-hardware.nixosModules.raspberry-pi-4
+          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ./modules/palco-audio.nix
+        ];
+      };
 
       # Paquete declarativo para Nori (AppImage oficial + WebKitGTK 4.1).
       packages.x86_64-linux.nori =
