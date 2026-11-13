@@ -23,8 +23,8 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **packages/**: accesos a los paquetes externos preparados para NixOS.
     * `nori.nix` y `nori-cli.nix`: reutilizan las expresiones candidatas para Nixpkgs, evitando mantener dos recetas distintas.
 * **nixpkgs/pkgs/by-name/no/**: expresiones listas para proponer en Nixpkgs.
-    * `nori/package.nix`: Nori Desktop 0.8.0 desde el AppImage oficial y con WebKitGTK 4.1.
-    * `nori-cli/package.nix`: Nori CLI 0.8.0 desde el tarball oficial y con ALSA/WebKitGTK.
+    * `nori/package.nix`: Nori Desktop 0.9.0 desde el AppImage oficial y con WebKitGTK 4.1.
+    * `nori-cli/package.nix`: Nori CLI 0.9.0 desde el tarball oficial y con ALSA/WebKitGTK.
 * **home/juan/**: Configuración personal compartida con Home Manager.
     * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
     * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
@@ -195,6 +195,10 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. El mismo workflow ejecuta primero formato, análisis estático, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos; solo si todo pasa inicia las cinco evaluaciones NixOS, limitadas a tres trabajos simultáneos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
+
+## 🔄 Actualización controlada de dependencias
+
+El workflow `Update Flake inputs and container digests` revisa semanalmente los inputs de `flake.lock` y fija mediante SHA-256 las imágenes OCI declaradas en los módulos de Atlas y Pico. Cuando encuentra cambios, abre o actualiza una PR y solicita la validación completa de los cinco hosts. No despliega cambios automáticamente. Consulta [docs/dependency-updates.md](docs/dependency-updates.md) para ejecutarlo manualmente y revisar los cambios.
 
 ## ⚠️ Notas de configuración
 * **Git y Flakes**: los archivos nuevos deben estar añadidos a Git para que un flake basado en Git pueda verlos. Añade solo los archivos necesarios (por ejemplo, `git add modules/nuevo-modulo.nix`); los alias `nix-up` y `nix-update` no deben preparar automáticamente todos tus cambios.
