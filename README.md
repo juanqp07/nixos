@@ -18,6 +18,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
     * `rustdesk-privacy.nix`: código conservado para futura reactivación; temporalmente deshabilitado.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
+    * `sops-secrets.nix`: integración SOPS-nix y uso de claves SSH de host como identidades age.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
 * **packages/**: accesos a los paquetes externos preparados para NixOS.
@@ -56,6 +57,7 @@ nix develop .#python  # Python, uv, Ruff y MkDocs
 nix develop .#node    # Node.js 24, pnpm y Bun
 nix develop .#go      # Go
 nix develop .#rust    # Rust, Cargo, rust-analyzer, rustfmt y Clippy
+nix develop .#secrets # SOPS, age y ssh-to-age
 nix develop .#java    # JDK 21, Gradle y Kotlin
 ```
 
@@ -64,6 +66,10 @@ Para trabajar automáticamente al entrar en el directorio, el repositorio ya
 incluye direnv + nix-direnv en el módulo común; puedes usar `direnv allow`
 cuando el proyecto tenga un archivo `.envrc` con `use flake .#python`,
 `use flake .#node`, etc.
+
+## 🔐 Secretos cifrados con SOPS + age
+
+La integración de SOPS-nix está habilitada para los cinco hosts y utiliza la clave privada Ed25519 de SSH de cada máquina para descifrar sus secretos. Las claves privadas permanecen en `/etc/ssh` y nunca se versionan. El repositorio todavía no incluye `.sops.yaml` ni secretos cifrados: primero hay que recopilar los destinatarios age públicos de los hosts y añadir una clave age de administración. Consulta [docs/secrets-management.md](docs/secrets-management.md) para completar la incorporación y migrar los `.env` de Arcane sin interrumpir el servicio.
 
 ## 🛑 RustDesk en los escritorios (temporalmente deshabilitado)
 
