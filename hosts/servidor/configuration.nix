@@ -31,7 +31,6 @@
       MaxRetentionSec=2week
     '';
 
-
     netbird.enable = true;
 
     fail2ban = {
