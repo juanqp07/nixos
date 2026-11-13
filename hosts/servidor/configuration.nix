@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ pkgs, ... }:
 
 {
   imports = [
@@ -86,7 +86,7 @@
     # Servidor secundario: login con contraseña permitido (igual que pico).
     settings.PasswordAuthentication = true;
   };
-  # --- DOCKER Y CONTENEDORES ---
+  # --- AGENTE GPG ---
   programs.gnupg.agent = {
     enable = true;
     pinentryPackage = pkgs.pinentry-curses;  # o pinentry-gtk2 si tienes GUI
