@@ -43,11 +43,15 @@ repositorio. No se despliega ninguna generación desde GitHub.
 - Atlas y Pico: se deja explícito en los comentarios de `system.autoUpgrade`
   que `path:/home/juan/nixos` apunta a un checkout local y no hace `git pull`.
   El timer no mantiene sincronizado el repositorio con GitHub.
-- Pico: se cierra 53/tcp y 53/udp en el firewall INPUT del host. No hay un
-  servicio DNS del host declarado en NixOS; los puertos publicados por Docker
-  usan el forwarding de Docker y no dependen de estas excepciones INPUT. Si más
-  adelante se añade un DNS nativo del host, hay que abrir solo el protocolo y
-  puerto requeridos.
+- Atlas y Pico: Technitium DNS se ejecuta como contenedor Docker, no como
+  servicio DNS nativo declarado en NixOS. En Atlas, 53/tcp y 53/udp no están
+  abiertos en INPUT y sí figuran en `PRIVATE_PORTS` de DOCKER-USER: LAN y
+  NetBird conservan acceso y otros orígenes quedan bloqueados. En Pico, INPUT
+  solo abre SSH y no hay una política DOCKER-USER específica para DNS declarada
+  en el flake. Las publicaciones bridge usan el forwarding de Docker; si el
+  contenedor cambia a `network_mode: host`, hay que revisar INPUT. El modo de
+  red y los mapeos Compose deben comprobarse en los hosts, porque no están
+  versionados en este repositorio.
 - Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
   el parámetro de arranque `panic=10` permanece en `server-system.nix`.
 - Pico: se elimina la declaración explícita de `nix.settings.trusted-users`.
@@ -163,8 +167,9 @@ repositorio. No se despliega ninguna generación desde GitHub.
   revisiones de seguridad dentro de esa rama; cambiar la versión mayor requiere
   una migración separada.
 - No se modifican `containerd-snapshotter`, el socket Docker del agente de Pico
-  ni puertos DNS hasta conocer el estado de Arcane/Compose y los requisitos del
-  despliegue. En Pico se elimina `docker0` de `trustedInterfaces`: el módulo
+  ni los mapeos de puertos de Technitium DNS: sus Compose externos no forman
+  parte del flake y su modo de red/publicación debe comprobarse antes de ajustar
+  el firewall. En Pico se elimina `docker0` de `trustedInterfaces`: el módulo
   de firewall de NixOS acepta incondicionalmente el tráfico recibido por una
   interfaz marcada como confiable. El agente usa el socket Docker y establece
   una conexión saliente con Atlas, así que no necesita esa excepción; se
@@ -308,7 +313,7 @@ que realmente se utilicen. Repetir desde un punto de acceso externo para
 confirmar que no se exponen servicios innecesarios. No usar solo `nmap
 localhost`: no representa el firewall de entrada visto desde otra máquina.
 
-En Pico, antes de cerrar DNS:
+Auditar el contenedor Technitium DNS en Pico antes de cambiar el firewall:
 
 ```bash
 sudo ss -lntup | grep -E '(:53|:22)\b' || true
@@ -481,7 +486,7 @@ que realmente se utilicen. Repetir desde un punto de acceso externo para
 confirmar que no se exponen servicios innecesarios. No usar solo `nmap
 localhost`: no representa el firewall de entrada visto desde otra máquina.
 
-En Pico, antes de cerrar DNS:
+Auditar el contenedor Technitium DNS en Pico antes de cambiar el firewall:
 
 ```bash
 sudo ss -lntup | grep -E '(:53|:22)\b' || true

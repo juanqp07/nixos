@@ -4,8 +4,10 @@
 No se ha inspeccionado el estado runtime de iptables/nftables, interfaces
 activas, puertos escuchando ni publicación real de los Compose externos.
 Los cambios de firewall de esta revisión se limitan a retirar DNS/53 de la
-cadena INPUT de Atlas; las publicaciones Docker y los accesos de LAN/NetBird
-se conservan.
+cadena INPUT de Atlas; no se cambian los mapeos de puertos de los Compose.
+Technitium DNS se ejecuta como contenedor en Atlas y Pico, pero sus Compose no
+están declarados en este repositorio y no se ha verificado su modo de red ni
+el estado runtime de las publicaciones.
 
 ## Atlas
 
@@ -17,12 +19,16 @@ El firewall del host permite actualmente:
   21115–21119, Syncthing 22000, 8621 y Minecraft 25565.
 - UDP: descubrimiento Syncthing 21027, Syncthing 22000, RustDesk 21116 y 8621.
 
-Se retiraron TCP/UDP 53 de `networking.firewall.allowed*Ports`: el DNS de
-AdGuard está publicado por un contenedor y su tráfico atraviesa el forwarding
-de Docker, no el INPUT del host. No hay una declaración de un servidor DNS
-nativo en la configuración NixOS de Atlas. El puerto 53 continúa en la lista
-`PRIVATE_PORTS` de DOCKER-USER, donde LAN y NetBird conservan acceso y las
-redes no confiables quedan bloqueadas.
+Se retiraron TCP/UDP 53 de `networking.firewall.allowed*Ports`: Technitium
+DNS se ejecuta como contenedor, no como servicio DNS nativo declarado en NixOS.
+El puerto 53 continúa en `PRIVATE_PORTS` de DOCKER-USER: LAN
+(`192.168.1.0/24`) y NetBird (`wt0`) conservan acceso, mientras que otros
+orígenes quedan bloqueados por esta política.
+
+Esta explicación del forwarding presupone que el Compose publica DNS mediante
+una red bridge. Si Technitium usa `network_mode: host`, el tráfico llega a
+INPUT y hay que revisar las aperturas TCP/UDP 53 antes de desplegar. El modo de
+red y las publicaciones reales no están versionados en este flake.
 
 No se han eliminado otros puertos porque el repositorio por sí solo no confirma
 si cada uno se utiliza desde un servicio nativo o desde una aplicación externa
@@ -91,9 +97,18 @@ en ambos escritorios.
 
 ## Pico
 
-Pico permite SSH TCP/22 en el firewall del host y confía en la interfaz
-NetBird `wt0`. El Arcane Edge Agent abre una conexión saliente hacia el
-Manager de Atlas, no necesita un puerto entrante de agente publicado.
+Pico permite SSH TCP/22 en el firewall INPUT del host y confía en la interfaz
+NetBird `wt0`. Technitium DNS también se ejecuta en un contenedor Docker en
+Pico, pero su Compose no está declarado en este repositorio. Si publica DNS
+mediante bridge, el tráfico utiliza el forwarding de Docker y no las
+excepciones INPUT del host. La configuración NixOS revisada no declara una
+política `DOCKER-USER` específica para DNS en Pico; por tanto, el firewall
+INPUT por sí solo no demuestra que los puertos publicados estén bloqueados
+desde redes no confiables. Hay que verificar el modo de red, los mapeos del
+Compose y las reglas del router. Si usa `network_mode: host`, revisar INPUT.
+
+El Arcane Edge Agent abre una conexión saliente hacia el Manager de Atlas, no
+necesita un puerto entrante de agente publicado.
 
 El contenedor Agent monta `/var/run/docker.sock` sin modo de solo lectura.
 Eso concede capacidad de administración muy elevada y es inherente a la
@@ -139,8 +154,11 @@ escritorios.
 
 1. Capturar `ss -lntup` en Atlas y confirmar los puertos nativos que realmente
    escuchan.
-2. Verificar acceso DNS a AdGuard desde LAN/NetBird después de retirar 53 de
-   INPUT; comprobar que la publicación del contenedor sigue funcionando.
+2. Verificar Technitium DNS en Atlas y Pico desde LAN/NetBird; comprobar el
+   modo de red y los mapeos TCP/UDP 53 de cada Compose. En Atlas revisar
+   `DOCKER-USER`; en Pico comprobar también el forwarding de Docker y que el
+   router no publique DNS hacia redes no confiables. Si un contenedor usa
+   `network_mode: host`, revisar INPUT.
 3. Validar los paneles de Atlas desde LAN, NetBird y una red no confiable.
 4. En Elytra y Titan, recoger `ip -br link`, `ip route` e IP/subred LAN para
    estudiar reglas por interfaz sin cortar Chromecast, Sunshine, Steam,

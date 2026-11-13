@@ -54,8 +54,10 @@
 
   networking.firewall = {
     enable = true;
-    # Pico solo expone SSH a nivel del host. Los puertos publicados por
-    # Docker se filtran en FORWARD/DOCKER-USER, no mediante estas reglas INPUT.
+    # Technitium DNS se ejecuta como contenedor Docker en Pico, fuera de esta
+    # declaración NixOS. Este firewall INPUT solo abre SSH; si Compose publica
+    # DNS mediante bridge, el tráfico va por el forwarding de Docker, no por
+    # estas reglas INPUT. Si se usa network_mode: host, revisar INPUT.
     allowedTCPPorts = [ 22 ];
     allowedUDPPorts = [ ];
     # Docker no es una interfaz de confianza: los contenedores no deben

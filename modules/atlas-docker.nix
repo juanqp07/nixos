@@ -203,6 +203,7 @@
           IPTABLES=${pkgs.iptables}/bin/iptables
           CHAIN="ATLAS-DOCKER-PRIVATE"
           CONTROL_PORTS="5553 8001 8019"
+          # Technitium DNS: 53/tcp y 53/udp, accesible desde LAN y NetBird.
           PRIVATE_PORTS="53 1080 1231 1800 2283 2322 2450 3000 3004 3067 3131 3160 3232 3421 3422 3455 3456 3535 3552 3590 4533 4534 5000 7575 7644 8000 8090 8288 8555 8665 8888 9180 9191 9192 9920 9999"
 
           $IPTABLES -w -N "$CHAIN" 2>/dev/null || true

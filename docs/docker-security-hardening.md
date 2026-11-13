@@ -13,6 +13,33 @@
 
 Los paneles de administración de Atlas y Pico no están redirigidos desde el router a Internet, según la información del propietario. Las reglas DOCKER-USER son defensa en profundidad ante una publicación accidental de puertos, no una afirmación de que esos paneles estuvieran expuestos públicamente.
 
+## Technitium DNS en Atlas y Pico
+
+Technitium DNS es el servicio DNS utilizado actualmente en ambos servidores y
+se ejecuta en contenedores Docker. Sus Compose no están declarados en el flake,
+por lo que este repositorio no fija el modo de red ni los mapeos efectivos de
+puertos. No se deben deducir las publicaciones reales únicamente a partir del
+firewall INPUT de NixOS.
+
+- **Atlas:** el puerto DNS 53/tcp y 53/udp figura en `PRIVATE_PORTS` de
+  `ATLAS-DOCKER-PRIVATE`. La cadena permite primero LAN
+  (`192.168.1.0/24`) y NetBird (`wt0`), y bloquea después esos puertos para
+  otros orígenes. El puerto 53 no se abre en INPUT porque el caso previsto es
+  publicación mediante Docker bridge. Si el Compose cambia a
+  `network_mode: host`, hay que revisar INPUT.
+- **Pico:** el firewall INPUT de NixOS solo abre SSH TCP/22. Si Technitium
+  publica 53/tcp y 53/udp mediante bridge, el tráfico utiliza el forwarding de
+  Docker y no esas reglas INPUT. El flake no declara una cadena
+  `DOCKER-USER` específica para DNS en Pico, así que hay que verificar las
+  publicaciones del Compose y las reglas del router para conocer la exposición
+  efectiva. Si utiliza `network_mode: host`, el tráfico sí queda sujeto a
+  INPUT y habría que revisar las aperturas del host.
+
+Antes de cambiar puertos, redes o el firewall, comprobar en ambos hosts el
+`network_mode` real del contenedor, sus publicaciones y el acceso DNS desde
+LAN/NetBird y desde una red externa no confiable. Esta documentación no cambia
+ni despliega los Compose.
+
 ## Atlas
 
 ### Arcane y Docker socket
