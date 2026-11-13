@@ -13,11 +13,12 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
 **Atlas y Pico son los dos servidores del homelab.** Ambos ejecutan NixOS sin entorno gráfico, usan Docker y tienen NetBird (interfaz `wt0`) y OpenSSH para administración remota. Atlas es el servidor principal (Minisforum UN1250); Pico es el servidor secundario (ZimaBlade).
 
-* **modules/**: Módulos compartidos de NixOS.
+* **modules/**: Módulos reutilizables y módulos específicos de host.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
     * `rustdesk-privacy.nix`: código conservado para futura reactivación; temporalmente deshabilitado.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
+    * `atlas-docker.nix`: Docker, Arcane, proxy de socket y política DOCKER-USER exclusivos de Atlas.
     * `sops-secrets.nix`: integración SOPS-nix y uso de claves SSH de host como identidades age.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
@@ -201,6 +202,8 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. El mismo workflow ejecuta primero formato, análisis estático, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos; solo si todo pasa inicia las cinco evaluaciones NixOS, limitadas a tres trabajos simultáneos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
+
+La revisión de exposición de red, privilegios Docker y modularización de Atlas está en [`docs/security-review.md`](docs/security-review.md).
 
 ## 🔄 Actualización controlada de dependencias
 
