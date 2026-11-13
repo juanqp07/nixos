@@ -1,4 +1,4 @@
-{ ... }:
+_: {
 
 {
   # SOPS-nix usa la clave privada Ed25519 del host SSH como identidad age.
