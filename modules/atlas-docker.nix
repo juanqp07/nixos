@@ -1,8 +1,8 @@
 { config, pkgs, ... }:
 
 {
-  # Atlas: Docker Engine, policy for published ports and the private Arcane stack.
-  # This module is intentionally host-specific; it must only be imported by Atlas.
+  # Atlas: motor Docker, política de puertos publicados y stack privado de Arcane.
+  # Este módulo es específico del servidor y solo debe importarse en Atlas.
   virtualisation.docker = {
     enable = true;
     # Poda semanal: con ~70 contenedores + watchtower, las imágenes viejas
