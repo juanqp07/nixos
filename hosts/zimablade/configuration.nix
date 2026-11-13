@@ -58,37 +58,37 @@
 
     netbird.enable = true;
     fail2ban = {
-    enable = true;
-
-    maxretry = 3;
-    bantime = "24h";
-
-    bantime-increment = {
       enable = true;
-      rndtime = "15m";
-      overalljails = true;
-      maxtime = "90d";
-      multipliers = "1 2 4 8 16 32 64";
-    };
-
-    jails = {
-      sshd = {
-        enabled = true;
-        filter = "sshd[mode=aggressive]";
-
-        settings = {
-          maxretry = 3;
-          findtime = "10m";
+  
+      maxretry = 3;
+      bantime = "24h";
+  
+      bantime-increment = {
+        enable = true;
+        rndtime = "15m";
+        overalljails = true;
+        maxtime = "90d";
+        multipliers = "1 2 4 8 16 32 64";
+      };
+  
+      jails = {
+        sshd = {
+          enabled = true;
+          filter = "sshd[mode=aggressive]";
+  
+          settings = {
+            maxretry = 3;
+            findtime = "10m";
+          };
         };
       };
     };
-  };
     openssh = {
-    enable = true;
-    settings.PermitRootLogin = "no";
-    # Servidor secundario: login con contraseña permitido (igual que atlas).
-    settings.PasswordAuthentication = true;
-  };
+      enable = true;
+      settings.PermitRootLogin = "no";
+      # Servidor secundario: login con contraseña permitido (igual que atlas).
+      settings.PasswordAuthentication = true;
+    };
     thermald.enable = true;
     fstrim.enable = true;
     smartd.enable = false;
@@ -113,19 +113,19 @@
   # --- 4. DOCKER Y ARCANE EDGE AGENT ---
   virtualisation = {
     docker = {
-    enable = true;
-    autoPrune = {
       enable = true;
-      dates = "weekly";
-    };
-    logDriver = "json-file";
-    daemon.settings = {
-      "log-opts" = {
-        "max-size" = "10m";
-        "max-file" = "3";
+      autoPrune = {
+        enable = true;
+        dates = "weekly";
+      };
+      logDriver = "json-file";
+      daemon.settings = {
+        "log-opts" = {
+          "max-size" = "10m";
+          "max-file" = "3";
+        };
       };
     };
-  };
     oci-containers = {
       backend = "docker";
 
@@ -133,34 +133,34 @@
       # El modo Edge abre una conexión saliente: no publica el puerto 3553.
       # El token se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
       containers.arcane-agent = {
-    # Mantener Edge Agent alineado con el Manager estable de Atlas.
-    image = "ghcr.io/getarcaneapp/agent:v2.17.3";
-    autoStart = true;
-
-    environment = {
-      EDGE_AGENT = "true";
-      # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
-      # latencia de activación al operar sobre el entorno remoto.
-      EDGE_TRANSPORT = "auto";
-      MANAGER_API_URL = "http://192.168.1.143:3552";
-    };
-
-    environmentFiles = [
-      "/var/lib/arcane-agent/agent.env"
-    ];
-
-    volumes = [
-      "/var/run/docker.sock:/var/run/docker.sock"
-      "arcane-agent-data:/app/data"
-      # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
-      "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
-    ];
-
-    extraOptions = [
-      "--cap-drop=ALL"
-      "--security-opt=no-new-privileges:true"
-    ];
-  };
+        # Mantener Edge Agent alineado con el Manager estable de Atlas.
+        image = "ghcr.io/getarcaneapp/agent:v2.17.3";
+        autoStart = true;
+    
+        environment = {
+          EDGE_AGENT = "true";
+          # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
+          # latencia de activación al operar sobre el entorno remoto.
+          EDGE_TRANSPORT = "auto";
+          MANAGER_API_URL = "http://192.168.1.143:3552";
+        };
+    
+        environmentFiles = [
+          "/var/lib/arcane-agent/agent.env"
+        ];
+    
+        volumes = [
+          "/var/run/docker.sock:/var/run/docker.sock"
+          "arcane-agent-data:/app/data"
+          # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
+          "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
+        ];
+    
+        extraOptions = [
+          "--cap-drop=ALL"
+          "--security-opt=no-new-privileges:true"
+        ];
+      };
     };
   };
 
