@@ -881,11 +881,17 @@ run_maintenance() {
   APPLY_RESULT="Sin aplicar"
   run_build_apply "$automatic" yes
 
-  if [[ "$APPLY_RESULT" != "Aplicación cancelada" ]]; then
-    update_flatpak_apps
-  else
-    term_skip "Actualizaciones Flatpak omitidas porque no se ha aplicado la nueva configuración."
-  fi
+  case "$APPLY_RESULT" in
+    "Configuración aplicada")
+      update_flatpak_apps
+      ;;
+    "Preparada para el próximo arranque")
+      term_skip "Actualizaciones Flatpak omitidas: la nueva generación todavía no está activa y se aplicará al reiniciar."
+      ;;
+    *)
+      term_skip "Actualizaciones Flatpak omitidas porque no se ha aplicado la nueva configuración."
+      ;;
+  esac
 
   finished_at="$(date +%s)"
   print_summary "$((finished_at - started_at))" "$APPLY_RESULT"
