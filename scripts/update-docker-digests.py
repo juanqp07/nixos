@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Pin OCI image references to their current registry manifest digests."""
 
 from __future__ import annotations
@@ -8,8 +7,8 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 ROOT = Path(__file__).resolve().parents[1]
 IMAGE_FILES = (
@@ -21,13 +20,11 @@ IMAGE_LINE = re.compile(
     re.MULTILINE,
 )
 DIGEST_PATTERN = re.compile(r"sha256:[0-9a-f]{64}")
-ACCEPT_MANIFESTS = ", ".join(
-    (
-        "application/vnd.oci.image.index.v1+json",
-        "application/vnd.docker.distribution.manifest.list.v2+json",
-        "application/vnd.oci.image.manifest.v1+json",
-        "application/vnd.docker.distribution.manifest.v2+json",
-    )
+ACCEPT_MANIFESTS = (
+    "application/vnd.oci.image.index.v1+json, "
+    "application/vnd.docker.distribution.manifest.list.v2+json, "
+    "application/vnd.oci.image.manifest.v1+json, "
+    "application/vnd.docker.distribution.manifest.v2+json"
 )
 USER_AGENT = "juanqp07-nixos-container-digest-updater/1.0"
 
@@ -56,11 +53,7 @@ def registry_coordinates(repository: str) -> tuple[str, str]:
     if first_component in ("ghcr.io", "docker.io", "index.docker.io"):
         if not separator or not remainder:
             raise ValueError(f"Missing repository path in {repository!r}")
-        registry = (
-            "ghcr.io"
-            if first_component == "ghcr.io"
-            else "registry-1.docker.io"
-        )
+        registry = "ghcr.io" if first_component == "ghcr.io" else "registry-1.docker.io"
         remote_repository = remainder
     else:
         registry = "registry-1.docker.io"
@@ -77,7 +70,7 @@ def read_json(url: str, headers: dict[str, str] | None = None) -> dict:
     with urllib.request.urlopen(request, timeout=30) as response:
         payload = json.load(response)
     if not isinstance(payload, dict):
-        raise ValueError(f"Registry returned an invalid JSON object for {url}")
+        raise TypeError(f"Registry returned an invalid JSON object for {url}")
     return payload
 
 
@@ -102,9 +95,7 @@ def fetch_digest(repository: str, tag: str) -> str:
 
     quoted_repository = urllib.parse.quote(remote_repository, safe="/")
     quoted_tag = urllib.parse.quote(tag, safe="")
-    manifest_url = (
-        f"https://{registry}/v2/{quoted_repository}/manifests/{quoted_tag}"
-    )
+    manifest_url = f"https://{registry}/v2/{quoted_repository}/manifests/{quoted_tag}"
     request = urllib.request.Request(
         manifest_url,
         headers={
@@ -117,10 +108,7 @@ def fetch_digest(repository: str, tag: str) -> str:
         digest = response.headers.get("Docker-Content-Digest")
 
     if not isinstance(digest, str) or not DIGEST_PATTERN.fullmatch(digest):
-        raise ValueError(
-            f"Registry returned no valid Docker-Content-Digest for "
-            f"{repository}:{tag}"
-        )
+        raise ValueError(f"Registry returned no valid Docker-Content-Digest for {repository}:{tag}")
     return digest
 
 
@@ -145,9 +133,7 @@ def update_image_references(
         if updated_reference != reference:
             changes.append(f"{reference} -> {updated_reference}")
 
-        return (
-            f"{match.group('prefix')}{updated_reference}{match.group('suffix')}"
-        )
+        return f"{match.group('prefix')}{updated_reference}{match.group('suffix')}"
 
     updated = IMAGE_LINE.sub(replace, content)
     return updated, changes
@@ -174,6 +160,7 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as error:  # Fail the scheduled job rather than pinning an unknown digest.
+    # Fail the scheduled job rather than pinning an unknown digest.
+    except Exception as error:
         print(f"Container digest update failed: {error}", file=sys.stderr)
         raise
