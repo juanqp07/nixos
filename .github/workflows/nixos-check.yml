@@ -1,6 +1,7 @@
 name: NixOS configuration evaluation
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -128,11 +129,21 @@ jobs:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            git diff --check "$PR_BASE_SHA...$GITHUB_SHA"
-          else
-            git diff --check "$PUSH_BEFORE_SHA" "$GITHUB_SHA"
-          fi
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              git diff --check "$PR_BASE_SHA...$GITHUB_SHA"
+              ;;
+            push)
+              git diff --check "$PUSH_BEFORE_SHA" "$GITHUB_SHA"
+              ;;
+            workflow_dispatch)
+              git diff --check "$GITHUB_SHA^" "$GITHUB_SHA"
+              ;;
+            *)
+              echo "::error::Unsupported event: $GITHUB_EVENT_NAME"
+              exit 1
+              ;;
+          esac
 
       - name: Detect Nori package build changes
         id: nori
@@ -142,11 +153,21 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            changed_files="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"
-          else
-            changed_files="$(git diff --name-only "$PUSH_BEFORE_SHA" "$GITHUB_SHA")"
-          fi
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              changed_files="$(git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA")"
+              ;;
+            push)
+              changed_files="$(git diff --name-only "$PUSH_BEFORE_SHA" "$GITHUB_SHA")"
+              ;;
+            workflow_dispatch)
+              changed_files="$(git diff --name-only "$GITHUB_SHA^" "$GITHUB_SHA")"
+              ;;
+            *)
+              echo "::error::Unsupported event: $GITHUB_EVENT_NAME"
+              exit 1
+              ;;
+          esac
 
           if printf '%s\n' "$changed_files" | grep -Eq '^(packages/nori\.nix|packages/nori-cli\.nix|nixpkgs/pkgs/by-name/no/nori/package\.nix|nixpkgs/pkgs/by-name/no/nori-cli/package\.nix|hosts/portatil/configuration\.nix|hosts/torre/configuration\.nix|flake\.nix|flake\.lock|\.github/workflows/nixos-check\.yml)$'; then
             echo "required=true" >> "$GITHUB_OUTPUT"
