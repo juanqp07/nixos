@@ -19,6 +19,12 @@
       inputs.nixpkgs.follows = "nixpkgs-stable";
     };
 
+    # Gestión declarativa de secretos cifrados con SOPS + age.
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     nix-flatpak.url =
@@ -27,7 +33,7 @@
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, home-manager, home-manager-stable, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, nix-flatpak, nixos-hardware, home-manager, home-manager-stable, sops-nix, ... }@inputs:
     let
       # pkgsInput: nixpkgs (unstable) o nixpkgs-stable según el equipo.
       mkHost = pkgsInput: homeManagerInput: hostName: system: extraModules:
@@ -42,6 +48,8 @@
             ./modules/common-system.nix
             homeManagerInput.nixosModules.home-manager
             ./modules/home-manager.nix
+            sops-nix.nixosModules.sops
+            ./modules/sops-secrets.nix
             ./hosts/${hostName}/configuration.nix
           ] ++ extraModules;
         };
@@ -132,6 +140,14 @@
               clippy
               gcc
               pkg-config
+            ];
+          };
+          # Herramientas para cifrar/editar secretos sin instalarlas globalmente.
+          secrets = pkgs.mkShell {
+            packages = with pkgs; [
+              sops
+              age
+              ssh-to-age
             ];
           };
         };
