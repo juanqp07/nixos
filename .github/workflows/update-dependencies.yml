@@ -60,6 +60,7 @@ jobs:
           files=(
             flake.lock
             hosts/servidor/configuration.nix
+            modules/atlas-docker.nix
             hosts/zimablade/configuration.nix
           )
           git add -- "${files[@]}"
