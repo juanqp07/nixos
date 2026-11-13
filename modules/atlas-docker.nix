@@ -223,7 +223,10 @@
         DOCKER_HOST = "tcp://arcane-docker-proxy:2375";
       };
 
-      dependsOn = [ "arcane-postgres" "arcane-docker-proxy" ];
+      dependsOn = [
+        "arcane-postgres"
+        "arcane-docker-proxy"
+      ];
 
       extraOptions = [
         "--network=arcane-net"
