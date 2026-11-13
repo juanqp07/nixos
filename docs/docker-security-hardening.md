@@ -7,11 +7,53 @@
 
 | Equipo | Estado | Cambios de esta rama |
 |---|---|---|
-| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados. |
-| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Edge Agent conectado al Manager de Atlas; sin panel adicional ni puertos entrantes publicados. |
+| Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados, incluidos DNS y consolas Technitium. |
+| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Edge Agent y política DOCKER-USER para DNS y consolas Technitium; sin panel adicional de Arcane ni puerto entrante de agente. |
 | Titan | Ya está en el flake como host NixOS. La SSD de juegos y Avahi se corrigieron en PR #18. | No se cambian kernel, AMDGPU, scheduler ni ajustes de overdrive sin pruebas físicas. |
 
 Los paneles de administración de Atlas y Pico no están redirigidos desde el router a Internet, según la información del propietario. Las reglas DOCKER-USER son defensa en profundidad ante una publicación accidental de puertos, no una afirmación de que esos paneles estuvieran expuestos públicamente.
+
+## Technitium DNS en Atlas y Pico
+
+Technitium DNS se ejecuta en contenedores Docker en ambos servidores. El
+Compose no está versionado en este flake, así que los mapeos deben comprobarse
+en los hosts y no se modifican desde Nix.
+
+Los mapeos observados en Atlas y compartidos para ambos servidores son:
+
+| Puerto del host | Destino del contenedor | Protocolo | Función |
+|---|---|---|---|
+| 53 | 53 | TCP/UDP | Resolución DNS |
+| 8665 | 5380 | TCP | Consola web HTTP |
+| 53443 | 53443 | TCP | Consola web HTTPS |
+
+Los puertos 853, 443, 80, 8053 y 67 aparecen como expuestos por la imagen,
+pero no como puertos publicados en la salida de Docker compartida. No se
+abren ni se alteran aquí.
+
+- **Atlas:** `ATLAS-DOCKER-PRIVATE` filtra los tres puertos publicados
+  (53/tcp+udp, 8665/tcp y 53443/tcp) en `DOCKER-USER`. LAN
+  (`192.168.1.0/24`) y NetBird (`wt0`) mantienen acceso. Los demás orígenes
+  quedan bloqueados. La regla IPv6 permite NetBird y direcciones ULA
+  (`fc00::/7`).
+- **Pico:** la unidad systemd `pico-technitium-docker-firewall` instala
+  `PICO-TECHNITIUM-PRIVATE` en `DOCKER-USER` y aplica la misma política:
+  LAN/NetBird permitidos, otros orígenes bloqueados y comunicación entre
+  bridges Docker conservada. La política IPv6 se aplica si Docker crea
+  `DOCKER-USER` para IPv6 y permite NetBird y ULA (`fc00::/7`).
+
+Las políticas presuponen Docker bridge. En ese modo el tráfico publicado
+atraviesa el forwarding de Docker y no la cadena INPUT de NixOS. Si un
+Compose cambia a `network_mode: host`, `DOCKER-USER` deja de filtrar ese
+tráfico y será necesario revisar INPUT. Una LAN que use IPv6 global fuera de
+ULA debe añadir su prefijo real a la lista de orígenes confiables si necesita
+acceso DNS/consola por IPv6 directo.
+
+Tras desplegar, comprobar en ambos hosts el `NetworkMode` y los
+`PortBindings` del contenedor, revisar los contadores de las cadenas y probar
+DNS y las consolas desde LAN, NetBird y una red no confiable. Las reglas de
+firewall no sustituyen la política de recursión/ACL configurada dentro de
+Technitium ni las reglas del router.
 
 ## Atlas
 

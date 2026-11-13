@@ -1,4 +1,10 @@
-{ config, pkgs, lib, inputs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 {
   imports = [ ./hardware-configuration.nix ];
@@ -24,7 +30,7 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # VA-API/media path; verify with vainfo on this GPU
+      intel-media-driver # VA-API/media path; verify with vainfo on this GPU
       intel-compute-runtime-legacy1 # OpenCL for Gen8/Gen9/Gen11 (Apollo Lake is Gen9)
       libvdpau-va-gl
     ];
@@ -43,19 +49,59 @@
 
   };
 
-  # Límite de registros ajustado al almacenamiento de la ZimaBlade.
-  services.journald.extraConfig = ''
-    SystemMaxUse=256M
-    MaxRetentionSec=1week
-  '';
+  # Servicios del host.
+  services = {
+    journald.extraConfig = ''
+      SystemMaxUse=256M
+      MaxRetentionSec=1week
+    '';
 
-  # Red privada con el resto de máquinas (interfaz wt0).
-  services.netbird.enable = true;
+    netbird.enable = true;
+    fail2ban = {
+      enable = true;
 
+      maxretry = 3;
+      bantime = "24h";
+
+      bantime-increment = {
+        enable = true;
+        rndtime = "15m";
+        overalljails = true;
+        maxtime = "90d";
+        multipliers = "1 2 4 8 16 32 64";
+      };
+
+      jails = {
+        sshd = {
+          enabled = true;
+          filter = "sshd[mode=aggressive]";
+
+          settings = {
+            maxretry = 3;
+            findtime = "10m";
+          };
+        };
+      };
+    };
+    openssh = {
+      enable = true;
+      settings.PermitRootLogin = "no";
+      # Servidor secundario: login con contraseña permitido (igual que atlas).
+      settings.PasswordAuthentication = true;
+    };
+    thermald.enable = true;
+    fstrim.enable = true;
+    smartd.enable = false;
+  };
+
+  # El firewall INPUT del host solo abre SSH. Technitium se filtra en
+  # DOCKER-USER cuando sus puertos están publicados por Docker bridge.
   networking.firewall = {
     enable = true;
-    # Pico solo expone SSH a nivel del host. Los puertos publicados por
-    # Docker se filtran en FORWARD/DOCKER-USER, no mediante estas reglas INPUT.
+    # Technitium DNS se ejecuta como contenedor Docker en Pico, fuera de esta
+    # declaración NixOS. Este firewall INPUT solo abre SSH; si Compose publica
+    # DNS mediante bridge, el tráfico va por el forwarding de Docker, no por
+    # estas reglas INPUT. Si se usa network_mode: host, revisar INPUT.
     allowedTCPPorts = [ 22 ];
     allowedUDPPorts = [ ];
     # Docker no es una interfaz de confianza: los contenedores no deben
@@ -64,90 +110,136 @@
     checkReversePath = "loose";
   };
 
-  services.fail2ban = {
-    enable = true;
-
-    maxretry = 3;
-    bantime = "24h";
-
-    bantime-increment = {
+  # --- 4. DOCKER Y ARCANE EDGE AGENT ---
+  virtualisation = {
+    docker = {
       enable = true;
-      rndtime = "15m";
-      overalljails = true;
-      maxtime = "90d";
-      multipliers = "1 2 4 8 16 32 64";
-    };
-
-    jails = {
-      sshd = {
-        enabled = true;
-        filter = "sshd[mode=aggressive]";
-
-        settings = {
-          maxretry = 3;
-          findtime = "10m";
+      autoPrune = {
+        enable = true;
+        dates = "weekly";
+      };
+      logDriver = "json-file";
+      daemon.settings = {
+        "log-opts" = {
+          "max-size" = "10m";
+          "max-file" = "3";
         };
       };
     };
-  };
-  services.openssh = {
-    enable = true;
-    settings.PermitRootLogin = "no";
-    # Servidor secundario: login con contraseña permitido (igual que atlas).
-    settings.PasswordAuthentication = true;
-  };
+    oci-containers = {
+      backend = "docker";
 
-  # --- 4. DOCKER Y ARCANE EDGE AGENT ---
-  virtualisation.docker = {
-    enable = true;
-    autoPrune = {
-      enable = true;
-      dates = "weekly";
-    };
-    logDriver = "json-file";
-    daemon.settings = {
-      "log-opts" = {
-        "max-size" = "10m";
-        "max-file" = "3";
+      # Arcane Agent conecta Pico con el único Manager instalado en Atlas.
+      # El modo Edge abre una conexión saliente: no publica el puerto 3553.
+      # El token se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
+      containers.arcane-agent = {
+        # Mantener Edge Agent alineado con el Manager estable de Atlas.
+        image = "ghcr.io/getarcaneapp/agent:v2.17.3";
+        autoStart = true;
+
+        environment = {
+          EDGE_AGENT = "true";
+          # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
+          # latencia de activación al operar sobre el entorno remoto.
+          EDGE_TRANSPORT = "auto";
+          MANAGER_API_URL = "http://192.168.1.143:3552";
+        };
+
+        environmentFiles = [
+          "/var/lib/arcane-agent/agent.env"
+        ];
+
+        volumes = [
+          "/var/run/docker.sock:/var/run/docker.sock"
+          "arcane-agent-data:/app/data"
+          # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
+          "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
+        ];
+
+        extraOptions = [
+          "--cap-drop=ALL"
+          "--security-opt=no-new-privileges:true"
+        ];
       };
     };
   };
 
-  # Arcane Agent conecta Pico con el único Manager instalado en Atlas.
-  # El modo Edge abre una conexión saliente: no publica el puerto 3553.
-  # El token se obtiene desde Environments -> Add Environment -> Edge en Arcane
-  # y se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
-  virtualisation.oci-containers.backend = "docker";
-  virtualisation.oci-containers.containers.arcane-agent = {
-    # Mantener Edge Agent alineado con el Manager estable de Atlas.
-    image = "ghcr.io/getarcaneapp/agent:v2.17.3";
-    autoStart = true;
+  # Technitium DNS se publica mediante Docker bridge. DOCKER-USER filtra
+  # los puertos publicados antes de que lleguen al contenedor:
+  # DNS 53/tcp+udp y consolas HTTP/HTTPS 8665/tcp y 53443/tcp.
+  systemd.services.pico-technitium-docker-firewall = {
+    description = "Restrict direct access to Pico Technitium published ports";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "docker.service" ];
+    after = [ "docker.service" ];
+    partOf = [ "docker.service" ];
 
-    environment = {
-      EDGE_AGENT = "true";
-      # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
-      # latencia de activación al operar sobre el entorno remoto.
-      EDGE_TRANSPORT = "auto";
-      MANAGER_API_URL = "http://192.168.1.143:3552";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
     };
 
-    environmentFiles = [
-      "/var/lib/arcane-agent/agent.env"
-    ];
+    script = ''
+      set -eu
 
-    volumes = [
-      "/var/run/docker.sock:/var/run/docker.sock"
-      "arcane-agent-data:/app/data"
-      # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
-      "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
-    ];
+      IPTABLES=${pkgs.iptables}/bin/iptables
+      CHAIN="PICO-TECHNITIUM-PRIVATE"
+      TCP_PORTS="53 8665 53443"
+      UDP_PORTS="53"
 
-    extraOptions = [
-      "--cap-drop=ALL"
-      "--security-opt=no-new-privileges:true"
-    ];
+      # Docker debe haber creado DOCKER-USER antes de instalar la política.
+      if ! $IPTABLES -w -S DOCKER-USER >/dev/null 2>&1; then
+        echo "No existe DOCKER-USER; no se puede proteger Technitium en Pico." >&2
+        exit 1
+      fi
+
+      $IPTABLES -w -N "$CHAIN" 2>/dev/null || true
+      $IPTABLES -w -F "$CHAIN"
+
+      # Mantener la comunicación iniciada desde otros contenedores Docker.
+      $IPTABLES -w -A "$CHAIN" -i br+ -j RETURN
+      $IPTABLES -w -A "$CHAIN" -i docker0 -j RETURN
+
+      # DNS y consolas solo desde LAN y NetBird.
+      $IPTABLES -w -A "$CHAIN" -i wt0 -j RETURN
+      $IPTABLES -w -A "$CHAIN" -s 192.168.1.0/24 -j RETURN
+
+      for port in $TCP_PORTS; do
+        $IPTABLES -w -A "$CHAIN" -p tcp -m conntrack --ctorigdstport "$port" -j DROP
+      done
+
+      for port in $UDP_PORTS; do
+        $IPTABLES -w -A "$CHAIN" -p udp -m conntrack --ctorigdstport "$port" -j DROP
+      done
+
+      $IPTABLES -w -A "$CHAIN" -j RETURN
+      $IPTABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || $IPTABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+
+      # Misma protección para publicaciones IPv6 cuando Docker crea DOCKER-USER.
+      IP6TABLES=${pkgs.iptables}/bin/ip6tables
+      if $IP6TABLES -w -S DOCKER-USER >/dev/null 2>&1; then
+        $IP6TABLES -w -N "$CHAIN" 2>/dev/null || true
+        $IP6TABLES -w -F "$CHAIN"
+
+        $IP6TABLES -w -A "$CHAIN" -i br+ -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -i docker0 -j RETURN
+        $IP6TABLES -w -A "$CHAIN" -i wt0 -j RETURN
+        # LAN IPv6 ULA; las direcciones globales requieren añadir el prefijo real.
+        $IP6TABLES -w -A "$CHAIN" -s fc00::/7 -j RETURN
+
+        for port in $TCP_PORTS; do
+          $IP6TABLES -w -A "$CHAIN" -p tcp -m conntrack --ctorigdstport "$port" -j DROP
+        done
+
+        for port in $UDP_PORTS; do
+          $IP6TABLES -w -A "$CHAIN" -p udp -m conntrack --ctorigdstport "$port" -j DROP
+        done
+
+        $IP6TABLES -w -A "$CHAIN" -j RETURN
+        $IP6TABLES -w -C DOCKER-USER -j "$CHAIN" 2>/dev/null || $IP6TABLES -w -I DOCKER-USER 1 -j "$CHAIN"
+      fi
+    '';
   };
-
   # Directorio persistente del agente y conservación de los stacks existentes.
   # No se elimina /var/lib/dockge/stacks durante la migración.
   systemd.tmpfiles.rules = [
@@ -156,10 +248,6 @@
   ];
 
   # --- 5. MANTENIMIENTO DEL SISTEMA ---
-  services.thermald.enable = true;
-  services.fstrim.enable = true;
-  services.smartd.enable = false;
-
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -193,7 +281,11 @@
   ];
 
   # --- 7. USUARIO ---
-  users.users.juan.extraGroups = [ "docker" "video" "render" ];
+  users.users.juan.extraGroups = [
+    "docker"
+    "video"
+    "render"
+  ];
 
   system.stateVersion = "25.11";
 }

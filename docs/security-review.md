@@ -3,9 +3,12 @@
 **Alcance:** revisión estática de la configuración NixOS de los cinco hosts.
 No se ha inspeccionado el estado runtime de iptables/nftables, interfaces
 activas, puertos escuchando ni publicación real de los Compose externos.
-Los cambios de firewall de esta revisión se limitan a retirar DNS/53 de la
-cadena INPUT de Atlas; las publicaciones Docker y los accesos de LAN/NetBird
-se conservan.
+Los cambios de firewall retiran DNS/53 de la cadena INPUT de Atlas y añaden
+políticas DOCKER-USER para los puertos publicados de Technitium en Atlas y Pico.
+No se cambian los Compose ni sus mapeos de puertos. Los Compose no están
+declarados en este repositorio; el modo bridge de Atlas sí se ha confirmado
+mediante `docker inspect`, mientras que el estado runtime de Pico debe
+comprobarse después de desplegar la generación.
 
 ## Atlas
 
@@ -17,12 +20,16 @@ El firewall del host permite actualmente:
   21115–21119, Syncthing 22000, 8621 y Minecraft 25565.
 - UDP: descubrimiento Syncthing 21027, Syncthing 22000, RustDesk 21116 y 8621.
 
-Se retiraron TCP/UDP 53 de `networking.firewall.allowed*Ports`: el DNS de
-AdGuard está publicado por un contenedor y su tráfico atraviesa el forwarding
-de Docker, no el INPUT del host. No hay una declaración de un servidor DNS
-nativo en la configuración NixOS de Atlas. El puerto 53 continúa en la lista
-`PRIVATE_PORTS` de DOCKER-USER, donde LAN y NetBird conservan acceso y las
-redes no confiables quedan bloqueadas.
+Se retiraron TCP/UDP 53 de `networking.firewall.allowed*Ports`: Technitium
+DNS se ejecuta como contenedor, no como servicio DNS nativo declarado en NixOS.
+`ATLAS-DOCKER-PRIVATE` filtra DNS 53/tcp+udp y las consolas HTTP 8665/tcp y
+HTTPS 53443/tcp: LAN (`192.168.1.0/24`) y NetBird (`wt0`) conservan acceso,
+mientras que otros orígenes quedan bloqueados por esta política.
+
+Esta explicación del forwarding presupone que el Compose publica DNS mediante
+una red bridge. Si Technitium usa `network_mode: host`, el tráfico llega a
+INPUT y hay que revisar las aperturas TCP/UDP 53 antes de desplegar. El modo de
+red y las publicaciones reales no están versionados en este flake.
 
 No se han eliminado otros puertos porque el repositorio por sí solo no confirma
 si cada uno se utiliza desde un servicio nativo o desde una aplicación externa
@@ -91,9 +98,27 @@ en ambos escritorios.
 
 ## Pico
 
-Pico permite SSH TCP/22 en el firewall del host y confía en la interfaz
-NetBird `wt0`. El Arcane Edge Agent abre una conexión saliente hacia el
-Manager de Atlas, no necesita un puerto entrante de agente publicado.
+Pico permite SSH TCP/22 en el firewall INPUT del host y confía en la interfaz
+NetBird `wt0`. La unidad systemd `pico-technitium-docker-firewall` instala
+la cadena `PICO-TECHNITIUM-PRIVATE` en `DOCKER-USER` para restringir
+Technitium DNS cuando usa Docker bridge:
+
+- Permite DNS 53/tcp y 53/udp y las consolas 8665/tcp y 53443/tcp desde
+  `192.168.1.0/24` y NetBird (`wt0`).
+- Bloquea esos puertos publicados desde otros orígenes.
+- Conserva el tráfico entre bridges Docker para que los contenedores puedan
+  comunicarse entre sí.
+- Aplica la misma política a IPv6 si Docker crea la cadena IPv6
+  `DOCKER-USER`; permite NetBird y direcciones ULA `fc00::/7`.
+
+El Compose de Technitium no está versionado en este repositorio. La política
+presupone publicación mediante bridge, como se ha verificado en Atlas. Si Pico
+usa `network_mode: host`, `DOCKER-USER` no filtra ese tráfico y habrá que
+revisar INPUT antes de aplicar la generación. Una LAN con IPv6 global fuera
+de ULA necesitará añadir su prefijo real para mantener acceso IPv6 directo.
+
+El Arcane Edge Agent abre una conexión saliente hacia el Manager de Atlas, no
+necesita un puerto entrante de agente publicado.
 
 El contenedor Agent monta `/var/run/docker.sock` sin modo de solo lectura.
 Eso concede capacidad de administración muy elevada y es inherente a la
@@ -130,17 +155,22 @@ El bloque específico de Docker de Atlas se ha extraído de
 - Proxy de socket, Arcane Manager y PostgreSQL.
 - Red privada Arcane y dependencias systemd para el inicio ordenado.
 
-El archivo del host queda centrado en hardware, kernel, firewall INPUT,
-almacenamiento, rendimiento y configuración específica del equipo. El nuevo
-módulo solo se importa desde Atlas, por lo que no afecta a Pico ni a los
-escritorios.
+El archivo de Atlas queda centrado en hardware, kernel, firewall INPUT,
+almacenamiento, rendimiento y configuración específica del equipo. El módulo
+de Docker solo se importa desde Atlas. Pico mantiene su política Technitium
+declarada directamente en `hosts/zimablade/configuration.nix`; ambas reglas
+son independientes y específicas de cada servidor.
 
 ## Comprobaciones pendientes en hardware
 
 1. Capturar `ss -lntup` en Atlas y confirmar los puertos nativos que realmente
    escuchan.
-2. Verificar acceso DNS a AdGuard desde LAN/NetBird después de retirar 53 de
-   INPUT; comprobar que la publicación del contenedor sigue funcionando.
+2. Verificar Technitium DNS en Atlas y Pico desde LAN/NetBird. Confirmar que
+   ambos contenedores usan bridge y publican 53/tcp+udp, 8665/tcp y
+   53443/tcp. Revisar las cadenas `ATLAS-DOCKER-PRIVATE` y
+   `PICO-TECHNITIUM-PRIVATE`, y comprobar que el router no publique esos
+   puertos hacia redes no confiables. Si un contenedor usa `network_mode: host`,
+   revisar INPUT porque DOCKER-USER no se aplica.
 3. Validar los paneles de Atlas desde LAN, NetBird y una red no confiable.
 4. En Elytra y Titan, recoger `ip -br link`, `ip route` e IP/subred LAN para
    estudiar reglas por interfaz sin cortar Chromecast, Sunshine, Steam,

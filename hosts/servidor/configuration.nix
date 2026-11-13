@@ -103,8 +103,9 @@
       22000
       8621
     ];
-    # El DNS de AdGuard se publica desde Docker y pasa por FORWARD/DOCKER-USER,
-    # no por INPUT. No abrir 53 en el firewall del host si no hay un DNS nativo.
+    # Technitium DNS se ejecuta como contenedor Docker en Atlas. Si Compose
+    # publica 53/tcp y 53/udp mediante bridge, el tráfico pasa por FORWARD y
+    # DOCKER-USER, no por INPUT. Si se usa network_mode: host, revisar INPUT.
 
     trustedInterfaces = [ "wt0" ];
     checkReversePath = "loose";
