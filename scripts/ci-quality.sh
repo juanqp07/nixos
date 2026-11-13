@@ -24,12 +24,12 @@ workflow_changed=no
 for path in "${changed_files[@]}"; do
   [[ -f "$path" ]] || continue
   case "$path" in
-    *.nix) nix_files+=("$path") ;;
-    *.sh) shell_files+=("$path") ;;
-    *.py) python_files+=("$path") ;;
-    .github/workflows/*.yml|.github/workflows/*.yaml)
-      workflow_changed=yes
-      ;;
+  *.nix) nix_files+=("$path") ;;
+  *.sh) shell_files+=("$path") ;;
+  *.py) python_files+=("$path") ;;
+  .github/workflows/*.yml | .github/workflows/*.yaml)
+    workflow_changed=yes
+    ;;
   esac
 done
 
@@ -38,7 +38,7 @@ failed=0
 if (("${#nix_files[@]}" > 0)); then
   echo "::group::Nix formatting"
   for file in "${nix_files[@]}"; do
-    if ! nixfmt < "$file" | diff -u "$file" -; then
+    if ! nixfmt <"$file" | diff -u "$file" -; then
       echo "::error file=$file::Nix file is not formatted with nixfmt."
       failed=1
     fi
