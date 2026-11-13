@@ -108,7 +108,9 @@ def fetch_digest(repository: str, tag: str) -> str:
         digest = response.headers.get("Docker-Content-Digest")
 
     if not isinstance(digest, str) or not DIGEST_PATTERN.fullmatch(digest):
-        raise ValueError(f"Registry returned no valid Docker-Content-Digest for {repository}:{tag}")
+        raise ValueError(
+            f"Registry returned no valid Docker-Content-Digest for {repository}:{tag}"
+        )
     return digest
 
 
