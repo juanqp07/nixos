@@ -86,7 +86,7 @@ Las líneas en whitelist no representan fallos: la lista excluye las direcciones
 
 ### Arcane Edge Agent
 
-Pico no ejecuta una segunda instancia de Arcane Manager ni otra base de datos. El único Manager y PostgreSQL permanecen en Atlas; Pico ejecuta únicamente el agente oficial de Arcane (ghcr.io/getarcaneapp/agent:latest) para que ambos Docker Engine se administren desde el mismo panel.
+Pico no ejecuta una segunda instancia de Arcane Manager ni otra base de datos. El único Manager y PostgreSQL permanecen en Atlas; Pico ejecuta únicamente el agente oficial de Arcane (ghcr.io/getarcaneapp/agent:v2.17.3) para que ambos Docker Engine se administren desde el mismo panel.
 
 - El agente trabaja en modo Edge con EDGE_AGENT=true y EDGE_TRANSPORT=auto. Inicia una conexión saliente continua hacia http://192.168.1.143:3552 (Arcane Manager en Atlas, puerto TCP/3552).
 - No se publica ningún puerto en Pico: no se necesita abrir TCP/3553 ni añadir reglas de entrada en NixOS o DOCKER-USER.
