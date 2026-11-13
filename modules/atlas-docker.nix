@@ -3,7 +3,8 @@
 {
   # Atlas: motor Docker, política de puertos publicados y stack privado de Arcane.
   # Este módulo es específico del servidor y solo debe importarse en Atlas.
-  virtualisation.docker = {
+  virtualisation = {
+    docker = {
     enable = true;
     # Poda semanal: con ~70 contenedores + watchtower, las imágenes viejas
     # se acumulan en /. Mismo patrón que pico.
@@ -26,7 +27,9 @@
   # La LAN 192.168.1.0/24, NetBird (wt0) y los bridges Docker (Zoraxy y
   # comunicación interna) conservan el acceso. 80/443, SSH, RustDesk,
   # Syncthing y Minecraft no se incluyen en esta lista.
-  systemd.services.docker-published-ports-private = {
+  systemd = {
+    services = {
+      docker-published-ports-private = {
     description = "Restrict direct access to Atlas Docker application ports";
     wantedBy = [ "multi-user.target" ];
     requires = [ "docker.service" ];
@@ -104,9 +107,10 @@
   };
 
   # --- ARCANE ---
-  virtualisation.oci-containers.backend = "docker";
+    oci-containers = {
+      backend = "docker";
 
-  virtualisation.oci-containers.containers = {
+      containers = {
     # Proxy limitado: Arcane nunca recibe el socket Docker directamente.
     arcane-docker-proxy = {
       image = "wollomatic/socket-proxy:1.13.2";
@@ -258,10 +262,11 @@
       # PostgreSQL no necesita publicar el puerto 5432:
       # Arcane accede a él por la red privada arcane-net.
     };
-  };
+      };
+    };
 
   # Crear la red Docker privada antes de iniciar Arcane, el proxy y PostgreSQL.
-  systemd.services.arcane-network = {
+      arcane-network = {
     description = "Docker network for Arcane";
     wantedBy = [ "multi-user.target" ];
     requires = [ "docker.service" ];
@@ -286,14 +291,14 @@
   };
 
   # Orden explícito: la red existe antes de los tres contenedores.
-  systemd.services.docker-arcane-docker-proxy = {
+      docker-arcane-docker-proxy = {
     requires = [ "arcane-network.service" ];
     after = [ "arcane-network.service" ];
   };
 
   # Esperar a que el proxy pase su healthcheck antes de arrancar Arcane.
   # dependsOn solo ordena los servicios; esta unidad espera al estado healthy real.
-  systemd.services.arcane-proxy-ready = {
+      arcane-proxy-ready = {
     description = "Wait for Arcane Docker socket proxy health";
     requires = [ "docker-arcane-docker-proxy.service" ];
     after = [ "docker-arcane-docker-proxy.service" ];
@@ -337,7 +342,7 @@
     '';
   };
 
-  systemd.services.docker-arcane = {
+      docker-arcane = {
     requires = [
       "arcane-network.service"
       "arcane-proxy-ready.service"
@@ -348,8 +353,103 @@
     ];
   };
 
-  systemd.services.docker-arcane-postgres = {
+      docker-arcane-postgres = {
     requires = [ "arcane-network.service" ];
     after = [ "arcane-network.service" ];
+  };
+}
+  # Crear la red Docker privada antes de iniciar Arcane, el proxy y PostgreSQL.
+      arcane-network = {
+    description = "Docker network for Arcane";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "docker.service" ];
+    after = [ "docker.service" ];
+    before = [
+      "docker-arcane-docker-proxy.service"
+      "docker-arcane.service"
+      "docker-arcane-postgres.service"
+    ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    script = ''
+      ${config.virtualisation.docker.package}/bin/docker \
+        network inspect arcane-net >/dev/null 2>&1 || \
+      ${config.virtualisation.docker.package}/bin/docker \
+        network create arcane-net
+    '';
+  };
+
+  # Orden explícito: la red existe antes de los tres contenedores.
+      docker-arcane-docker-proxy = {
+    requires = [ "arcane-network.service" ];
+    after = [ "arcane-network.service" ];
+  };
+
+  # Esperar a que el proxy pase su healthcheck antes de arrancar Arcane.
+  # dependsOn solo ordena los servicios; esta unidad espera al estado healthy real.
+      arcane-proxy-ready = {
+    description = "Wait for Arcane Docker socket proxy health";
+    requires = [ "docker-arcane-docker-proxy.service" ];
+    after = [ "docker-arcane-docker-proxy.service" ];
+    before = [ "docker-arcane.service" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      TimeoutStartSec = "190s";
+    };
+
+    script = ''
+      docker="${config.virtualisation.docker.package}/bin/docker"
+      attempt=0
+
+      while [ "$attempt" -lt 90 ]; do
+        attempt=$((attempt + 1))
+
+        # Ejecuta el binario healthcheck en formato exec (sin /bin/sh).
+        if "$docker" exec arcane-docker-proxy ./healthcheck >/dev/null 2>&1; then
+          echo "Arcane Docker socket proxy está saludable."
+          exit 0
+        fi
+
+        state="$("$docker" inspect --format '{{.State.Status}}' arcane-docker-proxy 2>/dev/null || true)"
+        case "$state" in
+          exited|dead)
+            echo "Arcane no se inicia: el socket proxy está en estado $state." >&2
+            "$docker" logs --tail=100 arcane-docker-proxy >&2 || true
+            exit 1
+            ;;
+        esac
+
+        ${pkgs.coreutils}/bin/sleep 2
+      done
+
+      echo "Arcane no se inicia: el healthcheck exec del socket proxy falló durante 180 segundos." >&2
+      "$docker" inspect --format 'Estado: {{.State.Status}}' arcane-docker-proxy >&2 || true
+      "$docker" logs --tail=100 arcane-docker-proxy >&2 || true
+      exit 1
+    '';
+  };
+
+      docker-arcane = {
+    requires = [
+      "arcane-network.service"
+      "arcane-proxy-ready.service"
+    ];
+    after = [
+      "arcane-network.service"
+      "arcane-proxy-ready.service"
+    ];
+  };
+
+      docker-arcane-postgres = {
+    requires = [ "arcane-network.service" ];
+    after = [ "arcane-network.service" ];
+  };
+    };
   };
 }
