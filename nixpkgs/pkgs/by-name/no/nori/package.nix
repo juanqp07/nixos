@@ -10,11 +10,11 @@ let
   assets = {
     "x86_64-linux" = {
       arch = "x86_64";
-      hash = "sha256-tUL2oAnoc6gUmDatD0vH6aWlx5Vh8HCdfWNblLSIGYM=";
+      hash = "sha256-zbFW49MOVZxZ118zTyeabIL5zbztx+xew3J8us9Fwkg=";
     };
     "aarch64-linux" = {
       arch = "aarch64";
-      hash = "sha256-UYDvZI4U+GFmVW7aKxbcvhiWAS0BunNlHidw++3BjBw=";
+      hash = "sha256-T/XTqF2tIV9rl6niGjiqr6faL28t78EjaGgHbK1EB98=";
     };
   };
 
@@ -22,7 +22,7 @@ let
 in
 appimageTools.wrapType2 (finalAttrs: {
   pname = "nori";
-  version = "0.8.4";
+  version = "0.9.0";
 
   src = fetchurl {
     url = "https://github.com/norifm/nori/releases/download/v${finalAttrs.version}/nori-desktop-${finalAttrs.version}-linux-${asset.arch}.AppImage";
