@@ -59,10 +59,10 @@
     netbird.enable = true;
     fail2ban = {
       enable = true;
-  
+
       maxretry = 3;
       bantime = "24h";
-  
+
       bantime-increment = {
         enable = true;
         rndtime = "15m";
@@ -70,12 +70,12 @@
         maxtime = "90d";
         multipliers = "1 2 4 8 16 32 64";
       };
-  
+
       jails = {
         sshd = {
           enabled = true;
           filter = "sshd[mode=aggressive]";
-  
+
           settings = {
             maxretry = 3;
             findtime = "10m";
@@ -136,7 +136,7 @@
         # Mantener Edge Agent alineado con el Manager estable de Atlas.
         image = "ghcr.io/getarcaneapp/agent:v2.17.3";
         autoStart = true;
-    
+
         environment = {
           EDGE_AGENT = "true";
           # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
@@ -144,18 +144,18 @@
           EDGE_TRANSPORT = "auto";
           MANAGER_API_URL = "http://192.168.1.143:3552";
         };
-    
+
         environmentFiles = [
           "/var/lib/arcane-agent/agent.env"
         ];
-    
+
         volumes = [
           "/var/run/docker.sock:/var/run/docker.sock"
           "arcane-agent-data:/app/data"
           # Conserva los Compose existentes de Dockge y expone la misma ruta al agente.
           "/var/lib/dockge/stacks:/var/lib/dockge/stacks"
         ];
-    
+
         extraOptions = [
           "--cap-drop=ALL"
           "--security-opt=no-new-privileges:true"
