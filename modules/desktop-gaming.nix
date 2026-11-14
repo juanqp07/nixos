@@ -293,6 +293,7 @@
 
     # Comunicación, navegación y acceso remoto.
     openvpn
+    rustdesk-flutter
     telegram-desktop
     vesktop
     discord

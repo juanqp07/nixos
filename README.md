@@ -16,7 +16,6 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **modules/**: Módulos reutilizables y módulos específicos de host.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
-    * `rustdesk-privacy.nix`: código conservado para futura reactivación; temporalmente deshabilitado.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `atlas-docker.nix`: Docker, Arcane, proxy de socket y política DOCKER-USER exclusivos de Atlas.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
@@ -66,9 +65,9 @@ incluye direnv + nix-direnv en el módulo común; puedes usar `direnv allow`
 cuando el proyecto tenga un archivo `.envrc` con `use flake .#python`,
 `use flake .#node`, etc.
 
-## 🛑 RustDesk en los escritorios (temporalmente deshabilitado)
+## 🖥️ RustDesk en los escritorios
 
-El cliente y el servicio RustDesk se han retirado temporalmente de Elytra y Titan para evitar sus compilaciones locales mientras se resuelven los problemas del paquete en Nixpkgs. El código del modo privacidad se conserva, pero su módulo no se importa y sus comandos/atajos no están activos. La infraestructura autoalojada de relay `hbbs`/`hbbr` en Atlas no se modifica.
+El cliente estándar `rustdesk-flutter` de Nixpkgs se instala en Elytra y Titan desde `modules/desktop-gaming.nix`. No se configura un servicio de sistema para acceso previo al inicio de sesión, ni la variante unattended/DRM. El relay autoalojado `hbbs`/`hbbr` de Atlas permanece independiente y sin cambios.
 
 ## 🏠 Home Manager
 

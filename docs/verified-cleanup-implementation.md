@@ -1,8 +1,13 @@
 # Limpieza verificada y cambios que requieren validación en hardware
 
-Este documento acompaña la rama `chore/verified-nixos-cleanup-2026-11`.
-Los cambios se limitan a duplicidades o inconsistencias comprobables en el
-repositorio. No se despliega ninguna generación desde GitHub.
+Este documento acompaña la rama `chore/verified-nixos-cleanup-2026-11` y conserva
+el registro de las decisiones tomadas en aquella limpieza. No se despliega
+ninguna generación desde GitHub.
+
+**Actualización posterior:** RustDesk Privacy se retiró después (módulo, scripts
+y documentación). La configuración actual instala el cliente estándar
+`rustdesk-flutter` en Elytra y Titan, sin servicio de sistema unattended ni
+backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
 
 ## Cambios implementados
 
@@ -186,9 +191,10 @@ repositorio. No se despliega ninguna generación desde GitHub.
   dependencia SQLite añadida por el override local.
 - El overlay de Gear Lever se elimina porque la receta upstream del pin ya
   contiene el mismo wrapper y los mismos argumentos.
-- Se conserva `rustdesk-privacy.nix`, sus scripts y su documentación: aunque
-  el módulo no se importa, el workflow valida la sintaxis de los scripts y el
-  README declara expresamente que se mantienen para posible reactivación.
+- En aquella limpieza se conservaron `rustdesk-privacy.nix`, sus scripts y su
+  documentación como código inactivo. Esa decisión quedó posteriormente
+  sustituida por la retirada completa de esos archivos y la instalación del
+  cliente estándar `rustdesk-flutter` en los dos escritorios.
 - Se conservan las recetas de Nori en `nixpkgs/pkgs/by-name/no`: son la fuente
   única de receta; `packages/nori*.nix` son adaptadores del flake que las
   importan, no copias divergentes.
@@ -400,9 +406,9 @@ un build satisfactorio del toplevel correspondiente.
 ## Fuera de alcance
 
 No se modifica ninguna configuración ni archivo que pertenezca solo a Palco.
-Los elementos de Palco enumerados en la solicitud permanecen como candidatos
-para una posible limpieza separada. Tampoco se elimina RustDesk Privacy ni se
-borra ningún dato persistente de Dockge/Arcane.
+Los elementos de Palco enumerados en aquella solicitud permanecen como
+candidatos para una posible limpieza separada. En el alcance de aquella rama
+no se eliminó RustDesk Privacy ni se borraron datos persistentes de Dockge/Arcane.
  \
   ~/.config/powerdevilrc
 ```
@@ -576,6 +582,6 @@ un build satisfactorio del toplevel correspondiente.
 ## Fuera de alcance
 
 No se modifica ninguna configuración ni archivo que pertenezca solo a Palco.
-Los elementos de Palco enumerados en la solicitud permanecen como candidatos
-para una posible limpieza separada. Tampoco se elimina RustDesk Privacy ni se
-borra ningún dato persistente de Dockge/Arcane.
+Los elementos de Palco enumerados en aquella solicitud permanecen como
+candidatos para una posible limpieza separada. En el alcance de aquella rama
+no se eliminó RustDesk Privacy ni se borraron datos persistentes de Dockge/Arcane.
