@@ -45,7 +45,7 @@ La presencia de `vainfo` no garantiza que el contenedor tenga acceso a `/dev/dri
 
 ### Límites de recursos y estabilidad compartida
 
-- **Compilaciones Nix:** presupuesto específico: `elytra` 2 trabajos × 2 cores solicitados y política `SCHED_IDLE` heredada por los builders; `titan` 6 × 2, `atlas` 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. En Elytra se prioriza la respuesta del escritorio frente a la duración de los builds. `cores` es una sugerencia (`NIX_BUILD_CORES`), no una cuota CPU rígida.
+- **Compilaciones Nix:** presupuesto específico: `elytra` 2 trabajos × 2 cores solicitados y `titan` 6 × 2; ambos ejecutan el daemon con política `SCHED_IDLE` para ceder CPU a las tareas interactivas. `atlas` usa 3 × 2, `pico` 1 × 1 y `palco` 1 × 1. La política puede alargar las compilaciones si hay carga interactiva continua. `cores` es una sugerencia (`NIX_BUILD_CORES`), no una cuota CPU rígida.
 - **SSH:** `MaxAuthTries = 3` y `LoginGraceTime = 30s`. La contraseña y la prohibición de acceso SSH directo como root se mantienen para no perder la administración remota antes de desplegar y comprobar claves en todos los hosts.
 - **Escritorios:** Fail2ban para el servicio SSH y registros persistentes limitados a 512 MiB/2 semanas.
 - **RustDesk en los escritorios:** cliente, servicio systemd y modo privacidad deshabilitados temporalmente en Elytra y Titan para evitar compilar el paquete Flutter/Rust mientras se resuelven los fallos del paquete. La infraestructura de relay autoalojada en Atlas permanece intacta. Se podrá reactivar cuando el paquete vuelva a estar disponible de forma fiable desde la caché o su build quede corregido.
@@ -59,7 +59,7 @@ La presencia de `vainfo` no garantiza que el contenedor tenga acceso a `/dev/dri
 El módulo común deja de imponer `cake`, `bbr`, buffers TCP de 16 MiB, `tcp_fastopen` y colas de conexiones elevadas. No se había medido que esos valores beneficiaran a estos equipos. Los valores por defecto del kernel son una base más predecible entre un portátil con VPN, una torre gaming, dos servidores y una Pi de audio.
 
 La ruta inversa se configura por host y no globalmente:
-- `elytra` y `titan` usan `checkReversePath = "loose"` por NetBird/WARP y posibles rutas asimétricas.
+- `elytra` usa NetBird y Cloudflare WARP; `titan` usa NetBird. Ambos mantienen `checkReversePath = "loose"` para tolerar posibles rutas asimétricas.
 - `atlas` y `pico` ya usan modo loose para NetBird.
 - `palco`, sin VPN overlay, conserva la política por defecto de NixOS.
 
