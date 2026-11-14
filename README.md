@@ -101,39 +101,39 @@ cambio de Home Manager en Elytra o Titan con:
 sudo nixos-rebuild switch --flake .#elytra
 ```
 
-Cambia el host por titan si corresponde. Los alias de despliegue verifican
-que ~/nixos sea un repositorio limpio (incluidos archivos sin seguimiento) y
+Cambia `elytra` por `titan` si corresponde. Los alias de despliegue verifican
+que `~/nixos` sea un repositorio limpio (incluidos archivos sin seguimiento) y
 muestran la rama y el commit exacto antes de ejecutar deploy-rs. No hacen
-fetch, pull, checkout ni commit automáticos: comprueba tú que estás en el
+`fetch`, `pull`, `checkout` ni `commit` automáticos: comprueba tú que estás en el
 commit que quieres desplegar.
 
 Comandos disponibles en Fish:
 
-- **nix-deploy-atlas**: despliega Atlas por LAN.
-- **nix-deploy-pico**: despliega Pico por LAN.
-- **nix-deploy-servers**: despliega ambos servidores por LAN.
-- **nix-deploy-atlas --netbird**: resuelve la IP del peer conectado Atlas y
+- `nix-deploy-atlas`: despliega Atlas por LAN.
+- `nix-deploy-pico`: despliega Pico por LAN.
+- `nix-deploy-servers`: despliega ambos servidores por LAN.
+- `nix-deploy-atlas --netbird`: resuelve la IP del peer conectado Atlas y
   despliega por NetBird.
-- **nix-deploy-pico --netbird**: resuelve la IP del peer conectado Pico y
+- `nix-deploy-pico --netbird`: resuelve la IP del peer conectado Pico y
   despliega por NetBird.
 
-El modo NetBird requiere los comandos netbird y jq, un peer conectado con el
-hostname esperado (atlas o pico) y una política que permita SSH entrante.
+El modo NetBird requiere los comandos `netbird` y `jq`, un peer conectado con
+el hostname esperado (`atlas` o `pico`) y una política que permita SSH entrante.
 Exige una única IP conectada y cancela si no puede resolverla; no hace
 fallback automático a LAN. El comando conjunto sigue usando LAN: despliega
 cada servidor por separado para usar NetBird.
 
 Los comandos piden confirmación y sudo para activar el sistema. Se conservan
-nix-up-atlas y nix-up-pico como alternativas con nixos-rebuild --target-host.
+`nix-up-atlas` y `nix-up-pico` como alternativas con `nixos-rebuild --target-host`.
 
 El despliegue conjunto no es transaccional: si un servidor falla después de
 que el otro se haya actualizado, no se revierte automáticamente el que tuvo
 éxito. Despliega primero cada servidor por separado.
 
 Los rollbacks automáticos de deploy-rs están desactivados de forma deliberada:
-system.autoUpgrade puede crear generaciones con nixos-rebuild que no incluyen
-el helper requerido por Magic Rollback. Consulta docs/deploy-rs.md antes de
-desplegar.
+`system.autoUpgrade` puede crear generaciones con `nixos-rebuild` que no incluyen
+el helper requerido por Magic Rollback. Consulta [`docs/deploy-rs.md`](docs/deploy-rs.md)
+antes de desplegar.
 
 ## 🚀 Cómo aplicar cambios
 
