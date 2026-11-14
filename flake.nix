@@ -66,6 +66,7 @@
 
         titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
           ./modules/desktop-gaming.nix
+          ./modules/titan-interactive.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
 
