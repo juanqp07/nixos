@@ -29,7 +29,7 @@
       containers = {
         # Proxy limitado: Arcane nunca recibe el socket Docker directamente.
         arcane-docker-proxy = {
-          image = "wollomatic/socket-proxy:1.13.2";
+          image = "wollomatic/socket-proxy:1.13.2@sha256:ff95d6ff6c27853005ef85eb8f4ab5923dc3d2f1e055f98fb6aeeaceec3fe848";
           autoStart = true;
           user = "0:0";
 
@@ -110,7 +110,7 @@
 
         arcane = {
           # Fijar la versión evita que :latest adelante el Manager a la rama v3-next.
-          image = "ghcr.io/getarcaneapp/manager:v2.17.3";
+          image = "ghcr.io/getarcaneapp/manager:v2.17.3@sha256:2e0dc9f5ef03599181a49baf6470055d82e24d9cb15bbc62498ea642c0f882a7";
           autoStart = true;
 
           # NixOS gestiona el ciclo de vida; desactivar el updater interno evita
@@ -159,7 +159,7 @@
         };
 
         arcane-postgres = {
-          image = "postgres:17-alpine";
+          image = "postgres:17-alpine@sha256:d3244e8ce3f165ee3c93d9c4a4b1d0fe48b3a89e2287b717fdcbbde92d405065";
           autoStart = true;
 
           volumes = [
