@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # Las compilaciones Nix son carga de fondo y ceden CPU a juegos y tareas interactivas.
