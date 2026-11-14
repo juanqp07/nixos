@@ -4,7 +4,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 
 ## 📂 Estructura del Repositorio
 
-* **flake.nix**: Punto de entrada que define los hosts y las versiones de los paquetes.
+* **flake.nix**: Punto de entrada que define los hosts, las dependencias fijadas y los despliegues remotos de Atlas y Pico.
 * **hosts/**: Configuraciones específicas de hardware.
     * `portatil/` (elytra): Laptop i5-13450HX (Raptor Lake HX) + NVIDIA RTX 5050 Max-Q / UHD integrada (PRIME offload).
     * `torre/` (titan): PC Ryzen 5 5600X + RX 6700 XT 12GB + 32GB RAM (AMD nativo).
@@ -29,7 +29,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **home/juan/**: Configuración personal compartida con Home Manager.
     * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
     * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
-    * `desktop.nix`: Fastfetch y alias de despliegue exclusivos de Elytra y Titan.
+    * `desktop.nix`: Fastfetch, comandos de deploy-rs y alternativas de despliegue remoto exclusivas de Elytra y Titan.
 
 ---
 
@@ -87,6 +87,34 @@ git diff -- flake.lock
 git add flake.lock
 git commit -m "chore: lock Home Manager inputs"
 ```
+
+## 🚀 Despliegue remoto del homelab
+
+Atlas y Pico se pueden desplegar desde Elytra o Titan mediante **deploy-rs
+1.0.0**. La herramienta construye localmente la configuración y transfiere la
+clausura por SSH; los servidores no se utilizan como máquinas de compilación.
+
+Tras fusionar la PR y sincronizar el repositorio, activa primero una vez el
+cambio de Home Manager en Elytra o Titan con `sudo nixos-rebuild switch
+--flake .#elytra` (cambia el host por `titan` si corresponde). Después estarán
+disponibles estos comandos Fish:
+
+- `nix-deploy-atlas`: despliega Atlas.
+- `nix-deploy-pico`: despliega Pico.
+- `nix-deploy-servers`: despliega todos los nodos declarados (Atlas y Pico).
+
+Los comandos muestran el destino, piden confirmación y solicitan la contraseña
+de sudo para activar el sistema. Se conservan `nix-up-atlas` y `nix-up-pico`
+como alternativas con `nixos-rebuild --target-host`.
+
+El despliegue conjunto no es transaccional: si un servidor falla después de que
+el otro se haya actualizado, no se revierte automáticamente el que tuvo éxito.
+Despliega primero cada servidor por separado.
+
+Los rollbacks automáticos de deploy-rs están desactivados de forma deliberada:
+`system.autoUpgrade` puede crear generaciones con `nixos-rebuild` que no
+incluyen el helper requerido por Magic Rollback. Consulta
+[`docs/deploy-rs.md`](docs/deploy-rs.md) antes de desplegar.
 
 ## 🚀 Cómo aplicar cambios
 
@@ -193,7 +221,7 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 
 ## ✅ Validación automática
 
-GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. El mismo workflow ejecuta primero formato, análisis estático, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos; solo si todo pasa inicia las cinco evaluaciones NixOS, limitadas a tres trabajos simultáneos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
+GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. También construye las comprobaciones de esquema y activación de deploy-rs. El mismo workflow ejecuta primero formato, análisis estático, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos; solo si todo pasa inicia las cinco evaluaciones NixOS, limitadas a tres trabajos simultáneos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
 

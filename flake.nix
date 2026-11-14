@@ -23,6 +23,12 @@
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 
+    # Despliegue remoto de Atlas y Pico; fijado a la versión estable 1.0.0.
+    deploy-rs = {
+      url = "github:serokell/deploy-rs/v1.0.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -33,6 +39,7 @@
       nixpkgs-stable,
       nix-flatpak,
       nixos-hardware,
+      deploy-rs,
       home-manager,
       home-manager-stable,
       ...
@@ -85,15 +92,55 @@
         ];
       };
 
-      # Paquete declarativo para Nori (AppImage oficial + WebKitGTK 4.1).
-      packages.x86_64-linux.nori =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix
-          { };
+      # Despliegue remoto: las compilaciones se realizan en el equipo de control,
+      # nunca en los servidores de baja potencia.
+      deploy = {
+        remoteBuild = false;
+        activationTimeout = 600;
 
-      # Cliente de terminal de Nori, empaquetado con sus dependencias FHS.
-      packages.x86_64-linux.nori-cli =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori-cli.nix
-          { };
+        # No activar estos rollbacks mientras system.autoUpgrade pueda crear
+        # generaciones sin deploy-rs-activate. Véase docs/deploy-rs.md.
+        autoRollback = false;
+        magicRollback = false;
+
+        nodes = {
+          atlas = {
+            hostname = "192.168.1.143";
+            profiles.system = {
+              user = "root";
+              sshUser = "juan";
+              interactiveSudo = true;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.atlas;
+            };
+          };
+
+          pico = {
+            hostname = "192.168.1.147";
+            profiles.system = {
+              user = "root";
+              sshUser = "juan";
+              interactiveSudo = true;
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.pico;
+            };
+          };
+        };
+      };
+
+      # Comprueba el esquema de despliegue y que cada perfil incluya sus
+      # scripts de activación antes de permitir un despliegue real.
+      checks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
+
+      # CLI de deploy-rs y paquetes propios del Flake.
+      # Agrupados en un único conjunto para evitar asignaciones anidadas duplicadas.
+      packages.x86_64-linux =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        in
+        {
+          deploy-rs = deploy-rs.packages.x86_64-linux.deploy-rs;
+          nori = pkgs.callPackage ./packages/nori.nix { };
+          nori-cli = pkgs.callPackage ./packages/nori-cli.nix { };
+        };
 
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
