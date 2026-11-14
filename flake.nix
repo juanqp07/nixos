@@ -127,9 +127,7 @@
 
       # Comprueba el esquema de despliegue y que cada perfil incluya sus
       # scripts de activación antes de permitir un despliegue real.
-      checks = builtins.mapAttrs (
-        _system: deployLib: deployLib.deployChecks self.deploy
-      ) deploy-rs.lib;
+      checks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
 
       # CLI de deploy-rs y paquetes propios del Flake.
       # Agrupados en un único conjunto para evitar asignaciones anidadas duplicadas.
