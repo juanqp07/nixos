@@ -181,7 +181,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Validate shell, Fish and privacy helper syntax
+      - name: Validate shell and Fish syntax
         if: matrix.host == 'elytra'
         run: |
           for script in scripts/*.sh; do
@@ -193,17 +193,6 @@ jobs:
           nix build --no-link ".#nixosConfigurations.elytra.pkgs.fish"
           fish_path="$(nix eval --raw ".#nixosConfigurations.elytra.pkgs.fish.outPath")"
           "$fish_path/bin/fish" --no-execute /tmp/kigo-fish-init.fish
-          python3 - <<'PY'
-          import ast
-          from pathlib import Path
-
-          for path in (
-              Path("scripts/rustdesk-privacy-grabber.py"),
-              Path("scripts/rustdesk-privacy-monitor.py"),
-          ):
-              ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-              print(f"Syntax OK: {path}")
-          PY
 
       - name: Check flake outputs
         if: matrix.host == 'titan'

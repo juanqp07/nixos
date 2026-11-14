@@ -1,4 +1,10 @@
-{ config, pkgs, inputs, lib, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  lib,
+  ...
+}:
 
 {
   # ============================================================
@@ -119,8 +125,10 @@
 
   # Stremio: el Chromecast recibe el vídeo desde el servidor local del PC.
   # 11470 = HTTP y 12470 = HTTPS. No configurar port forwarding en el router.
-  networking.firewall.allowedTCPPorts = [ 11470 12470 ];
-
+  networking.firewall.allowedTCPPorts = [
+    11470
+    12470
+  ];
 
   # ============================================================
   # SONIDO Y BLUETOOTH
@@ -157,7 +165,6 @@
 
   services.blueman.enable = true;
 
-
   # ============================================================
   # VIRTUALIZACIÓN: DOCKER + KVM + LIBVIRT
   # ============================================================
@@ -190,7 +197,6 @@
     "render"
   ];
 
-
   # ============================================================
   # IMPRESIÓN Y SINCRONIZACIÓN
   # ============================================================
@@ -213,7 +219,6 @@
       "--no-browser"
     ];
   };
-
 
   # ============================================================
   # GAMING Y MANDOS
@@ -247,7 +252,6 @@
     };
   };
 
-
   # ============================================================
   # OBSERVABILIDAD, APPIMAGE Y RGB
   # ============================================================
@@ -263,7 +267,6 @@
   };
 
   services.hardware.openrgb.enable = true;
-
 
   # ============================================================
   # FUENTES
@@ -281,7 +284,6 @@
     proggyfonts
   ];
 
-
   # ============================================================
   # PAQUETES DEL ESCRITORIO
   # ============================================================
@@ -293,6 +295,7 @@
 
     # Comunicación, navegación y acceso remoto.
     openvpn
+    rustdesk-flutter
     telegram-desktop
     vesktop
     discord
@@ -359,7 +362,6 @@
     openrgb-with-all-plugins
     rpi-imager
   ];
-
 
   # ============================================================
   # NIX-LD: COMPATIBILIDAD CON BINARIOS LINUX
@@ -481,7 +483,6 @@
     clippy
   ];
 
-
   # ============================================================
   # MEMORIA Y SCHEDULER
   # ============================================================
@@ -509,7 +510,6 @@
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;
   };
-
 
   # ============================================================
   # FLATPAK
@@ -569,7 +569,6 @@
     uninstallUnmanaged = false;
   };
 
-
   # ============================================================
   # OVERLAYS
   # ============================================================
@@ -582,9 +581,7 @@
     (final: prev: {
       dwarfs = prev.dwarfs.overrideAttrs (old: {
         doCheck = false;
-        cmakeFlags =
-          (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ]))
-          ++ [ "-DWITH_TESTS=OFF" ];
+        cmakeFlags = (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ])) ++ [ "-DWITH_TESTS=OFF" ];
       });
     })
   ];
