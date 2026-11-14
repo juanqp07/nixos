@@ -43,6 +43,17 @@ Revisa la compatibilidad de rollback de deploy-rs antes de cambiar esta polític
 
 ## Comandos disponibles
 
+Desde una sesión Fish en Elytra o Titan. Tras fusionar esta PR y actualizar el
+checkout local, aplica primero el cambio de Home Manager en el escritorio que
+vayas a usar, por ejemplo:
+
+```bash
+sudo nixos-rebuild switch --flake .#elytra
+```
+
+Cambia `elytra` por `titan` si prefieres usar la torre. Antes de activar ese
+cambio, el CLI también se puede ejecutar directamente con `nix run .#deploy-rs`.
+
 Desde una sesión Fish en Elytra o Titan:
 
 | Comando | Acción |
@@ -67,8 +78,9 @@ nix run .#deploy-rs -- --dry-activate .#atlas
 ```
 
 El comando conjunto `nix-deploy-servers` procesa todos los nodos definidos.
-Se recomienda probar primero cada servidor por separado y usar el despliegue
-conjunto solo cuando ambos estén accesibles y se haya revisado el cambio.
+No es una transacción: al estar desactivado `autoRollback`, si Atlas se despliega
+correctamente y Pico falla después (o al contrario), el primero no se revierte
+automáticamente. Se recomienda desplegar y verificar cada servidor por separado.
 
 ## Validación
 
