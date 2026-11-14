@@ -134,7 +134,7 @@
       # El token se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
       containers.arcane-agent = {
         # Mantener Edge Agent alineado con el Manager estable de Atlas.
-        image = "ghcr.io/getarcaneapp/agent:v2.17.3";
+        image = "ghcr.io/getarcaneapp/agent:v2.17.3@sha256:3005364d5aa603a8fe8b51bee26413b473965c3c2dc6c152b0016dd1cdda1cf4";
         autoStart = true;
 
         environment = {
