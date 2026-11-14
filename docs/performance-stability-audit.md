@@ -59,7 +59,7 @@ La presencia de `vainfo` no garantiza que el contenedor tenga acceso a `/dev/dri
 El módulo común deja de imponer `cake`, `bbr`, buffers TCP de 16 MiB, `tcp_fastopen` y colas de conexiones elevadas. No se había medido que esos valores beneficiaran a estos equipos. Los valores por defecto del kernel son una base más predecible entre un portátil con VPN, una torre gaming, dos servidores y una Pi de audio.
 
 La ruta inversa se configura por host y no globalmente:
-- `elytra` usa NetBird y Cloudflare WARP; `titan` usa NetBird. Ambos mantienen `checkReversePath = "loose"` para tolerar posibles rutas asimétricas.
+- `elytra` y `titan` usan `checkReversePath = "loose"` por NetBird/WARP y posibles rutas asimétricas.
 - `atlas` y `pico` ya usan modo loose para NetBird.
 - `palco`, sin VPN overlay, conserva la política por defecto de NixOS.
 
