@@ -134,11 +134,13 @@ repositorio. No se despliega ninguna generación desde GitHub.
   requiere conocer las interfaces y la conexión/perfil doméstico real; usar
   nombres de interfaz supuestos puede dejar Moonlight, Chromecast o Syncthing
   sin acceso.
-- Cloudflare WARP y NetBird siguen habilitados. Hay un informe de NetBird que
-  considera no soportado el uso simultáneo por competir por rutas/DNS:
-  https://github.com/netbirdio/netbird/issues/672. No se desactiva ninguno sin
-  conocer qué tráfico debe ir por cada túnel. Revisar `ip rule`, tablas de
-  rutas y DNS antes de tomar una decisión.
+- NetBird sigue habilitado en ambos escritorios; Cloudflare WARP se habilita
+  exclusivamente en Elytra. Hay un informe de NetBird que considera no soportado
+  el uso simultáneo por competir por rutas/DNS:
+  https://github.com/netbirdio/netbird/issues/672. Esta PR no cambia el uso de
+  los túneles en Elytra; simplemente evita que Titan herede WARP desde el módulo
+  compartido. Revisar `ip rule`, tablas de rutas y DNS antes de rediseñar esa
+  conectividad.
 - Se conserva SSH por contraseña. El propio módulo común declara que es
   deliberado y el repositorio no contiene una declaración de claves
   `authorized_keys` que permita demostrar que todos los accesos remotos están
