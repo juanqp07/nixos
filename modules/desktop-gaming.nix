@@ -16,7 +16,6 @@
 
   boot.loader.timeout = 0;
 
-  services.cloudflare-warp.enable = true;
   boot.plymouth.enable = true;
 
   # Acelerar arranque: no esperar a que la red esté online ni a udev-settle.
@@ -30,8 +29,8 @@
 
   services.netbird.enable = true;
 
-  # NetBird/WARP pueden crear rutas asimétricas; mantenemos validación de origen
-  # sin exigir que cada paquete vuelva por la misma interfaz.
+  # NetBird puede crear rutas asimétricas; Elytra también utiliza Cloudflare WARP.
+  # Mantenemos validación de origen sin exigir que cada paquete vuelva por la misma interfaz.
   networking.firewall.checkReversePath = "loose";
 
   # SSH permanece habilitado para administración remota; bloquea intentos repetidos.
