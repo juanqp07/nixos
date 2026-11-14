@@ -81,6 +81,12 @@
       end
 
       set -l dirty (command git status --porcelain --untracked-files=all)
+      set -l git_status_result $status
+      if test $git_status_result -ne 0
+        printf '  Error: no se pudo comprobar el estado de ~/nixos.\n' >&2
+        popd >/dev/null
+        return 1
+      end
       if test -n "$dirty"
         printf '  Despliegue cancelado: hay cambios locales sin confirmar en ~/nixos.\n' >&2
         printf '  Confirma o guarda los cambios antes de desplegar. Estado actual:\n' >&2
