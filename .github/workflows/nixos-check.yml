@@ -228,6 +228,11 @@ jobs:
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.Battery.Performance.PowerProfile')" = "power-saver"
           test "$(nix eval --raw '.#nixosConfigurations.elytra.config.home-manager.users.juan.qt.kde.settings.powerdevilrc.LowBattery.Performance.PowerProfile')" = "power-saver"
 
+      - name: Verify Titan background build priority
+        if: matrix.host == 'titan'
+        run: |
+          test "$(nix eval --raw '.#nixosConfigurations.titan.config.nix.daemonCPUSchedPolicy')" = "idle"
+
       - name: Build headless server closure
         if: matrix.host == 'atlas' || matrix.host == 'pico'
         run: |
