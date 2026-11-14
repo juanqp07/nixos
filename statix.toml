@@ -1,0 +1,3 @@
+# NixOS modules intentionally use flat dotted option assignments.
+# W20 (repeated_keys) is a style-only lint that conflicts with this convention.
+disabled = ["repeated_keys"]
