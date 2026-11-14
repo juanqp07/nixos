@@ -147,9 +147,6 @@
   # NETWORKMANAGER
   # ============================================================
 
-  # Cloudflare WARP se utiliza en Elytra, no forma parte del perfil compartido.
-  services.cloudflare-warp.enable = true;
-
   networking.networkmanager = {
     wifi.powersave = false;
     wifi.macAddress = "preserve";
