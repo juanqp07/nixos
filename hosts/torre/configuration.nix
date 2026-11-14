@@ -10,6 +10,10 @@
     max-jobs = 6;
     cores = 2;
   };
+
+  # Las compilaciones Nix ceden CPU a las tareas interactivas de juegos y escritorio.
+  nix.daemonCPUSchedPolicy = "idle";
+
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Mantener mitigaciones de CPU activadas: el aumento de rendimiento al
