@@ -94,7 +94,10 @@ Atlas y Pico se pueden desplegar desde Elytra o Titan mediante **deploy-rs
 1.0.0**. La herramienta construye localmente la configuración y transfiere la
 clausura por SSH; los servidores no se utilizan como máquinas de compilación.
 
-Comandos Fish disponibles en los escritorios:
+Tras fusionar la PR y sincronizar el repositorio, activa primero una vez el
+cambio de Home Manager en Elytra o Titan con `sudo nixos-rebuild switch
+--flake .#elytra` (cambia el host por `titan` si corresponde). Después estarán
+disponibles estos comandos Fish:
 
 - `nix-deploy-atlas`: despliega Atlas.
 - `nix-deploy-pico`: despliega Pico.
@@ -103,6 +106,10 @@ Comandos Fish disponibles en los escritorios:
 Los comandos muestran el destino, piden confirmación y solicitan la contraseña
 de sudo para activar el sistema. Se conservan `nix-up-atlas` y `nix-up-pico`
 como alternativas con `nixos-rebuild --target-host`.
+
+El despliegue conjunto no es transaccional: si un servidor falla después de que
+el otro se haya actualizado, no se revierte automáticamente el que tuvo éxito.
+Despliega primero cada servidor por separado.
 
 Los rollbacks automáticos de deploy-rs están desactivados de forma deliberada:
 `system.autoUpgrade` puede crear generaciones con `nixos-rebuild` que no
