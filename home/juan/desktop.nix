@@ -65,6 +65,37 @@
       __kigo_alias_result "$result" "Despliegue de Pico finalizado"
       return $result
     end
+
+    # Despliegue remoto con deploy-rs. La confirmación interactiva evita
+    # activar accidentalmente cambios en los servidores.
+    function __kigo_deploy --argument-names target label
+      if not pushd "$HOME/nixos" >/dev/null
+        __kigo_alias_result 1 "No se pudo acceder a ~/nixos"
+        return 1
+      end
+
+      __kigo_alias_header "Deploy-rs · $label"
+      set_color brblack
+      printf '  Destino: %s\n' "$target"
+      set_color normal
+      command nix run .#deploy-rs -- --interactive "$target"
+      set -l result $status
+      popd >/dev/null
+      __kigo_alias_result "$result" "Despliegue de $label"
+      return $result
+    end
+
+    function nix-deploy-atlas --description "Despliega Atlas mediante deploy-rs"
+      __kigo_deploy ".#atlas" "Atlas"
+    end
+
+    function nix-deploy-pico --description "Despliega Pico mediante deploy-rs"
+      __kigo_deploy ".#pico" "Pico"
+    end
+
+    function nix-deploy-servers --description "Despliega Atlas y Pico mediante deploy-rs"
+      __kigo_deploy "." "Atlas + Pico"
+    end
   '';
 
 }
