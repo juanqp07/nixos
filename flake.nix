@@ -131,19 +131,17 @@
         _system: deployLib: deployLib.deployChecks self.deploy
       ) deploy-rs.lib;
 
-      # Paquete CLI para el comando nix run .#deploy-rs.
-      packages.x86_64-linux.deploy-rs =
-        deploy-rs.packages.x86_64-linux.deploy-rs;
-
-      # Paquete declarativo para Nori (AppImage oficial + WebKitGTK 4.1).
-      packages.x86_64-linux.nori =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori.nix
-          { };
-
-      # Cliente de terminal de Nori, empaquetado con sus dependencias FHS.
-      packages.x86_64-linux.nori-cli =
-        nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/nori-cli.nix
-          { };
+      # CLI de deploy-rs y paquetes propios del Flake.
+      # Agrupados en un único conjunto para evitar asignaciones anidadas duplicadas.
+      packages.x86_64-linux =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        in
+        {
+          deploy-rs = deploy-rs.packages.x86_64-linux.deploy-rs;
+          nori = pkgs.callPackage ./packages/nori.nix { };
+          nori-cli = pkgs.callPackage ./packages/nori-cli.nix { };
+        };
 
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt;
 
