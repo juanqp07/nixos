@@ -206,6 +206,27 @@ jobs:
             .#checks.x86_64-linux.deploy-schema \
             .#checks.x86_64-linux.deploy-activate
 
+      - name: Verify deploy-rs configuration contract
+        if: matrix.host == 'titan'
+        run: |
+          set -Eeuo pipefail
+
+          # These values are operational safety requirements, not only schema shape.
+          test "$(nix eval --json '.#deploy.remoteBuild')" = "false"
+          test "$(nix eval --json '.#deploy.activationTimeout')" = "600"
+          test "$(nix eval --raw '.#deploy.sshUser')" = "juan"
+          test "$(nix eval --json '.#deploy.interactiveSudo')" = "true"
+          test "$(nix eval --json '.#deploy.autoRollback')" = "false"
+          test "$(nix eval --json '.#deploy.magicRollback')" = "false"
+
+          test "$(nix eval --raw '.#deploy.nodes.atlas.hostname')" = "192.168.1.143"
+          test "$(nix eval --raw '.#deploy.nodes.pico.hostname')" = "192.168.1.147"
+
+          for node in atlas pico; do
+            test "$(nix eval --json ".#deploy.nodes.${node}.groups")" = '["homelab"]'
+            test "$(nix eval --raw ".#deploy.nodes.${node}.profiles.system.user")" = "root"
+          done
+
       - name: Evaluate system closure
         run: |
           nix eval --show-trace --raw ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel.drvPath" >/dev/null
