@@ -105,6 +105,8 @@
 
         nodes = {
           atlas = {
+            # Solo los nodos con opt-in homelab entran en el despliegue conjunto.
+            groups = [ "homelab" ];
             hostname = "192.168.1.143";
             profiles.system = {
               user = "root";
@@ -115,6 +117,8 @@
           };
 
           pico = {
+            # Grupo explícito compartido con Atlas.
+            groups = [ "homelab" ];
             hostname = "192.168.1.147";
             profiles.system = {
               user = "root";

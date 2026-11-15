@@ -68,7 +68,7 @@
 
     # Despliegue con deploy-rs. Se exige un checkout limpio y se muestra el
     # commit exacto antes de construir o transferir cualquier generación.
-    function __kigo_deploy --argument-names target label peer lan_host transport
+    function __kigo_deploy --argument-names target label peer lan_host transport groups
       if not pushd "$HOME/nixos" >/dev/null
         __kigo_alias_result 1 "No se pudo acceder a ~/nixos"
         return 1
@@ -103,6 +103,9 @@
       set -l subject (command git log -1 --format=%s)
 
       set -l deploy_args --interactive
+      if test -n "$groups"
+        set -a deploy_args --groups "$groups"
+      end
       set -l destination "juan@$lan_host (LAN)"
       if test "$label" = "Atlas + Pico"
         set destination "Atlas + Pico (LAN)"
@@ -174,7 +177,7 @@
         end
         set transport "$argv[1]"
       end
-      __kigo_deploy ".#atlas" "Atlas" "atlas" "192.168.1.143" "$transport"
+      __kigo_deploy ".#atlas" "Atlas" "atlas" "192.168.1.143" "$transport" ""
     end
 
     function nix-deploy-pico --description "Despliega Pico mediante deploy-rs; acepta --netbird"
@@ -190,7 +193,7 @@
         end
         set transport "$argv[1]"
       end
-      __kigo_deploy ".#pico" "Pico" "pico" "192.168.1.147" "$transport"
+      __kigo_deploy ".#pico" "Pico" "pico" "192.168.1.147" "$transport" ""
     end
 
     function nix-deploy-servers --description "Despliega Atlas y Pico mediante deploy-rs"
@@ -198,7 +201,7 @@
         printf 'Uso: nix-deploy-servers\n' >&2
         return 2
       end
-      __kigo_deploy "." "Atlas + Pico" "" "LAN" ""
+      __kigo_deploy "." "Atlas + Pico" "" "LAN" "" "homelab"
     end
   '';
 
