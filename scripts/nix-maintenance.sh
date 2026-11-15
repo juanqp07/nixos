@@ -121,7 +121,7 @@ print_summary() {
   *)
     term_warning "Reinicio: no se ha podido determinar"
     ;;
-esac
+  esac
 
   case "$result" in
   "Configuración aplicada" | "Preparada para el próximo arranque")
@@ -133,7 +133,7 @@ esac
   *)
     term_info "$result"
     ;;
-esac
+  esac
 }
 
 die() {
@@ -665,7 +665,7 @@ get_operation() {
   case "$operation" in
   switch | boot) printf '%s' "$operation" ;;
   *) die "Estrategia de actualización no reconocida para $HOST." ;;
-esac
+  esac
 }
 
 # NixOS usa switch por defecto si no se declara otra operación.
@@ -681,7 +681,7 @@ confirm() {
   case "$answer" in
   s | S | si | SI | sí | Sí | sÍ | SÍ) return 0 ;;
   *) return 1 ;;
-esac
+  esac
 }
 
 check_lock_clean() {
@@ -781,7 +781,7 @@ refresh_reboot_status() {
     case "$detected" in
     required | not-required | unknown) REBOOT_STATUS="$detected" ;;
     *) REBOOT_STATUS=unknown ;;
-esac
+    esac
   else
     REBOOT_STATUS=unknown
   fi
@@ -796,7 +796,7 @@ esac
   *)
     warning "No se pudo determinar si es necesario reiniciar."
     ;;
-esac
+  esac
 
   if [[ "$REBOOT_STATUS" == unknown && "$strict" == yes ]]; then
     return 1
@@ -814,7 +814,7 @@ apply_generation() {
     run_step_show "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --no-write-lock-file --flake ".#$HOST"
     APPLY_RESULT="Preparada para el próximo arranque"
     ;;
-esac
+  esac
 
   refresh_reboot_status "Verificando el estado de reinicio después de aplicar" no
   show_final_system_state
@@ -911,7 +911,7 @@ run_maintenance() {
   case "$OPERATION" in
   switch) note "Estrategia: aplicar inmediatamente (switch)." ;;
   boot) note "Estrategia: preparar para el próximo arranque (boot)." ;;
-esac
+  esac
   APPLY_RESULT="Sin aplicar"
   run_build_apply "$automatic" yes
 
@@ -925,7 +925,7 @@ esac
   *)
     term_skip "Actualizaciones Flatpak omitidas porque no se ha aplicado la nueva configuración."
     ;;
-esac
+  esac
 
   finished_at="$(date +%s)"
   print_summary "$((finished_at - started_at))" "$APPLY_RESULT"
