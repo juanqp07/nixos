@@ -2,9 +2,7 @@ import os
 import subprocess
 import tempfile
 import unittest
-
 from pathlib import Path
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHECKER = REPO_ROOT / "scripts" / "nix-reboot-check.sh"
