@@ -8,7 +8,7 @@
 | Equipo | Estado | Cambios de esta rama |
 |---|---|---|
 | Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados, incluidos DNS y consolas Technitium. |
-| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Edge Agent y política DOCKER-USER para DNS y consolas Technitium; sin panel adicional de Arcane ni puerto entrante de agente. |
+| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Direct Agent en TCP/3553, limitado al Manager de Atlas mediante DOCKER-USER; política de publicación para Technitium. |
 | Titan | Ya está en el flake como host NixOS. La SSD de juegos y Avahi se corrigieron en PR #18. | No se cambian kernel, AMDGPU, scheduler ni ajustes de overdrive sin pruebas físicas. |
 
 Los paneles de administración de Atlas y Pico no están redirigidos desde el router a Internet, según la información del propietario. Las reglas DOCKER-USER son defensa en profundidad ante una publicación accidental de puertos, no una afirmación de que esos paneles estuvieran expuestos públicamente.
@@ -126,47 +126,68 @@ Las líneas en whitelist no representan fallos: la lista excluye las direcciones
 
 ## Pico (ZimaBlade)
 
-### Arcane Edge Agent
+### Arcane Direct Agent
 
-Pico no ejecuta una segunda instancia de Arcane Manager ni otra base de datos. El único Manager y PostgreSQL permanecen en Atlas; Pico ejecuta únicamente el agente oficial de Arcane (ghcr.io/getarcaneapp/agent:v2.17.3) para que ambos Docker Engine se administren desde el mismo panel.
+Pico ejecuta el agente Direct de Arcane; el único Manager y PostgreSQL permanecen
+en Atlas. En este modo el Manager inicia las conexiones hacia el agente remoto:
 
-- El agente trabaja en modo Edge con EDGE_AGENT=true y EDGE_TRANSPORT=auto. Inicia una conexión saliente continua hacia http://192.168.1.143:3552 (Arcane Manager en Atlas, puerto TCP/3552).
-- No se publica ningún puerto en Pico: no se necesita abrir TCP/3553 ni añadir reglas de entrada en NixOS o DOCKER-USER.
-- El agente necesita acceso al Docker Engine local mediante /var/run/docker.sock; por tanto, el token de este entorno debe tratarse como una credencial administrativa de Pico.
-- El token generado en Arcane se guarda exclusivamente en /var/lib/arcane-agent/agent.env como AGENT_TOKEN=.... El archivo no debe añadirse a Git ni copiarse a documentación o registros.
-- La carpeta de proyectos que Dockge utilizaba, /var/lib/dockge/stacks, se conserva y se monta en el agente con la misma ruta absoluta. En Arcane, dentro del entorno Pico, configura **Storage & Limits → Projects Directory** como /var/lib/dockge/stacks. Así se podrán descubrir y administrar los Compose existentes sin moverlos ni cambiar las rutas relativas de sus bind mounts.
-- El agente mantiene sus datos en el volumen Docker persistente arcane-agent-data.
+- El agente usa `AGENT_MODE=true`, la versión fijada `v2.17.3` y el token
+  generado al crear un entorno **Direct** en Arcane.
+- Docker publica `3553:3553`. En el Manager de Atlas, el Agent API URL de Pico
+  debe ser `http://192.168.1.147:3553`.
+- `MANAGER_API_URL=http://192.168.1.143:3552` identifica el Manager de Atlas.
+- El socket local `/var/run/docker.sock` permite al agente administrar Docker
+  en Pico; el token debe tratarse como una credencial administrativa del host.
+- El token se guarda exclusivamente en
+  `/var/lib/arcane-agent/agent.env` como `AGENT_TOKEN=...`; nunca se versiona
+  ni se copia a documentación o registros.
+- La política `PICO-TECHNITIUM-PRIVATE` de `DOCKER-USER` permite TCP/3553 solo
+  cuando el origen IPv4 es Atlas (`192.168.1.143`) y descarta los demás orígenes.
+  La regla IPv6 bloquea TCP/3553. No se abre el puerto en
+  `networking.firewall.allowedTCPPorts`: al publicarlo Docker bridge, el filtro
+  correcto está en `DOCKER-USER`, no en INPUT.
+- El volumen persistente `arcane-agent-data` y la ruta
+  `/var/lib/dockge/stacks` se conservan. En Arcane, **Storage & Limits →
+  Projects Directory** debe seguir apuntando a `/var/lib/dockge/stacks`.
 
 #### Alta y despliegue del agente
 
-1. En el Manager de Atlas, abre **Environments → Add Environment → Edge**, crea el entorno llamado pico y genera su configuración.
+1. En el Manager de Atlas, crea un entorno **Direct** para Pico con Agent API URL
+   `http://192.168.1.147:3553` y genera el token de inscripción. Si el entorno
+   existente está registrado como Edge, crea el Direct nuevo y utiliza su token;
+   no reutilices a ciegas el token anterior.
 2. En Pico, crea el archivo de secreto antes de activar la generación NixOS:
 
        sudo install -d -m 0700 -o juan -g users /var/lib/arcane-agent
        sudo install -m 0600 -o juan -g users /dev/null /var/lib/arcane-agent/agent.env
        sudoedit /var/lib/arcane-agent/agent.env
 
-   El contenido debe ser únicamente la variable y el token proporcionado por Arcane:
+   El contenido debe ser únicamente el token proporcionado por Arcane:
 
        AGENT_TOKEN=arc_...
 
-3. Construye y revisa sudo nixos-rebuild build --flake .#pico; después aplica sudo nixos-rebuild switch --flake .#pico.
-4. Comprueba docker logs arcane-agent y que Pico aparezca Online en el selector de entornos de Atlas.
-5. En los ajustes de almacenamiento del entorno remoto, configura /var/lib/dockge/stacks como Projects Directory y comprueba que los Compose existentes aparecen antes de eliminar manualmente cualquier dato antiguo.
+3. Construye y revisa `sudo nixos-rebuild build --flake .#pico`; después aplica
+   `sudo nixos-rebuild switch --flake .#pico`.
+4. Comprueba `sudo docker ps`, `sudo docker logs arcane-agent` y que Pico
+   aparezca Online en el selector de entornos de Atlas. En Pico revisa además
+   `sudo iptables -vnL PICO-TECHNITIUM-PRIVATE`: el contador de la regla
+   permitida debe aumentar cuando Atlas acceda al agente.
+5. Verifica que el entorno puede listar contenedores y proyectos existentes
+   antes de retirar cualquier servicio o dato de Dockge.
 
-Si cambia la IP LAN de Atlas, actualiza MANAGER_API_URL en hosts/zimablade/configuration.nix y despliega la nueva generación. El agente usa el transporte Edge auto para mantener el canal iniciado desde Pico; no requiere conexiones entrantes desde Atlas.
+La release `v2.17.3` emite una advertencia al arrancar con el modo Direct. Esta
+configuración mantiene deliberadamente ese modo porque Atlas debe iniciar la
+conexión a Pico por TCP/3553. Antes de actualizar Arcane a una versión mayor,
+revisar sus cambios de compatibilidad y planificar la migración del agente y del
+Manager conjuntamente; no actualizar las imágenes de forma independiente.
 
-El cambio elimina el contenedor Dockge, su directorio de datos de interfaz y la antigua regla DOCKER-USER que protegía TCP/5001. **No elimina /var/lib/dockge/stacks ni los archivos Compose**. Si el contenedor Dockge antiguo permanece tras cambiar de generación, verifica primero que Arcane Agent esté Online y que los proyectos se hayan detectado; después se puede retirar con sudo docker rm -f dockge.
+Si cambia la IP de Atlas, actualiza `MANAGER_API_URL` y `ATLAS_IP` en
+`hosts/zimablade/configuration.nix`. Si cambia la IP de Pico, actualiza el Agent
+API URL del entorno en Atlas. El puerto publicado no debe exponerse al resto de
+la LAN ni a Internet: la regla de origen único en `DOCKER-USER` es intencional.
 
-La regla PICO-DOCKGE-PRIVATE puede seguir cargada en el kernel durante la sesión en que se retira la unidad antigua (la unidad original no tenía una acción ExecStop para limpiar iptables). Después de confirmar que Dockge ya no está ejecutándose, elimina esa regla residual una sola vez:
-
-       for tool in iptables ip6tables; do
-         sudo "$tool" -D DOCKER-USER -j PICO-DOCKGE-PRIVATE 2>/dev/null || true
-         sudo "$tool" -F PICO-DOCKGE-PRIVATE 2>/dev/null || true
-         sudo "$tool" -X PICO-DOCKGE-PRIVATE 2>/dev/null || true
-       done
-
-Esto no afecta a otros filtros de Docker: elimina únicamente la cadena creada para el antiguo puerto 5001 de Dockge.
+El cambio conserva `/var/lib/dockge/stacks` y el volumen `arcane-agent-data`.
+No elimina datos persistentes ni contenedores de Dockge automáticamente.
 
 ## Titan
 

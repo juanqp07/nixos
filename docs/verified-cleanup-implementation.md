@@ -157,7 +157,7 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
 - Atlas mantiene journald limitado por `SystemMaxUse=1G`; Pico mantiene
   `json-file` con rotación. No se unifican drivers sin comparar retención,
   almacenamiento, consulta de logs y consumo real.
-- Atlas y Pico fijan Arcane Manager y Edge Agent a `v2.17.3` en vez de
+- Atlas y Pico fijan Arcane Manager y Direct Agent a `v2.17.3` en vez de
   `:latest`. El `.goreleaser.yaml` de la propia release `v2.17.3` confirma los
   nombres de imagen GHCR y que ambas se etiquetan como `v<versión>`; los builds
   `BUILD_NEXT` usan la etiqueta `next` separada. Se elige la misma release para
@@ -179,9 +179,10 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
   debe revisarse si cambia el Compose. En Pico se elimina `docker0` de
   `trustedInterfaces`: el módulo
   de firewall de NixOS acepta incondicionalmente el tráfico recibido por una
-  interfaz marcada como confiable. El agente usa el socket Docker y establece
-  una conexión saliente con Atlas, así que no necesita esa excepción; se
-  mantiene `wt0` como interfaz confiable para la administración por NetBird.
+  interfaz marcada como confiable. El agente conserva el socket Docker local.
+  Atlas inicia la conexión hacia Pico por TCP/3553, filtrada en `DOCKER-USER`;
+  no hace falta confiar en `docker0`. Se mantiene `wt0` como interfaz confiable
+  para la administración por NetBird.
   Fuente: [opción trustedInterfaces en el módulo NixOS 26.05 fijado](https://github.com/NixOS/nixpkgs/blob/ac588ef1c914865dad517b337ea0eb9694a4021c/nixos/modules/services/networking/firewall.nix#L164-L172). Un bind mount de socket con `:ro` no convierte
   la API Docker en una API de solo lectura; reducir ese permiso requiere un
   proxy con allowlist validada contra las operaciones reales del agente.
@@ -360,7 +361,7 @@ nix show-config | grep -E 'trusted-users|allowed-users'
 sudo ss -lntup
 ```
 
-El socket Docker del Arcane Edge Agent es una capacidad administrativa de alto
+El socket Docker del Arcane Agent es una capacidad administrativa de alto
 impacto; no montar el socket con `:ro` como sustituto de un proxy. Un proxy
 solo debe desplegarse cuando su allowlist incluya y se pruebe cada API necesaria
 para operaciones del agente (descubrimiento, gestión de contenedores, imágenes,
@@ -536,7 +537,7 @@ nix show-config | grep -E 'trusted-users|allowed-users'
 sudo ss -lntup
 ```
 
-El socket Docker del Arcane Edge Agent es una capacidad administrativa de alto
+El socket Docker del Arcane Agent es una capacidad administrativa de alto
 impacto; no montar el socket con `:ro` como sustituto de un proxy. Un proxy
 solo debe desplegarse cuando su allowlist incluya y se pruebe cada API necesaria
 para operaciones del agente (descubrimiento, gestión de contenedores, imágenes,
