@@ -111,6 +111,18 @@ print_summary() {
     term_info "Paquetes: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
   fi
 
+  case "$REBOOT_STATUS" in
+    required)
+      term_warning "Reinicio: necesario"
+      ;;
+    not-required)
+      term_success "Reinicio: no necesario"
+      ;;
+    *)
+      term_warning "Reinicio: no se ha podido determinar"
+      ;;
+  esac
+
   case "$result" in
     "Configuración aplicada"|"Preparada para el próximo arranque")
       term_success "$result"
@@ -173,6 +185,7 @@ PACKAGE_DIFF_AVAILABLE=no
 PACKAGE_UPDATED=0
 PACKAGE_ADDED=0
 PACKAGE_REMOVED=0
+REBOOT_STATUS=unknown
 
 notify_desktop() {
   local urgency="$1"
@@ -758,6 +771,39 @@ build_and_show() {
   note "La generación está construida y validada; todavía no se ha aplicado."
 }
 
+refresh_reboot_status() {
+  local description="$1"
+  local strict="${2:-no}"
+  local detected=""
+
+  if detected="$(run_step_capture \
+    "$description" \
+    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" --machine-readable)"; then
+    case "$detected" in
+      required|not-required|unknown) REBOOT_STATUS="$detected" ;;
+      *) REBOOT_STATUS=unknown ;;
+    esac
+  else
+    REBOOT_STATUS=unknown
+  fi
+
+  case "$REBOOT_STATUS" in
+    required)
+      term_warning "Reinicio necesario: hay una generación preparada o componentes de arranque diferentes."
+      ;;
+    not-required)
+      term_success "No es necesario reiniciar."
+      ;;
+    *)
+      warning "No se pudo determinar si es necesario reiniciar."
+      ;;
+  esac
+
+  if [[ "$REBOOT_STATUS" == unknown && "$strict" == yes ]]; then
+    return 1
+  fi
+}
+
 apply_generation() {
   section "05" "ACTIVACIÓN" "Desplegando la generación validada"
   case "$OPERATION" in
@@ -771,8 +817,7 @@ apply_generation() {
       ;;
   esac
 
-  run_step_show "Verificando el estado de reinicio" \
-    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
+  refresh_reboot_status "Verificando el estado de reinicio después de aplicar" no
   show_final_system_state
 }
 
@@ -845,7 +890,6 @@ run_build_apply() {
 
 run_maintenance() {
   local automatic="$1"
-  local reboot_status=0
   local started_at finished_at mode_label
 
   started_at="$(date +%s)"
@@ -860,18 +904,9 @@ run_maintenance() {
   show_store_usage "ANTES DEL MANTENIMIENTO"
 
   section "01" "COMPROBACIONES" "Revisando el estado de arranque"
-  if run_step_show "Comprobando si hay un reinicio pendiente" \
-    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"; then
-    reboot_status=0
-  else
-    reboot_status=$?
+  if ! refresh_reboot_status "Comprobando si hay un reinicio pendiente" yes; then
+    die "No se pudo verificar el estado de reinicio."
   fi
-  case "$reboot_status" in
-    0) ;;
-    1) die "Falló la comprobación de reinicio." ;;
-    2) die "No se pudo verificar el estado de reinicio." ;;
-    *) die "La comprobación de reinicio terminó con un error." ;;
-  esac
 
   run_update
   case "$OPERATION" in
