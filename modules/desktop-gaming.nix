@@ -155,7 +155,7 @@
       General = {
         Experimental = true;
         # FastConnectable se deja en su valor predeterminado (false): evita
-        # consumo adicional para conexiones entrantes que el portátil no necesita.
+        # consumo adicional para conexiones entrantes que estos equipos no necesitan.
       };
 
       Policy = {
