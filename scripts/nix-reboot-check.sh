@@ -14,15 +14,15 @@ source "$SCRIPT_DIR/terminal-style.sh"
 HOST="$(hostname -s)"
 OUTPUT_MODE="human"
 case "${1:-}" in
-  "")
-    ;;
-  --machine-readable)
-    OUTPUT_MODE="machine"
-    ;;
-  *)
-    printf 'Uso: %s [--machine-readable]\\n' "$0" >&2
-    exit 2
-    ;;
+"")
+  ;;
+--machine-readable)
+  OUTPUT_MODE="machine"
+  ;;
+*)
+  echo "Uso: $0 [--machine-readable]" >&2
+  exit 2
+  ;;
 esac
 
 if [[ "$OUTPUT_MODE" == "human" && "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
@@ -34,7 +34,7 @@ NEXT="/nix/var/nix/profiles/system"
 
 report_required() {
   if [[ "$OUTPUT_MODE" == "machine" ]]; then
-    printf 'required\\n'
+    echo required
   else
     term_warning "$1"
   fi
@@ -43,7 +43,7 @@ report_required() {
 
 report_not_required() {
   if [[ "$OUTPUT_MODE" == "machine" ]]; then
-    printf 'not-required\\n'
+    echo not-required
   else
     term_success "No es necesario reiniciar."
   fi
@@ -55,7 +55,7 @@ report_unknown() {
   local status="${2:-2}"
 
   if [[ "$OUTPUT_MODE" == "machine" ]]; then
-    printf 'unknown\\n'
+    echo unknown
     exit 0
   fi
 
@@ -99,11 +99,11 @@ for component in kernel kernel-modules initrd systemd; do
   fi
 done
 
-if (( ${#changed_components[@]} > 0 )); then
+if ((${#changed_components[@]} > 0)); then
   report_required "Reinicio necesario: cambios en ${changed_components[*]}."
 fi
 
-if (( unverified )); then
+if ((unverified)); then
   report_unknown "No se pudo comprobar si hace falta reiniciar." 2
 fi
 
