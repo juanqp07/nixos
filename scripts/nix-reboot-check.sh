@@ -13,20 +13,20 @@ source "$SCRIPT_DIR/terminal-style.sh"
 
 MODE="human"
 case "${1:-}" in
-  "")
-    ;;
-  --status)
-    MODE="status"
-    ;;
-  -h|--help)
-    printf 'Uso: nix-reboot-check.sh [--status]\n'
-    printf '  --status  Emite estado|motivo para consumo por otros scripts.\n'
-    exit 0
-    ;;
-  *)
-    printf 'Uso: nix-reboot-check.sh [--status]\n' >&2
-    exit 2
-    ;;
+"")
+  ;;
+--status)
+  MODE="status"
+  ;;
+-h | --help)
+  printf 'Uso: nix-reboot-check.sh [--status]\n'
+  printf '  --status  Emite estado|motivo para consumo por otros scripts.\n'
+  exit 0
+  ;;
+*)
+  printf 'Uso: nix-reboot-check.sh [--status]\n' >&2
+  exit 2
+  ;;
 esac
 [[ "$#" -le 1 ]] || {
   printf 'Uso: nix-reboot-check.sh [--status]\n' >&2
@@ -51,15 +51,15 @@ report_status() {
   fi
 
   case "$status" in
-    required)
-      term_warning "Reinicio necesario: $reason."
-      ;;
-    not-required)
-      term_success "No es necesario reiniciar."
-      ;;
-    unknown)
-      term_warning "No se pudo comprobar si hace falta reiniciar: $reason."
-      ;;
+  required)
+    term_warning "Reinicio necesario: $reason."
+    ;;
+  not-required)
+    term_success "No es necesario reiniciar."
+    ;;
+  unknown)
+    term_warning "No se pudo comprobar si hace falta reiniciar: $reason."
+    ;;
   esac
 }
 
@@ -107,12 +107,12 @@ for component in kernel kernel-modules initrd systemd; do
   fi
 done
 
-if (( ${#changed_components[@]} > 0 )); then
+if ((${#changed_components[@]} > 0)); then
   report_status required "cambios en ${changed_components[*]}"
   exit 0
 fi
 
-if (( unverified )); then
+if ((unverified)); then
   report_status unknown "faltan componentes necesarios para comparar las generaciones"
   exit 2
 fi
