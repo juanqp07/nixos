@@ -169,7 +169,9 @@ en Atlas. En este modo el Manager inicia las conexiones hacia el agente remoto:
 3. Construye y revisa `sudo nixos-rebuild build --flake .#pico`; después aplica
    `sudo nixos-rebuild switch --flake .#pico`.
 4. Comprueba `sudo docker ps`, `sudo docker logs arcane-agent` y que Pico
-   aparezca Online en el selector de entornos de Atlas.
+   aparezca Online en el selector de entornos de Atlas. En Pico revisa además
+   `sudo iptables -vnL PICO-TECHNITIUM-PRIVATE`: el contador de la regla
+   permitida debe aumentar cuando Atlas acceda al agente.
 5. Verifica que el entorno puede listar contenedores y proyectos existentes
    antes de retirar cualquier servicio o dato de Dockge.
 
