@@ -23,6 +23,9 @@ revisión.
   habilita SSH de root ni se almacenan contraseñas en el repositorio.
 - Los comandos Fish incluyen `--interactive`: deploy-rs muestra los perfiles
   y pide confirmación antes de activarlos.
+- Atlas y Pico tienen el grupo explícito `homelab`. El alias conjunto filtra
+  por ese grupo, de modo que añadir otros nodos al Flake no los incorpora
+  accidentalmente salvo que se les asigne deliberadamente el mismo grupo.
 
 ## Comprobaciones previas
 
@@ -106,7 +109,7 @@ Cambia `elytra` por `titan` si prefieres usar la torre.
 | `nix-deploy-atlas --netbird` | Despliega Atlas por NetBird |
 | `nix-deploy-pico` | Despliega Pico por LAN |
 | `nix-deploy-pico --netbird` | Despliega Pico por NetBird |
-| `nix-deploy-servers` | Despliega Atlas y Pico por LAN |
+| `nix-deploy-servers` | Despliega los nodos del grupo `homelab` por LAN (actualmente Atlas y Pico) |
 | `nix-up-atlas` | Alternativa existente con `nixos-rebuild --target-host` |
 | `nix-up-pico` | Alternativa existente con `nixos-rebuild --target-host` |
 
@@ -115,7 +118,12 @@ También se puede invocar directamente:
 ```bash
 nix run .#deploy-rs -- --interactive .#atlas
 nix run .#deploy-rs -- --interactive .#pico
+# Atlas + Pico: solo el grupo explícito del homelab
+nix run .#deploy-rs -- --interactive . --groups homelab
 ```
+
+El alias `nix-deploy-servers` utiliza este filtro (`--groups homelab`);
+no despliega automáticamente todos los nodos que se añadan al Flake.
 
 Para revisar qué se activaría sin aplicar los cambios:
 
