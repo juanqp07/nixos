@@ -111,6 +111,18 @@ print_summary() {
     term_info "Paquetes: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
   fi
 
+  case "$REBOOT_STATUS" in
+    required)
+      term_warning "Reinicio del equipo: SÍ · $REBOOT_REASON"
+      ;;
+    not-required)
+      term_success "Reinicio del equipo: NO"
+      ;;
+    *)
+      term_warning "Reinicio del equipo: NO SE PUDO DETERMINAR · $REBOOT_REASON"
+      ;;
+  esac
+
   case "$result" in
     "Configuración aplicada"|"Preparada para el próximo arranque")
       term_success "$result"
@@ -173,6 +185,8 @@ PACKAGE_DIFF_AVAILABLE=no
 PACKAGE_UPDATED=0
 PACKAGE_ADDED=0
 PACKAGE_REMOVED=0
+REBOOT_STATUS=unknown
+REBOOT_REASON="Estado no comprobado"
 
 notify_desktop() {
   local urgency="$1"
@@ -615,6 +629,21 @@ show_store_usage() {
   fi
 }
 
+capture_reboot_summary() {
+  local report=""
+  local command_status=0
+
+  report="$(env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" --status 2>/dev/null)" || command_status=$?
+
+  if [[ "$report" =~ ^(required|not-required|unknown)\|([^|]*)$ ]]; then
+    REBOOT_STATUS="${BASH_REMATCH[1]}"
+    REBOOT_REASON="${BASH_REMATCH[2]}"
+  else
+    REBOOT_STATUS=unknown
+    REBOOT_REASON="falló la comprobación (código $command_status)"
+  fi
+}
+
 show_final_system_state() {
   local selected running booted
 
@@ -894,6 +923,8 @@ run_maintenance() {
   esac
 
   finished_at="$(date +%s)"
+  # Consultar después de switch/boot para reflejar la generación final.
+  capture_reboot_summary
   print_summary "$((finished_at - started_at))" "$APPLY_RESULT"
 }
 
