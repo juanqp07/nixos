@@ -110,7 +110,7 @@ Comandos disponibles en Fish:
 
 - `nix-deploy-atlas`: despliega Atlas por LAN.
 - `nix-deploy-pico`: despliega Pico por LAN.
-- `nix-deploy-servers`: despliega ambos servidores por LAN.
+- `nix-deploy-servers`: despliega por LAN solo los nodos del grupo `homelab` (Atlas y Pico); otros nodos quedan fuera salvo que se asignen expresamente a ese grupo.
 - `nix-deploy-atlas --netbird`: resuelve la IP del peer conectado Atlas y
   despliega por NetBird.
 - `nix-deploy-pico --netbird`: resuelve la IP del peer conectado Pico y
