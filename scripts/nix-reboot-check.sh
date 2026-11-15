@@ -12,39 +12,74 @@ cd "$FLAKE_DIR"
 source "$SCRIPT_DIR/terminal-style.sh"
 
 HOST="$(hostname -s)"
-if [[ "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
+OUTPUT_MODE="human"
+case "${1:-}" in
+"")
+  ;;
+--machine-readable)
+  OUTPUT_MODE="machine"
+  ;;
+*)
+  echo "Uso: $0 [--machine-readable]" >&2
+  exit 2
+  ;;
+esac
+
+if [[ "$OUTPUT_MODE" == "human" && "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
   term_banner "Comprobación de reinicio" "$HOST"
 fi
 
 BOOTED="/run/booted-system"
 NEXT="/nix/var/nix/profiles/system"
 
-[[ -e "$BOOTED" ]] || {
-  term_error "No se puede identificar el sistema que está arrancado."
-  exit 1
-}
-[[ -e "$NEXT" ]] || {
-  term_error "No se puede identificar la generación seleccionada."
-  exit 1
+report_required() {
+  if [[ "$OUTPUT_MODE" == "machine" ]]; then
+    echo required
+  else
+    term_warning "$1"
+  fi
+  exit 0
 }
 
+report_not_required() {
+  if [[ "$OUTPUT_MODE" == "machine" ]]; then
+    echo not-required
+  else
+    term_success "No es necesario reiniciar."
+  fi
+  exit 0
+}
+
+report_unknown() {
+  local message="$1"
+  local status="${2:-2}"
+
+  if [[ "$OUTPUT_MODE" == "machine" ]]; then
+    echo unknown
+    exit 0
+  fi
+
+  term_error "$message"
+  exit "$status"
+}
+
+[[ -e "$BOOTED" ]] || report_unknown "No se puede identificar el sistema que está arrancado." 1
+[[ -e "$NEXT" ]] || report_unknown "No se puede identificar la generación seleccionada." 1
+
 if ! OPERATION="$(nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
-  term_error "No se pudo consultar la estrategia de actualización del host."
-  exit 2
+  report_unknown "No se pudo consultar la estrategia de actualización del host." 2
 fi
 
 if [[ "$OPERATION" == "boot" ]]; then
   if [[ "$(readlink -f "$BOOTED")" != "$(readlink -f "$NEXT")" ]]; then
-    term_warning "Reinicio pendiente: hay una nueva generación preparada."
+    report_required "Reinicio pendiente: hay una nueva generación preparada."
   else
-    term_success "No hay ningún reinicio pendiente."
+    report_not_required
   fi
-  exit 0
 fi
 
 if [[ "$OPERATION" != "switch" ]]; then
-  term_error "Estrategia de actualización no reconocida: $OPERATION"
-  exit 2
+  report_unknown "Estrategia de actualización no reconocida: $OPERATION" 2
 fi
 
 changed_components=()
@@ -64,14 +99,12 @@ for component in kernel kernel-modules initrd systemd; do
   fi
 done
 
-if (( ${#changed_components[@]} > 0 )); then
-  term_warning "Reinicio necesario: cambios en ${changed_components[*]}."
-  exit 0
+if ((${#changed_components[@]} > 0)); then
+  report_required "Reinicio necesario: cambios en ${changed_components[*]}."
 fi
 
-if (( unverified )); then
-  term_warning "No se pudo comprobar si hace falta reiniciar."
-  exit 2
+if ((unverified)); then
+  report_unknown "No se pudo comprobar si hace falta reiniciar." 2
 fi
 
-term_success "No es necesario reiniciar."
+report_not_required

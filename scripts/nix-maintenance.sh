@@ -47,9 +47,9 @@ format_duration() {
   minutes=$(((total_seconds % 3600) / 60))
   seconds=$((total_seconds % 60))
 
-  if (( hours > 0 )); then
+  if ((hours > 0)); then
     printf '%dh %02dm %02ds' "$hours" "$minutes" "$seconds"
-  elif (( minutes > 0 )); then
+  elif ((minutes > 0)); then
     printf '%dm %02ds' "$minutes" "$seconds"
   else
     printf '%ds' "$seconds"
@@ -78,13 +78,13 @@ format_elapsed() {
   local total_seconds=$((tenths / 10))
   local tenth_digit=$((tenths % 10))
 
-  if (( total_seconds >= 3600 )); then
+  if ((total_seconds >= 3600)); then
     printf '%dh %02dm %02d.%ds' \
       "$((total_seconds / 3600))" \
       "$(((total_seconds % 3600) / 60))" \
       "$((total_seconds % 60))" \
       "$tenth_digit"
-  elif (( total_seconds >= 60 )); then
+  elif ((total_seconds >= 60)); then
     printf '%dm %02d.%ds' \
       "$((total_seconds / 60))" \
       "$((total_seconds % 60))" \
@@ -111,16 +111,28 @@ print_summary() {
     term_info "Paquetes: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
   fi
 
+  case "$REBOOT_STATUS" in
+  required)
+    term_warning "Reinicio: necesario"
+    ;;
+  not-required)
+    term_success "Reinicio: no necesario"
+    ;;
+  *)
+    term_warning "Reinicio: no se ha podido determinar"
+    ;;
+  esac
+
   case "$result" in
-    "Configuración aplicada"|"Preparada para el próximo arranque")
-      term_success "$result"
-      ;;
-    "Aplicación cancelada")
-      term_warning "$result"
-      ;;
-    *)
-      term_info "$result"
-      ;;
+  "Configuración aplicada" | "Preparada para el próximo arranque")
+    term_success "$result"
+    ;;
+  "Aplicación cancelada")
+    term_warning "$result"
+    ;;
+  *)
+    term_info "$result"
+    ;;
   esac
 }
 
@@ -173,6 +185,7 @@ PACKAGE_DIFF_AVAILABLE=no
 PACKAGE_UPDATED=0
 PACKAGE_ADDED=0
 PACKAGE_REMOVED=0
+REBOOT_STATUS=unknown
 
 notify_desktop() {
   local urgency="$1"
@@ -204,7 +217,7 @@ finish_with_notification() {
   clear_spinner
 
   if [[ "$NOTIFICATION_ENABLED" == yes ]]; then
-    if (( exit_status == 0 )); then
+    if ((exit_status == 0)); then
       details="${APPLY_RESULT:-Operación completada correctamente}"
       notify_desktop normal "NixOS · ${HOST:-equipo}" \
         "${NOTIFICATION_TASK}: terminado" "$details"
@@ -232,8 +245,8 @@ wait_with_spinner() {
   local frame=0
   local status=0
   local elapsed
-  local preview_line preview_width terminal_rows terminal_columns
-  local command_preview
+  local preview_line preview_width command_preview
+  local -a terminal_size=()
   local -a command_args=("${@:3}")
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
@@ -257,7 +270,7 @@ wait_with_spinner() {
       # Leer la última línea del registro y eliminar ANSI/controles para que
       # la vista previa no rompa el panel de dos líneas.
       if [[ -n "$log_file" && -s "$log_file" ]]; then
-        preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null | \
+        preview_line="$(tail -n 1 -- "$log_file" 2>/dev/null |
           sed -E 's/\x1B\[[0-9;?]*[ -/]*[@-~]//g; s/\r/ /g; s/[[:cntrl:]]//g' || true)"
       else
         preview_line=""
@@ -268,15 +281,15 @@ wait_with_spinner() {
       fi
 
       # Usar el ancho real de la terminal; COLUMNS queda como alternativa.
-      if read -r terminal_rows terminal_columns < <(stty size 2>/dev/null); then
-        preview_width="$terminal_columns"
+      if read -r -a terminal_size < <(stty size 2>/dev/null); then
+        preview_width="${terminal_size[1]:-}"
       else
         preview_width="${COLUMNS:-100}"
       fi
       [[ "$preview_width" =~ ^[0-9]+$ ]] || preview_width=100
       preview_width=$((preview_width - 8))
-      (( preview_width < 20 )) && preview_width=20
-      if (( ${#preview_line} > preview_width )); then
+      ((preview_width < 20)) && preview_width=20
+      if ((${#preview_line} > preview_width)); then
         preview_line="${preview_line:0:$((preview_width - 1))}…"
       fi
 
@@ -418,7 +431,6 @@ run_step_capture() {
   rm -f "$stdout_file" "$stderr_file"
 }
 
-
 prepare_report_context() {
   REPORT_DIR="$(mktemp -d)" || die "No se pudo crear el directorio temporal del informe."
   LOCK_SNAPSHOT="$REPORT_DIR/flake.lock.before"
@@ -535,7 +547,7 @@ show_flake_input_changes() {
     term_success "Los inputs no han cambiado."
   else
     status=$?
-    if (( status == 1 )); then
+    if ((status == 1)); then
       INPUTS_CHANGED=yes
       term_info "Diff completo: revisiones, hashes y metadatos de los inputs modificados."
     else
@@ -576,7 +588,7 @@ show_closure_changes() {
       NF { modified++ }
       END { printf "%d %d %d", modified, added, removed }
     ')"
-    read -r PACKAGE_UPDATED PACKAGE_ADDED PACKAGE_REMOVED <<< "$counts"
+    read -r PACKAGE_UPDATED PACKAGE_ADDED PACKAGE_REMOVED <<<"$counts"
 
     term_success "Resultado: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
     term_info "Detalle completo de nix store diff-closures (versiones y cambios de tamaño):"
@@ -651,8 +663,8 @@ get_operation() {
     nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation")" ||
     die "No se pudo consultar la estrategia de actualización de $HOST."
   case "$operation" in
-    switch|boot) printf '%s' "$operation" ;;
-    *) die "Estrategia de actualización no reconocida para $HOST." ;;
+  switch | boot) printf '%s' "$operation" ;;
+  *) die "Estrategia de actualización no reconocida para $HOST." ;;
   esac
 }
 
@@ -667,8 +679,8 @@ confirm() {
     answer=""
   fi
   case "$answer" in
-    s|S|si|SI|sí|Sí|sÍ|SÍ) return 0 ;;
-    *) return 1 ;;
+  s | S | si | SI | sí | Sí | sÍ | SÍ) return 0 ;;
+  *) return 1 ;;
   esac
 }
 
@@ -697,7 +709,7 @@ get_gc_args() {
     die "No se pudo consultar la política de limpieza de $HOST."
 
   # Solo se acepta la política de retención declarada para este repositorio.
-  read -r -a GC_ARGS <<< "$gc_options"
+  read -r -a GC_ARGS <<<"$gc_options"
   [[ "${#GC_ARGS[@]}" -eq 2 ]] ||
     die "La política de limpieza configurada no tiene el formato esperado."
   [[ "${GC_ARGS[0]}" == "--delete-older-than" ]] ||
@@ -722,7 +734,7 @@ clean_generations() {
   fi
 
   gc_options="$(get_gc_args)"
-  read -r -a GC_ARGS <<< "$gc_options"
+  read -r -a GC_ARGS <<<"$gc_options"
 
   if [[ "$automatic" != "yes" ]] &&
     ! confirm "¿Limpiar las generaciones antiguas según la política del sistema?"; then
@@ -740,8 +752,8 @@ build_and_show() {
 
   run_step_show "Construyendo la clausura completa de $HOST" \
     sudo nix build --show-trace --print-build-logs --no-write-lock-file \
-      --out-link "$BUILD_OUT_LINK" \
-      ".#nixosConfigurations.$HOST.config.system.build.toplevel"
+    --out-link "$BUILD_OUT_LINK" \
+    ".#nixosConfigurations.$HOST.config.system.build.toplevel"
 
   [[ -e "$BUILD_OUT_LINK" ]] ||
     die "Nix terminó la construcción, pero no creó el enlace a la nueva generación."
@@ -758,21 +770,53 @@ build_and_show() {
   note "La generación está construida y validada; todavía no se ha aplicado."
 }
 
+refresh_reboot_status() {
+  local description="$1"
+  local strict="${2:-no}"
+  local detected=""
+
+  if detected="$(run_step_capture \
+    "$description" \
+    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh" --machine-readable)"; then
+    case "$detected" in
+    required | not-required | unknown) REBOOT_STATUS="$detected" ;;
+    *) REBOOT_STATUS=unknown ;;
+    esac
+  else
+    REBOOT_STATUS=unknown
+  fi
+
+  case "$REBOOT_STATUS" in
+  required)
+    term_warning "Reinicio necesario: hay una generación preparada o componentes de arranque diferentes."
+    ;;
+  not-required)
+    term_success "No es necesario reiniciar."
+    ;;
+  *)
+    warning "No se pudo determinar si es necesario reiniciar."
+    ;;
+  esac
+
+  if [[ "$REBOOT_STATUS" == unknown && "$strict" == yes ]]; then
+    return 1
+  fi
+}
+
 apply_generation() {
   section "05" "ACTIVACIÓN" "Desplegando la generación validada"
   case "$OPERATION" in
-    switch)
-      run_step_show "Aplicando la configuración ahora" sudo nixos-rebuild switch --no-write-lock-file --flake ".#$HOST"
-      APPLY_RESULT="Configuración aplicada"
-      ;;
-    boot)
-      run_step_show "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --no-write-lock-file --flake ".#$HOST"
-      APPLY_RESULT="Preparada para el próximo arranque"
-      ;;
+  switch)
+    run_step_show "Aplicando la configuración ahora" sudo nixos-rebuild switch --no-write-lock-file --flake ".#$HOST"
+    APPLY_RESULT="Configuración aplicada"
+    ;;
+  boot)
+    run_step_show "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --no-write-lock-file --flake ".#$HOST"
+    APPLY_RESULT="Preparada para el próximo arranque"
+    ;;
   esac
 
-  run_step_show "Verificando el estado de reinicio" \
-    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"
+  refresh_reboot_status "Verificando el estado de reinicio después de aplicar" no
   show_final_system_state
 }
 
@@ -845,7 +889,6 @@ run_build_apply() {
 
 run_maintenance() {
   local automatic="$1"
-  local reboot_status=0
   local started_at finished_at mode_label
 
   started_at="$(date +%s)"
@@ -860,37 +903,28 @@ run_maintenance() {
   show_store_usage "ANTES DEL MANTENIMIENTO"
 
   section "01" "COMPROBACIONES" "Revisando el estado de arranque"
-  if run_step_show "Comprobando si hay un reinicio pendiente" \
-    env NIX_MAINTENANCE_CONTEXT=yes bash "$SCRIPT_DIR/nix-reboot-check.sh"; then
-    reboot_status=0
-  else
-    reboot_status=$?
+  if ! refresh_reboot_status "Comprobando si hay un reinicio pendiente" yes; then
+    die "No se pudo verificar el estado de reinicio."
   fi
-  case "$reboot_status" in
-    0) ;;
-    1) die "Falló la comprobación de reinicio." ;;
-    2) die "No se pudo verificar el estado de reinicio." ;;
-    *) die "La comprobación de reinicio terminó con un error." ;;
-  esac
 
   run_update
   case "$OPERATION" in
-    switch) note "Estrategia: aplicar inmediatamente (switch)." ;;
-    boot) note "Estrategia: preparar para el próximo arranque (boot)." ;;
+  switch) note "Estrategia: aplicar inmediatamente (switch)." ;;
+  boot) note "Estrategia: preparar para el próximo arranque (boot)." ;;
   esac
   APPLY_RESULT="Sin aplicar"
   run_build_apply "$automatic" yes
 
   case "$APPLY_RESULT" in
-    "Configuración aplicada")
-      update_flatpak_apps
-      ;;
-    "Preparada para el próximo arranque")
-      term_skip "Actualizaciones Flatpak omitidas: la nueva generación todavía no está activa y se aplicará al reiniciar."
-      ;;
-    *)
-      term_skip "Actualizaciones Flatpak omitidas porque no se ha aplicado la nueva configuración."
-      ;;
+  "Configuración aplicada")
+    update_flatpak_apps
+    ;;
+  "Preparada para el próximo arranque")
+    term_skip "Actualizaciones Flatpak omitidas: la nueva generación todavía no está activa y se aplicará al reiniciar."
+    ;;
+  *)
+    term_skip "Actualizaciones Flatpak omitidas porque no se ha aplicado la nueva configuración."
+    ;;
   esac
 
   finished_at="$(date +%s)"
@@ -917,60 +951,72 @@ EOF
 }
 
 case "${1:-}" in
-  maintain)
+maintain)
+  shift
+  automatic="no"
+  if [[ "${1:-}" == "-y" || "${1:-}" == "--yes" ]]; then
+    automatic="yes"
     shift
-    automatic="no"
-    if [[ "${1:-}" == "-y" || "${1:-}" == "--yes" ]]; then
-      automatic="yes"
-      shift
-    fi
-    [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
-    NOTIFICATION_TASK="Mantenimiento"
-    NOTIFICATION_ENABLED=yes
-    run_maintenance "$automatic"
-    ;;
-  update)
-    [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    NOTIFICATION_TASK="Actualización"
-    NOTIFICATION_ENABLED=yes
-    prepare_report_context
-    capture_baseline
-    show_store_usage "ANTES DE ACTUALIZAR"
-    banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
-    run_update
-    run_build_apply no no
-    ;;
-  apply)
-    [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
-    NOTIFICATION_TASK="Construcción y aplicación"
-    NOTIFICATION_ENABLED=yes
-    prepare_report_context
-    capture_baseline
-    show_store_usage "ANTES DE CONSTRUIR"
-    banner "MODO INTERACTIVO · versiones fijadas en flake.lock"
-    note "No se actualizarán los inputs."
-    run_build_apply no no
-    ;;
-  clean)
-    shift
-    automatic="no"
-    if [[ "${1:-}" == "-y" || "${1:-}" == "--yes" ]]; then
-      automatic="yes"
-      shift
-    fi
-    [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
-    NOTIFICATION_TASK="Limpieza de generaciones"
-    NOTIFICATION_ENABLED=yes
-    banner "MODO LIMPIEZA · política declarada por el host"
-    section "01" "LIMPIEZA" "Revisando generaciones antiguas"
-    clean_generations "$automatic"
-    ;;
-  -h|--help|"")
-    usage
-    [[ -n "${1:-}" ]] || exit 2
-    ;;
-  *)
+  fi
+  [[ "$#" -eq 0 ]] || {
     usage >&2
     exit 2
-    ;;
+  }
+  NOTIFICATION_TASK="Mantenimiento"
+  NOTIFICATION_ENABLED=yes
+  run_maintenance "$automatic"
+  ;;
+update)
+  [[ "$#" -eq 1 ]] || {
+    usage >&2
+    exit 2
+  }
+  NOTIFICATION_TASK="Actualización"
+  NOTIFICATION_ENABLED=yes
+  prepare_report_context
+  capture_baseline
+  show_store_usage "ANTES DE ACTUALIZAR"
+  banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
+  run_update
+  run_build_apply no no
+  ;;
+apply)
+  [[ "$#" -eq 1 ]] || {
+    usage >&2
+    exit 2
+  }
+  NOTIFICATION_TASK="Construcción y aplicación"
+  NOTIFICATION_ENABLED=yes
+  prepare_report_context
+  capture_baseline
+  show_store_usage "ANTES DE CONSTRUIR"
+  banner "MODO INTERACTIVO · versiones fijadas en flake.lock"
+  note "No se actualizarán los inputs."
+  run_build_apply no no
+  ;;
+clean)
+  shift
+  automatic="no"
+  if [[ "${1:-}" == "-y" || "${1:-}" == "--yes" ]]; then
+    automatic="yes"
+    shift
+  fi
+  [[ "$#" -eq 0 ]] || {
+    usage >&2
+    exit 2
+  }
+  NOTIFICATION_TASK="Limpieza de generaciones"
+  NOTIFICATION_ENABLED=yes
+  banner "MODO LIMPIEZA · política declarada por el host"
+  section "01" "LIMPIEZA" "Revisando generaciones antiguas"
+  clean_generations "$automatic"
+  ;;
+-h | --help | "")
+  usage
+  [[ -n "${1:-}" ]] || exit 2
+  ;;
+*)
+  usage >&2
+  exit 2
+  ;;
 esac
