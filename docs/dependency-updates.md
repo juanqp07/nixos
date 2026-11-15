@@ -17,7 +17,7 @@ Realiza dos operaciones:
 
 En la primera ejecución se fijarán también las imágenes que hoy solo tengan
 tag. Actualmente el alcance NixOS incluye el socket proxy, Arcane Manager,
-PostgreSQL y Arcane Edge Agent. Los Compose que se mantienen fuera del
+PostgreSQL y Arcane Direct Agent. Los Compose que se mantienen fuera del
 repositorio no se modifican.
 
 ## Qué ocurre cuando encuentra cambios

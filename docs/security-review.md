@@ -117,8 +117,12 @@ usa `network_mode: host`, `DOCKER-USER` no filtra ese tráfico y habrá que
 revisar INPUT antes de aplicar la generación. Una LAN con IPv6 global fuera
 de ULA necesitará añadir su prefijo real para mantener acceso IPv6 directo.
 
-El Arcane Edge Agent abre una conexión saliente hacia el Manager de Atlas, no
-necesita un puerto entrante de agente publicado.
+El Arcane Agent de Pico funciona en modo Direct: publica TCP/3553 y el Manager
+de Atlas (192.168.1.143) inicia la conexión. La unidad
+`pico-technitium-docker-firewall` filtra ese puerto en `DOCKER-USER`: solo
+acepta conexiones IPv4 desde Atlas y descarta el resto, también por IPv6. No
+se abre 3553 en `networking.firewall.allowedTCPPorts`, porque el puerto
+publicado por Docker bridge atraviesa `DOCKER-USER`, no INPUT.
 
 El contenedor Agent monta `/var/run/docker.sock` sin modo de solo lectura.
 Eso concede capacidad de administración muy elevada y es inherente a la

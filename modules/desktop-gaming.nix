@@ -154,7 +154,8 @@
     settings = {
       General = {
         Experimental = true;
-        FastConnectable = true;
+        # FastConnectable se deja en su valor predeterminado (false): evita
+        # consumo adicional para conexiones entrantes que el portátil no necesita.
       };
 
       Policy = {

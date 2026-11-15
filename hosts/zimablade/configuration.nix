@@ -110,7 +110,7 @@
     checkReversePath = "loose";
   };
 
-  # --- 4. DOCKER Y ARCANE EDGE AGENT ---
+  # --- 4. DOCKER Y ARCANE DIRECT AGENT ---
   virtualisation = {
     docker = {
       enable = true;
@@ -129,19 +129,20 @@
     oci-containers = {
       backend = "docker";
 
-      # Arcane Agent conecta Pico con el único Manager instalado en Atlas.
-      # El modo Edge abre una conexión saliente: no publica el puerto 3553.
-      # El token se guarda fuera del repositorio en /var/lib/arcane-agent/agent.env.
+      # Arcane Manager de Atlas inicia la conexión al agente Direct de Pico.
+      # Docker publica TCP/3553; DOCKER-USER solo permite el origen de Atlas.
+      # El token de inscripción se guarda fuera del repositorio en agent.env.
       containers.arcane-agent = {
-        # Mantener Edge Agent alineado con el Manager estable de Atlas.
+        # Mantener el agente alineado con el Manager estable de Atlas.
         image = "ghcr.io/getarcaneapp/agent:v2.17.3@sha256:3005364d5aa603a8fe8b51bee26413b473965c3c2dc6c152b0016dd1cdda1cf4";
         autoStart = true;
 
+        ports = [ "3553:3553" ];
+
         environment = {
-          EDGE_AGENT = "true";
-          # Mantiene un túnel continuo (gRPC con fallback WebSocket) para evitar
-          # latencia de activación al operar sobre el entorno remoto.
-          EDGE_TRANSPORT = "auto";
+          AGENT_MODE = "true";
+          # Mantiene el transporte WebSocket recomendado por el Compose oficial.
+          EDGE_TRANSPORT = "websocket";
           MANAGER_API_URL = "http://192.168.1.143:3552";
         };
 
@@ -164,11 +165,10 @@
     };
   };
 
-  # Technitium DNS se publica mediante Docker bridge. DOCKER-USER filtra
-  # los puertos publicados antes de que lleguen al contenedor:
-  # DNS 53/tcp+udp y consolas HTTP/HTTPS 8665/tcp y 53443/tcp.
+  # Arcane Direct publica TCP/3553; solo Atlas (192.168.1.143) puede acceder.
+  # Technitium DNS también se filtra en DOCKER-USER para sus puertos publicados.
   systemd.services.pico-technitium-docker-firewall = {
-    description = "Restrict direct access to Pico Technitium published ports";
+    description = "Restrict direct access to Pico Docker-published services";
     wantedBy = [ "multi-user.target" ];
     requires = [ "docker.service" ];
     after = [ "docker.service" ];
@@ -184,6 +184,8 @@
 
       IPTABLES=${pkgs.iptables}/bin/iptables
       CHAIN="PICO-TECHNITIUM-PRIVATE"
+      ATLAS_IP="192.168.1.143"
+      ARCANE_AGENT_PORT="3553"
       TCP_PORTS="53 8665 53443"
       UDP_PORTS="53"
 
@@ -200,7 +202,14 @@
       $IPTABLES -w -A "$CHAIN" -i br+ -j RETURN
       $IPTABLES -w -A "$CHAIN" -i docker0 -j RETURN
 
-      # DNS y consolas solo desde LAN y NetBird.
+      # Arcane Direct: aceptar TCP/3553 únicamente desde el Manager de Atlas.
+      # --ctorigdstport comprueba el puerto original antes del DNAT de Docker.
+      $IPTABLES -w -A "$CHAIN" -p tcp -s "$ATLAS_IP" \
+        -m conntrack --ctorigdstport "$ARCANE_AGENT_PORT" -j RETURN
+      $IPTABLES -w -A "$CHAIN" -p tcp \
+        -m conntrack --ctorigdstport "$ARCANE_AGENT_PORT" -j DROP
+
+      # DNS y consolas Technitium solo desde LAN y NetBird.
       $IPTABLES -w -A "$CHAIN" -i wt0 -j RETURN
       $IPTABLES -w -A "$CHAIN" -s 192.168.1.0/24 -j RETURN
 
@@ -223,6 +232,11 @@
 
         $IP6TABLES -w -A "$CHAIN" -i br+ -j RETURN
         $IP6TABLES -w -A "$CHAIN" -i docker0 -j RETURN
+
+        # Arcane Direct solo se permite por IPv4 desde Atlas; bloquear IPv6.
+        $IP6TABLES -w -A "$CHAIN" -p tcp \
+          -m conntrack --ctorigdstport "$ARCANE_AGENT_PORT" -j DROP
+
         $IP6TABLES -w -A "$CHAIN" -i wt0 -j RETURN
         # LAN IPv6 ULA; las direcciones globales requieren añadir el prefijo real.
         $IP6TABLES -w -A "$CHAIN" -s fc00::/7 -j RETURN
