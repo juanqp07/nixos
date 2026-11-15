@@ -246,7 +246,7 @@ wait_with_spinner() {
   local frame=0
   local status=0
   local elapsed
-  local preview_line preview_width terminal_rows terminal_columns
+  local preview_line preview_width _terminal_rows terminal_columns
   local command_preview
   local -a command_args=("${@:3}")
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
