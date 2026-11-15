@@ -119,7 +119,7 @@ También se puede invocar directamente:
 nix run .#deploy-rs -- --interactive .#atlas
 nix run .#deploy-rs -- --interactive .#pico
 # Atlas + Pico: solo el grupo explícito del homelab
-nix run .#deploy-rs -- --interactive --groups homelab .
+nix run .#deploy-rs -- --interactive . --groups homelab
 ```
 
 El alias `nix-deploy-servers` utiliza este filtro (`--groups homelab`);
