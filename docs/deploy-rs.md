@@ -15,14 +15,16 @@ revisión.
 
 - La compilación se realiza en el equipo desde el que se lanza el despliegue
   (`remoteBuild = false`). Atlas y Pico no consumen CPU compilando su propio
-  sistema.
-- SSH conecta como `juan`. Por defecto se utilizan las direcciones LAN que
-  ya empleaban los comandos remotos existentes: Atlas `192.168.1.143` y Pico
-  `192.168.1.147`.
-- La activación NixOS se ejecuta como `root` mediante sudo interactivo. No se
-  habilita SSH de root ni se almacenan contraseñas en el repositorio.
+  sistema; ambos son `x86_64-linux`.
+- El usuario SSH `juan` y `interactiveSudo = true` se declaran una sola vez
+  en el nivel superior de `deploy`; ambos nodos heredan esos valores.
+- Cada perfil declara `user = "root"`: deploy-rs inicia sesión como `juan`
+  y eleva la activación mediante sudo interactivo. No se habilita SSH de root
+  ni se almacenan contraseñas en el repositorio.
 - Los comandos Fish incluyen `--interactive`: deploy-rs muestra los perfiles
   y pide confirmación antes de activarlos.
+- Atlas y Pico pertenecen al grupo `homelab`. El alias conjunto filtra por ese
+  grupo y no incorporará otros nodos del Flake por accidente.
 
 ## Comprobaciones previas
 
@@ -73,20 +75,36 @@ individuales; así cada uno obtiene su propia dirección de peer.
 ## Por qué los rollbacks automáticos están desactivados
 
 En esta integración se dejan explícitamente `autoRollback = false` y
-`magicRollback = false`.
+`magicRollback = false`. Son dos mecanismos distintos:
 
-deploy-rs 1.0.0 reactiva la generación anterior ejecutando
-`/nix/var/nix/profiles/system/deploy-rs-activate`. Las generaciones creadas por
-`nixos-rebuild` o por el `system.autoUpgrade` actual no incluyen ese helper.
-Por tanto, activar Magic Rollback no garantiza recuperar la generación previa:
-el paso de reactivación puede fallar. Este caso sigue documentado en
-[serokell/deploy-rs#86](https://github.com/serokell/deploy-rs/issues/86), y el
-código de la versión fijada sigue dependiendo de ese ejecutable.
+- `autoRollback` intenta revertir una activación que falla. Para reactivar la
+  generación anterior, deploy-rs ejecuta el helper incluido en ese perfil.
+- `magicRollback` añade una confirmación SSH después de activar el perfil.
+  Si se pierde el acceso o no llega la confirmación, también necesita ejecutar
+  el helper de la generación anterior.
+- En un despliegue por lotes, la reversión de perfiles que ya tuvieron éxito
+  depende igualmente de que su generación anterior pueda reactivarse.
 
-Como Atlas y Pico preparan generaciones mediante `system.autoUpgrade`, no sería
-responsable presentar Magic Rollback como una protección funcional. No se
-deshabilita ni modifica `system.autoUpgrade` para poder activar esta herramienta.
-Revisa la compatibilidad de rollback de deploy-rs antes de cambiar esta política.
+En deploy-rs 1.0.0, la reversión vuelve al perfil anterior y ejecuta
+`/nix/var/nix/profiles/system/deploy-rs-activate` desde esa generación. Las
+generaciones creadas con `nixos-rebuild` o con el `system.autoUpgrade` actual
+no incluyen ese helper. Por tanto, **ni Auto Rollback ni Magic Rollback son
+fiables cuando la generación anterior no se creó con deploy-rs**. Este caso
+está documentado en
+[serokell/deploy-rs#86](https://github.com/serokell/deploy-rs/issues/86).
+
+Como Atlas y Pico preparan generaciones mediante `system.autoUpgrade`, se
+mantienen ambas opciones desactivadas. No se modifica el mecanismo de
+actualizaciones ni se promete una recuperación que puede fallar. La
+consecuencia es deliberada: si falla una activación o el segundo servidor de
+un despliegue por lotes, el primero no se revierte automáticamente. Por eso
+se recomienda desplegar y verificar Atlas y Pico por separado.
+
+Para habilitar rollbacks en el futuro habría que garantizar que **todas** las
+generaciones que puedan ser la anterior —incluidas las preparadas por
+`system.autoUpgrade` y `nixos-rebuild`— contengan el helper correcto, y probar
+la recuperación con una desconexión SSH real. No basta con activar los dos
+flags.
 
 ## Comandos disponibles
 
@@ -106,7 +124,7 @@ Cambia `elytra` por `titan` si prefieres usar la torre.
 | `nix-deploy-atlas --netbird` | Despliega Atlas por NetBird |
 | `nix-deploy-pico` | Despliega Pico por LAN |
 | `nix-deploy-pico --netbird` | Despliega Pico por NetBird |
-| `nix-deploy-servers` | Despliega Atlas y Pico por LAN |
+| `nix-deploy-servers` | Despliega por LAN solo los nodos del grupo `homelab` (Atlas y Pico) |
 | `nix-up-atlas` | Alternativa existente con `nixos-rebuild --target-host` |
 | `nix-up-pico` | Alternativa existente con `nixos-rebuild --target-host` |
 
@@ -123,10 +141,15 @@ Para revisar qué se activaría sin aplicar los cambios:
 nix run .#deploy-rs -- --dry-activate .#atlas
 ```
 
-El comando conjunto `nix-deploy-servers` procesa todos los nodos definidos.
-No es una transacción: al estar desactivado `autoRollback`, si Atlas se despliega
-correctamente y Pico falla después (o al contrario), el primero no se revierte
-automáticamente. Se recomienda desplegar y verificar cada servidor por separado.
+El comando conjunto `nix-deploy-servers` usa `--groups homelab` y solo
+selecciona los nodos que declaran expresamente ese grupo. Si se añade otro
+servidor al Flake, no se incluirá hasta asignarle `groups = [ "homelab" ]`.
+
+No es una transacción: al estar desactivados los rollbacks, si Atlas se
+despliega correctamente y Pico falla después, Atlas no se revierte
+automáticamente. Para cambios delicados, despliega y verifica cada servidor
+por separado; el alias conjunto queda como atajo explícito para aplicar ambos
+cuando aceptes ese riesgo.
 
 ## Validación
 
