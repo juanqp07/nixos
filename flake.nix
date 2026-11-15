@@ -95,31 +95,37 @@
       # Despliegue remoto: las compilaciones se realizan en el equipo de control,
       # nunca en los servidores de baja potencia.
       deploy = {
+        # Atlas y Pico son x86_64: construir en el equipo de control evita
+        # cargar las CPUs de los servidores durante cada despliegue.
         remoteBuild = false;
         activationTimeout = 600;
 
-        # No activar estos rollbacks mientras system.autoUpgrade pueda crear
-        # generaciones sin deploy-rs-activate. Véase docs/deploy-rs.md.
+        # Acceso común heredado por ambos nodos y sus perfiles.
+        # La sesión SSH es juan; solo la activación del perfil se eleva a root.
+        sshUser = "juan";
+        interactiveSudo = true;
+
+        # No prometer rollbacks: las generaciones anteriores creadas por
+        # nixos-rebuild/system.autoUpgrade no contienen deploy-rs-activate.
+        # La limitación y el procedimiento manual están documentados.
         autoRollback = false;
         magicRollback = false;
 
         nodes = {
           atlas = {
             hostname = "192.168.1.143";
+            groups = [ "homelab" ];
             profiles.system = {
               user = "root";
-              sshUser = "juan";
-              interactiveSudo = true;
               path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.atlas;
             };
           };
 
           pico = {
             hostname = "192.168.1.147";
+            groups = [ "homelab" ];
             profiles.system = {
               user = "root";
-              sshUser = "juan";
-              interactiveSudo = true;
               path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.pico;
             };
           };
