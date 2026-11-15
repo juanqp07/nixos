@@ -179,9 +179,10 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
   debe revisarse si cambia el Compose. En Pico se elimina `docker0` de
   `trustedInterfaces`: el módulo
   de firewall de NixOS acepta incondicionalmente el tráfico recibido por una
-  interfaz marcada como confiable. El agente usa el socket Docker local y Atlas inicia la conexión hacia Pico por
-  TCP/3553, así que no necesita esa excepción; se
-  mantiene `wt0` como interfaz confiable para la administración por NetBird.
+  interfaz marcada como confiable. El agente conserva el socket Docker local.
+  Atlas inicia la conexión hacia Pico por TCP/3553, filtrada en `DOCKER-USER`;
+  no hace falta confiar en `docker0`. Se mantiene `wt0` como interfaz confiable
+  para la administración por NetBird.
   Fuente: [opción trustedInterfaces en el módulo NixOS 26.05 fijado](https://github.com/NixOS/nixpkgs/blob/ac588ef1c914865dad517b337ea0eb9694a4021c/nixos/modules/services/networking/firewall.nix#L164-L172). Un bind mount de socket con `:ro` no convierte
   la API Docker en una API de solo lectura; reducir ese permiso requiere un
   proxy con allowlist validada contra las operaciones reales del agente.
