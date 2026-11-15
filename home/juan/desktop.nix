@@ -102,7 +102,7 @@
       set -l commit (command git rev-parse --short=12 HEAD)
       set -l subject (command git log -1 --format=%s)
 
-      set -l deploy_args --interactive
+      set -l deploy_args
       if test -n "$groups"
         set -a deploy_args --groups "$groups"
       end
@@ -157,7 +157,7 @@
       printf '  Destino: %s · flake %s\n' "$destination" "$target"
       set_color normal
 
-      command nix run .#deploy-rs -- $deploy_args "$target"
+      command nix run .#deploy-rs -- --interactive "$target" $deploy_args
       set -l result $status
       popd >/dev/null
       __kigo_alias_result "$result" "Despliegue de $label"
