@@ -958,13 +958,19 @@ maintain)
     automatic="yes"
     shift
   fi
-  [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
+  [[ "$#" -eq 0 ]] || {
+    usage >&2
+    exit 2
+  }
   NOTIFICATION_TASK="Mantenimiento"
   NOTIFICATION_ENABLED=yes
   run_maintenance "$automatic"
   ;;
 update)
-  [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
+  [[ "$#" -eq 1 ]] || {
+    usage >&2
+    exit 2
+  }
   NOTIFICATION_TASK="Actualización"
   NOTIFICATION_ENABLED=yes
   prepare_report_context
@@ -975,7 +981,10 @@ update)
   run_build_apply no no
   ;;
 apply)
-  [[ "$#" -eq 1 ]] || { usage >&2; exit 2; }
+  [[ "$#" -eq 1 ]] || {
+    usage >&2
+    exit 2
+  }
   NOTIFICATION_TASK="Construcción y aplicación"
   NOTIFICATION_ENABLED=yes
   prepare_report_context
@@ -992,7 +1001,10 @@ clean)
     automatic="yes"
     shift
   fi
-  [[ "$#" -eq 0 ]] || { usage >&2; exit 2; }
+  [[ "$#" -eq 0 ]] || {
+    usage >&2
+    exit 2
+  }
   NOTIFICATION_TASK="Limpieza de generaciones"
   NOTIFICATION_ENABLED=yes
   banner "MODO LIMPIEZA · política declarada por el host"
