@@ -11,39 +11,82 @@ cd "$FLAKE_DIR"
 # shellcheck source=scripts/terminal-style.sh
 source "$SCRIPT_DIR/terminal-style.sh"
 
+MODE="human"
+case "${1:-}" in
+  "")
+    ;;
+  --status)
+    MODE="status"
+    ;;
+  -h|--help)
+    printf 'Uso: nix-reboot-check.sh [--status]\n'
+    printf '  --status  Emite estado|motivo para consumo por otros scripts.\n'
+    exit 0
+    ;;
+  *)
+    printf 'Uso: nix-reboot-check.sh [--status]\n' >&2
+    exit 2
+    ;;
+esac
+[[ "$#" -le 1 ]] || {
+  printf 'Uso: nix-reboot-check.sh [--status]\n' >&2
+  exit 2
+}
+
 HOST="$(hostname -s)"
-if [[ "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
+if [[ "$MODE" == human && "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]]; then
   term_banner "Comprobación de reinicio" "$HOST"
 fi
 
-BOOTED="/run/booted-system"
-NEXT="/nix/var/nix/profiles/system"
+BOOTED="${NIX_REBOOT_CHECK_BOOTED_PATH:-/run/booted-system}"
+NEXT="${NIX_REBOOT_CHECK_NEXT_PATH:-/nix/var/nix/profiles/system}"
+
+report_status() {
+  local status="$1"
+  local reason="$2"
+
+  if [[ "$MODE" == status ]]; then
+    printf '%s|%s\n' "$status" "$reason"
+    return 0
+  fi
+
+  case "$status" in
+    required)
+      term_warning "Reinicio necesario: $reason."
+      ;;
+    not-required)
+      term_success "No es necesario reiniciar."
+      ;;
+    unknown)
+      term_warning "No se pudo comprobar si hace falta reiniciar: $reason."
+      ;;
+  esac
+}
 
 [[ -e "$BOOTED" ]] || {
-  term_error "No se puede identificar el sistema que está arrancado."
+  report_status unknown "no se puede identificar el sistema arrancado"
   exit 1
 }
 [[ -e "$NEXT" ]] || {
-  term_error "No se puede identificar la generación seleccionada."
+  report_status unknown "no se puede identificar la generación seleccionada"
   exit 1
 }
-
 if ! OPERATION="$(nix eval --no-write-lock-file --raw ".#nixosConfigurations.$HOST.config.system.autoUpgrade.operation" 2>/dev/null)"; then
-  term_error "No se pudo consultar la estrategia de actualización del host."
+  report_status unknown "no se pudo consultar la estrategia de actualización del host"
   exit 2
 fi
 
 if [[ "$OPERATION" == "boot" ]]; then
   if [[ "$(readlink -f "$BOOTED")" != "$(readlink -f "$NEXT")" ]]; then
-    term_warning "Reinicio pendiente: hay una nueva generación preparada."
+    report_status required "hay una nueva generación preparada para el próximo arranque"
   else
-    term_success "No hay ningún reinicio pendiente."
+    report_status not-required ""
   fi
   exit 0
 fi
 
 if [[ "$OPERATION" != "switch" ]]; then
-  term_error "Estrategia de actualización no reconocida: $OPERATION"
+  report_status unknown "estrategia de actualización no reconocida: $OPERATION"
   exit 2
 fi
 
@@ -65,13 +108,13 @@ for component in kernel kernel-modules initrd systemd; do
 done
 
 if (( ${#changed_components[@]} > 0 )); then
-  term_warning "Reinicio necesario: cambios en ${changed_components[*]}."
+  report_status required "cambios en ${changed_components[*]}"
   exit 0
 fi
 
 if (( unverified )); then
-  term_warning "No se pudo comprobar si hace falta reiniciar."
+  report_status unknown "faltan componentes necesarios para comparar las generaciones"
   exit 2
 fi
 
-term_success "No es necesario reiniciar."
+report_status not-required ""
