@@ -29,8 +29,8 @@ if [[ "$OUTPUT_MODE" == "human" && "${NIX_MAINTENANCE_CONTEXT:-no}" != "yes" ]];
   term_banner "Comprobación de reinicio" "$HOST"
 fi
 
-BOOTED="/run/booted-system"
-NEXT="/nix/var/nix/profiles/system"
+BOOTED="${NIX_REBOOT_CHECK_BOOTED_PATH:-/run/booted-system}"
+NEXT="${NIX_REBOOT_CHECK_NEXT_PATH:-/nix/var/nix/profiles/system}"
 
 report_required() {
   if [[ "$OUTPUT_MODE" == "machine" ]]; then
