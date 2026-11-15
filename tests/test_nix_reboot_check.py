@@ -1,8 +1,8 @@
 import os
+from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +36,7 @@ class RebootCheckTests(unittest.TestCase):
         fake_bin.mkdir()
         fake_nix = fake_bin / "nix"
         fake_nix.write_text(
-            '#!/usr/bin/env bash\nprintf \'%s\' "$TEST_DEPLOY_OPERATION"\n',
+            "#!/usr/bin/env bash\nprintf '%s' \"$TEST_DEPLOY_OPERATION\"\n",
             encoding="utf-8",
         )
         fake_nix.chmod(0o755)
