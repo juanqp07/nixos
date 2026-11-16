@@ -9,11 +9,13 @@ vida y debe seguir siendo la fuente de verdad.
 
 Al ejecutar `nix-maintain` o `nix-maintain -y` en **Atlas**:
 
-1. Se consulta la última release estable publicada en GitHub. No se consideran
+1. Se consultan las releases estables publicadas en GitHub. No se consideran
    borradores ni versiones preliminares.
-2. Se compara SemVer con la versión fijada en `modules/atlas-docker.nix`.
-3. Si hay una versión más nueva de la misma versión principal, se obtiene el
-   digest del manifiesto en GHCR.
+2. Se compara SemVer con la versión fijada y se selecciona la release más nueva
+   que mantenga la misma versión principal.
+3. Si existe una versión más nueva compatible, se obtiene el digest de su
+   manifiesto en GHCR. Las versiones principales posteriores se notifican, pero
+   no impiden recibir correcciones de la rama mayor instalada.
 4. Antes de tocar el módulo se crea una copia de seguridad local.
 5. Se actualiza únicamente la referencia de imagen de Arcane Manager. Después,
    el mantenimiento continúa con `nix flake update`, la evaluación, la
