@@ -4,13 +4,13 @@
 set -Eeuo pipefail
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  printf 'Run this script as root (for example: sudo bash scripts/backup-arcane-agent.sh).\\n' >&2
+  printf 'Run this script as root (for example: sudo bash scripts/backup-arcane-agent.sh).\n' >&2
   exit 1
 fi
 
 for command in docker tar cp install date du chmod mktemp cut; do
   command -v "$command" >/dev/null 2>&1 || {
-    printf 'Required command not found: %s\\n' "$command" >&2
+    printf 'Required command not found: %s\n' "$command" >&2
     exit 1
   }
 done
@@ -21,19 +21,19 @@ BACKUP_ROOT="$AGENT_ROOT/backups"
 MODULE_FILE="$(cd -- "$(dirname -- "$0")/.." && pwd)/hosts/zimablade/configuration.nix"
 
 [[ -d "$AGENT_ROOT" && -f "$AGENT_ENV" ]] || {
-  printf 'Arcane Agent data or enrollment environment is missing under %s\\n' "$AGENT_ROOT" >&2
+  printf 'Arcane Agent data or enrollment environment is missing under %s\n' "$AGENT_ROOT" >&2
   exit 1
 }
 
 state="$(docker inspect --format '{{.State.Running}}' arcane-agent 2>/dev/null || true)"
 [[ "$state" == "true" ]] || {
-  printf 'Required container is not running: arcane-agent\\n' >&2
+  printf 'Required container is not running: arcane-agent\n' >&2
   exit 1
 }
 
 agent_volume="$(docker volume inspect --format '{{.Mountpoint}}' arcane-agent-data)"
 [[ -d "$agent_volume" ]] || {
-  printf 'Arcane Agent Docker volume is unavailable: arcane-agent-data\\n' >&2
+  printf 'Arcane Agent Docker volume is unavailable: arcane-agent-data\n' >&2
   exit 1
 }
 
@@ -46,9 +46,9 @@ restore_agent() {
   current_state="$(docker inspect --format '{{.State.Running}}' arcane-agent 2>/dev/null || true)"
   if [[ "$current_state" != "true" ]]; then
     if docker start arcane-agent >/dev/null; then
-      printf 'Arcane Direct Agent restarted after backup.\\n'
+      printf 'Arcane Direct Agent restarted after backup.\n'
     else
-      printf 'ERROR: Arcane Direct Agent could not be restarted after backup.\\n' >&2
+      printf 'ERROR: Arcane Direct Agent could not be restarted after backup.\n' >&2
       status=1
     fi
   fi
@@ -66,7 +66,7 @@ umask 077
 incomplete_marker="$backup_dir/INCOMPLETE"
 : >"$incomplete_marker"
 
-tar --numeric-owner --xattrs --acls -czf "$backup_dir/arcane-agent-data.tar.gz" \\
+tar --numeric-owner --xattrs --acls -czf "$backup_dir/arcane-agent-data.tar.gz" \
   -C "$agent_volume" .
 cp -a "$AGENT_ENV" "$backup_dir/agent.env"
 cp -- "$MODULE_FILE" "$backup_dir/zimablade-configuration.nix"
@@ -95,6 +95,6 @@ EOF
 chmod -R go-rwx "$backup_dir"
 rm -f "$incomplete_marker"
 
-printf 'Arcane Direct Agent backup created: %s\\n' "$backup_dir"
+printf 'Arcane Direct Agent backup created: %s\n' "$backup_dir"
 printf 'Backup size: '
 du -sh "$backup_dir" | cut -f1
