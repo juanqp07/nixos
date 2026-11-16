@@ -55,6 +55,7 @@
       nix-update = "bash ~/nixos/scripts/nix-maintenance.sh update";
       nix-apply-locked = "bash ~/nixos/scripts/nix-maintenance.sh apply";
       nix-clean = "bash ~/nixos/scripts/nix-maintenance.sh clean";
+      nix-arcane-check = "bash ~/nixos/scripts/nix-maintenance.sh arcane-check";
     };
 
     functions = {
