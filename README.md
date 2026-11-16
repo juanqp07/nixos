@@ -16,6 +16,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 * **modules/**: Módulos reutilizables y módulos específicos de host.
     * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
     * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
+    * `development-tools.nix`: Python, Rust y herramientas nativas de compilación para Elytra y Titan.
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `atlas-docker.nix`: Docker, Arcane, proxy de socket y política DOCKER-USER exclusivos de Atlas.
 * **docs/arcane-updates.md**: actualización fijada de Arcane, copias de seguridad y migraciones mayores.
@@ -47,11 +48,18 @@ nix build --no-link .#nori
 nix build --no-link .#nori-cli
 ```
 
-## 🧰 Entornos de desarrollo
+## 🧰 Herramientas y entornos de desarrollo
 
-Los toolchains de los proyectos no se instalan globalmente en los escritorios.
-Se activan bajo demanda desde la raíz del repositorio con los devShells del
-flake, que usan las versiones fijadas en `flake.lock`:
+Elytra y Titan tienen disponibles globalmente los básicos de Python y Rust:
+`python3`, `pip`, `uv`, `ruff`, `rustc`, `cargo`, `rust-analyzer`,
+`rustfmt` y `clippy`. También incluyen `gcc`, `clang`, `mold`,
+`pkg-config`, `cmake` y `gnumake` para compilar dependencias nativas.
+La versión de Rust procede del `nixpkgs` fijado en `flake.lock` (actualmente
+1.99.1) y el módulo comprueba que sea al menos 1.95.
+
+Los devShells siguen ofreciendo entornos aislados y reproducibles por proyecto.
+Node/Bun, Go y Java continúan activándose bajo demanda desde la raíz del
+repositorio con los devShells del flake:
 
 ```bash
 nix develop .#python  # Python, uv, Ruff y MkDocs
