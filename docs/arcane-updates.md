@@ -27,10 +27,9 @@ principal. El script no instala pre-releases, no cambia a otra versión mayor y
 no actualiza contenedores cuando el mantenimiento se ejecuta en otro host.
 
 El cambio queda en `modules/atlas-docker.nix` como modificación local. El Direct
-Agent que Pico ejecuta desde `hosts/zimablade/configuration.nix` conserva su
-versión fijada: este paso no lo actualiza ni lo despliega. Revisa las notas de
-la release antes de decidir si también corresponde actualizarlo; para una
-migración mayor sí debe coordinarse con el Manager.
+Agent de Pico se mantiene como una actualización separada, ejecutada desde el
+propio host Pico. Así cada máquina respalda y modifica únicamente el servicio
+que administra.
 
 El script no ejecuta `git add`, `git commit`, `git stash` ni descarta cambios.
 Revisa y confirma el diff cuando te convenga.
@@ -45,6 +44,47 @@ docker logs --since 10m arcane
 ```
 
 Comprueba además el acceso al panel y que las notificaciones siguen llegando.
+
+## Actualización del Direct Agent en Pico
+
+Al ejecutar `nix-maintain` o `nix-maintain -y` en **Pico**, se comprueba la
+versión fijada del Manager en `modules/atlas-docker.nix` y se compara con la
+imagen de `ghcr.io/getarcaneapp/agent` declarada en
+`hosts/zimablade/configuration.nix`.
+
+- Si el agente está en una versión anterior de la misma rama mayor, se propone
+  actualizarlo exactamente a la versión del Manager y se fija su digest GHCR.
+- Si las versiones ya coinciden, no se modifica nada.
+- Si el agente es más nuevo que el Manager, no se hace un downgrade.
+- Si Manager y agente pertenecen a versiones mayores distintas, se omite la
+  actualización automática y se requiere la migración manual.
+
+La versión del Manager es la fuente de verdad: el agente no busca una release
+independiente ni se adelanta a Atlas. Antes de cambiar la declaración Nix, Pico
+crea una copia local de seguridad con:
+
+```bash
+sudo bash scripts/backup-arcane-agent.sh
+```
+
+La copia se guarda en
+`/var/lib/arcane-agent/backups/<fecha-UTC>.<sufijo>/` e incluye el volumen
+Docker `arcane-agent-data`, `agent.env` (token de inscripción), la declaración
+Nix y la referencia de imagen que utilizaba el contenedor. El agente se detiene
+de forma ordenada durante el archivo del volumen y se reinicia al terminar,
+incluso si el backup falla. El panel de Atlas puede mostrar Pico como desconectado
+durante ese breve intervalo.
+
+La actualización queda como un cambio local en
+`hosts/zimablade/configuration.nix`; no se hace `git add`, commit ni despliegue
+remoto. Revisa y confirma el cambio antes de desplegar. El mantenimiento de Pico
+prepara la nueva generación para el siguiente arranque, de acuerdo con
+`system.autoUpgrade.operation = "boot"`.
+
+Importante: la copia local del repositorio en Pico debe contener la versión de
+Manager que se haya decidido desplegar en Atlas. Sincroniza el commit de esa
+declaración antes de ejecutar el mantenimiento de Pico. No se modifica ni se
+despliega Pico desde el proceso que se ejecuta en Atlas.
 
 ## Copia de seguridad
 
