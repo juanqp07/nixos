@@ -155,7 +155,10 @@
         ];
 
         extraOptions = [
+          # Arcane prepara /app/data/.docker con chown durante el arranque.
+          # Mantener todas las capacidades retiradas salvo CHOWN.
           "--cap-drop=ALL"
+          "--cap-add=CHOWN"
           "--security-opt=no-new-privileges:true"
         ];
       };
