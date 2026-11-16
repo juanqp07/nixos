@@ -175,7 +175,6 @@
   # --- HERRAMIENTAS DE SISTEMA / MONITORIZACIÓN ---
   environment.systemPackages = with pkgs; [
     htop
-    python3 # nix-maintain consulta y fija las releases de Arcane desde este host
     iotop
     ethtool
     smartmontools

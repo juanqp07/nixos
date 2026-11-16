@@ -250,7 +250,7 @@ La revisión de exposición de red, privilegios Docker y modularización de Atla
 
 El workflow `Update Flake inputs and container digests` revisa semanalmente los inputs de `flake.lock` y fija mediante SHA-256 las imágenes OCI declaradas en los módulos de Atlas y Pico. Cuando encuentra cambios, abre o actualiza una PR y solicita la validación completa de los cinco hosts. No despliega cambios automáticamente. Consulta [docs/dependency-updates.md](docs/dependency-updates.md) para ejecutarlo manualmente y revisar los cambios.
 
-En Atlas, `nix-maintain` también comprueba las releases estables de Arcane. Acepta actualizaciones de la misma versión principal tras hacer una copia de seguridad; las migraciones mayores se detienen para revisión manual. Consulta [docs/arcane-updates.md](docs/arcane-updates.md).
+En Atlas, `nix-maintain` comprueba las releases estables de Arcane Manager y acepta actualizaciones de la misma versión principal tras hacer una copia de seguridad. En Pico, mantiene el Direct Agent alineado con la versión fijada del Manager, también con copia de seguridad local. Las migraciones mayores se detienen para revisión manual. Consulta [docs/arcane-updates.md](docs/arcane-updates.md).
 
 ## ⚠️ Notas de configuración
 * **Git y Flakes**: los archivos nuevos deben estar añadidos a Git para que un flake basado en Git pueda verlos. Añade solo los archivos necesarios (por ejemplo, `git add modules/nuevo-modulo.nix`); los alias `nix-up` y `nix-update` no deben preparar automáticamente todos tus cambios.

@@ -1,6 +1,10 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
+  # nix-maintain usa Python para consultar versiones y resolver digests OCI
+  # en Atlas y Pico. Este módulo solo lo importan ambos servidores.
+  environment.systemPackages = [ pkgs.python3 ];
+
   # ============================================================
   # BOOT / RESILIENCIA DEL SERVIDOR
   # ============================================================
