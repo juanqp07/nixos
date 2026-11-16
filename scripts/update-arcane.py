@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Update Atlas' pinned Arcane image without crossing major versions."""
 
 from __future__ import annotations
@@ -26,8 +25,8 @@ VERSION_PATTERN = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 IMAGE_PATTERN = re.compile(
     r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
-    r'ghcr\.io/getarcaneapp/manager:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@'
-    r'(?P<digest>sha256:[0-9a-f]{64})'
+    r"ghcr\.io/getarcaneapp/manager:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
+    r"(?P<digest>sha256:[0-9a-f]{64})"
     r'(?P<suffix>"[ \t]*;[ \t]*)$',
     re.MULTILINE,
 )
@@ -45,9 +44,7 @@ def parse_version(tag: str) -> tuple[int, int, int]:
     return tuple(int(part) for part in match.groups())
 
 
-def update_kind(
-    current: tuple[int, int, int], latest: tuple[int, int, int]
-) -> str:
+def update_kind(current: tuple[int, int, int], latest: tuple[int, int, int]) -> str:
     """Classify a release without silently crossing a major-version boundary."""
     if latest <= current:
         return "current"
@@ -77,14 +74,13 @@ def replace_arcane_image(content: str, tag: str, digest: str) -> str:
     matches = list(IMAGE_PATTERN.finditer(content))
     if len(matches) != 1:
         raise UpdateError(
-            "Expected exactly one pinned Arcane Manager image; "
-            f"found {len(matches)}."
+            f"Expected exactly one pinned Arcane Manager image; found {len(matches)}."
         )
 
     match = matches[0]
     replacement = (
-        f'{match.group("prefix")}{IMAGE_REPOSITORY}:{tag}@{digest}'
-        f'{match.group("suffix")}'
+        f"{match.group('prefix')}{IMAGE_REPOSITORY}:{tag}@{digest}"
+        f"{match.group('suffix')}"
     )
     return content[: match.start()] + replacement + content[match.end() :]
 
@@ -149,9 +145,11 @@ def confirm_update(current_tag: str, latest_tag: str, automatic: bool) -> bool:
         return True
 
     try:
-        answer = input(
-            f"Update Arcane {current_tag} to {latest_tag}? [s/N] "
-        ).strip().lower()
+        answer = (
+            input(f"Update Arcane {current_tag} to {latest_tag}? [s/N] ")
+            .strip()
+            .lower()
+        )
     except EOFError:
         answer = ""
     return answer in {"s", "si", "sí", "y", "yes"}
