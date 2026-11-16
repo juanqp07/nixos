@@ -1,4 +1,4 @@
-# Actualizaciones de Arcane en Atlas
+# Actualizaciones de Arcane en Atlas y Pico
 
 Arcane se declara en `modules/atlas-docker.nix` como una imagen OCI fijada por
 versión y digest. El contenedor no debe actualizarse por separado desde Docker
@@ -86,7 +86,7 @@ Manager que se haya decidido desplegar en Atlas. Sincroniza el commit de esa
 declaración antes de ejecutar el mantenimiento de Pico. No se modifica ni se
 despliega Pico desde el proceso que se ejecuta en Atlas.
 
-## Copia de seguridad
+## Copia de seguridad del Manager en Atlas
 
 Antes de cambiar la referencia de imagen, el actualizador ejecuta:
 
