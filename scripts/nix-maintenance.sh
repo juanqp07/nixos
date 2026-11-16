@@ -110,6 +110,9 @@ print_summary() {
   if [[ "$PACKAGE_DIFF_AVAILABLE" == yes ]]; then
     term_info "Paquetes: $PACKAGE_UPDATED modificados · $PACKAGE_ADDED añadidos · $PACKAGE_REMOVED eliminados"
   fi
+  if [[ "$ARCANE_UPDATED" == yes ]]; then
+    term_info "Arcane: $ARCANE_VERSION_BEFORE → $ARCANE_VERSION_AFTER (cambio local pendiente de commit)"
+  fi
 
   case "$REBOOT_STATUS" in
   required)
@@ -152,6 +155,9 @@ done
 
 HOST="$(hostname -s)"
 [[ -n "$HOST" ]] || die "No se pudo detectar el hostname."
+if [[ "$HOST" == "atlas" ]]; then
+  need_command python3
+fi
 
 # El spinner se pinta en stderr para no contaminar salidas capturadas.
 # Solo se activa en terminales interactivas; CI y logs conservan salida limpia.
@@ -185,6 +191,9 @@ PACKAGE_DIFF_AVAILABLE=no
 PACKAGE_UPDATED=0
 PACKAGE_ADDED=0
 PACKAGE_REMOVED=0
+ARCANE_UPDATED=no
+ARCANE_VERSION_BEFORE=""
+ARCANE_VERSION_AFTER=""
 REBOOT_STATUS=unknown
 
 notify_desktop() {
@@ -852,9 +861,49 @@ update_flatpak_apps() {
   fi
 }
 
+read_arcane_version() {
+  sed -nE 's/.*ghcr\.io\/getarcaneapp\/manager:(v[0-9]+\.[0-9]+\.[0-9]+)@sha256:[0-9a-f]{64}.*/\1/p' \
+    "$FLAKE_DIR/modules/atlas-docker.nix" | sed -n '1p'
+}
+
+update_arcane() {
+  local automatic="$1"
+  local before after
+  local -a args=()
+
+  [[ "$HOST" == "atlas" ]] || return 0
+
+  term_section "ACTUALIZACIÓN DE ARCANE"
+  term_info "Buscando una release estable compatible con la versión principal instalada."
+  before="$(read_arcane_version)"
+  if [[ -z "$before" ]]; then
+    warning "No se ha podido leer la imagen fijada de Arcane; se omite su actualización."
+    return 0
+  fi
+
+  if [[ "$automatic" == "yes" ]]; then
+    args+=(--yes)
+  fi
+
+  # Se ejecuta en primer plano para que la confirmación interactiva sea visible.
+  if ! python3 "$SCRIPT_DIR/update-arcane.py" "${args[@]}"; then
+    warning "No se ha actualizado Arcane. El mantenimiento NixOS continuará."
+    return 0
+  fi
+
+  after="$(read_arcane_version)"
+  if [[ -n "$after" && "$after" != "$before" ]]; then
+    ARCANE_UPDATED=yes
+    ARCANE_VERSION_BEFORE="$before"
+    ARCANE_VERSION_AFTER="$after"
+  fi
+}
+
 run_update() {
+  local automatic="${1:-no}"
   section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
   check_lock_clean
+  update_arcane "$automatic"
   cp -- "$FLAKE_DIR/flake.lock" "$LOCK_SNAPSHOT"
   run_step_show "Actualizando las versiones de los inputs" nix flake update
   show_flake_input_changes
@@ -907,7 +956,7 @@ run_maintenance() {
     die "No se pudo verificar el estado de reinicio."
   fi
 
-  run_update
+  run_update "$automatic"
   case "$OPERATION" in
   switch) note "Estrategia: aplicar inmediatamente (switch)." ;;
   boot) note "Estrategia: preparar para el próximo arranque (boot)." ;;
@@ -977,7 +1026,7 @@ update)
   capture_baseline
   show_store_usage "ANTES DE ACTUALIZAR"
   banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
-  run_update
+  run_update no
   run_build_apply no no
   ;;
 apply)
