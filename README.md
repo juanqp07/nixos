@@ -244,6 +244,7 @@ GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
 
 La revisión de exposición de red, privilegios Docker y modularización de Atlas está en [`docs/security-review.md`](docs/security-review.md).
+El mantenimiento de Arcane en Atlas (actualizaciones compatibles, copias previas y comprobaciones de salud) está documentado en [`docs/arcane-maintenance.md`](docs/arcane-maintenance.md).
 
 ## 🔄 Actualización controlada de dependencias
 
