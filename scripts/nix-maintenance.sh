@@ -906,7 +906,7 @@ update_arcane() {
 }
 
 read_arcane_agent_version() {
-  sed -nE 's/.*ghcr\\.io\\/getarcaneapp\\/agent:(v[0-9]+\\.[0-9]+\\.[0-9]+)@sha256:[0-9a-f]{64}.*/\\1/p' \\
+  sed -nE 's/.*ghcr\.io\/getarcaneapp\/agent:(v[0-9]+\.[0-9]+\.[0-9]+)@sha256:[0-9a-f]{64}.*/\1/p' \
     "$FLAKE_DIR/hosts/zimablade/configuration.nix" | sed -n '1p'
 }
 
