@@ -19,7 +19,7 @@ MODULE_FILE = ROOT / "modules" / "atlas-docker.nix"
 BACKUP_SCRIPT = ROOT / "scripts" / "backup-arcane.sh"
 MODULE_RELATIVE_PATH = "modules/atlas-docker.nix"
 IMAGE_REPOSITORY = "ghcr.io/getarcaneapp/manager"
-LATEST_RELEASE_URL = "https://api.github.com/repos/getarcaneapp/arcane/releases/latest"
+RELEASES_URL = "https://api.github.com/repos/getarcaneapp/arcane/releases?per_page=100"
 USER_AGENT = "juanqp07-nixos-arcane-updater/1.0"
 VERSION_PATTERN = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -85,10 +85,29 @@ def replace_arcane_image(content: str, tag: str, digest: str) -> str:
     return content[: match.start()] + replacement + content[match.end() :]
 
 
-def fetch_latest_stable_release() -> str:
-    """Read GitHub's latest non-draft, non-prerelease Arcane release."""
+def select_latest_same_major_release(current_tag: str, releases: list[str]) -> str:
+    """Choose the newest stable release that stays on the installed major."""
+    current_version = parse_version(current_tag)
+    compatible_versions: list[tuple[tuple[int, int, int], str]] = []
+
+    for tag in releases:
+        try:
+            version = parse_version(tag)
+        except UpdateError:
+            # Ignore non-SemVer tags rather than guessing their ordering.
+            continue
+        if version[0] == current_version[0] and version > current_version:
+            compatible_versions.append((version, tag))
+
+    if not compatible_versions:
+        return current_tag
+    return max(compatible_versions, key=lambda item: item[0])[1]
+
+
+def fetch_stable_releases() -> list[str]:
+    """Read stable, published Arcane releases from GitHub."""
     request = Request(
-        LATEST_RELEASE_URL,
+        RELEASES_URL,
         headers={
             "Accept": "application/vnd.github+json",
             "User-Agent": USER_AGENT,
@@ -96,18 +115,28 @@ def fetch_latest_stable_release() -> str:
         },
     )
     with urlopen(request, timeout=20) as response:
-        release = json.load(response)
+        releases = json.load(response)
 
-    if not isinstance(release, dict):
-        raise UpdateError("GitHub returned an invalid Arcane release response.")
-    if release.get("draft") or release.get("prerelease"):
-        raise UpdateError("GitHub's latest Arcane release is not stable.")
+    if not isinstance(releases, list):
+        raise UpdateError("GitHub returned an invalid Arcane releases response.")
 
-    tag = release.get("tag_name")
-    if not isinstance(tag, str):
-        raise UpdateError("GitHub's Arcane release has no tag_name.")
-    parse_version(tag)
-    return tag
+    tags: list[str] = []
+    for release in releases:
+        if not isinstance(release, dict):
+            continue
+        if release.get("draft") or release.get("prerelease"):
+            continue
+        tag = release.get("tag_name")
+        if isinstance(tag, str):
+            try:
+                parse_version(tag)
+            except UpdateError:
+                continue
+            tags.append(tag)
+
+    if not tags:
+        raise UpdateError("GitHub did not return any stable Arcane SemVer releases.")
+    return tags
 
 
 def fetch_registry_digest(tag: str) -> str:
@@ -208,23 +237,26 @@ def main(argv: list[str] | None = None) -> int:
         ensure_module_is_clean()
         original_content = MODULE_FILE.read_text(encoding="utf-8")
         current_tag, _current_digest = read_arcane_image(original_content)
-        latest_tag = fetch_latest_stable_release()
+        releases = fetch_stable_releases()
         current_version = parse_version(current_tag)
-        latest_version = parse_version(latest_tag)
-        decision = update_kind(current_version, latest_version)
+        newest_release = max(releases, key=parse_version)
+        newest_version = parse_version(newest_release)
 
-        if decision == "current":
-            print(f"Arcane is already current ({current_tag}).")
-            return 0
-
-        if decision == "major":
+        if newest_version[0] > current_version[0]:
             print(
-                f"Arcane {latest_tag} is a major upgrade from {current_tag}. "
-                "No files were changed."
+                f"Arcane {newest_release} is a major upgrade from {current_tag}. "
+                "It will not be installed automatically."
             )
             print(
                 "Major upgrades require the migration checklist in "
                 "docs/arcane-updates.md and the official Arcane v3 guide."
+            )
+
+        latest_tag = select_latest_same_major_release(current_tag, releases)
+        if latest_tag == current_tag:
+            print(
+                f"No newer stable Arcane release is available within major "
+                f"version {current_version[0]}; keeping {current_tag}."
             )
             return 0
 
