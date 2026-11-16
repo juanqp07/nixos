@@ -8,7 +8,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
-for command in docker tar cp install date du chmod mktemp cut; do
+for command in docker tar cp install date du chmod mktemp cut mountpoint; do
   command -v "$command" >/dev/null 2>&1 || {
     printf 'Required command not found: %s\n' "$command" >&2
     exit 1
@@ -16,6 +16,10 @@ for command in docker tar cp install date du chmod mktemp cut; do
 done
 
 DATA_ROOT="/mnt/datos"
+mountpoint -q "$DATA_ROOT" || {
+  printf 'Arcane backup refused: %s is not a mounted filesystem.\n' "$DATA_ROOT" >&2
+  exit 1
+}
 ARCANE_ROOT="$DATA_ROOT/AppData/arcane"
 PROJECTS_DIR="$DATA_ROOT/arcane/projects"
 BACKUP_ROOT="$ARCANE_ROOT/backups"
@@ -48,6 +52,33 @@ arcane_volume="$(docker volume inspect --format '{{.Mountpoint}}' arcane-data)"
   exit 1
 }
 
+# A database dump is internally consistent, but the app-data volume and
+# projects directory must not change while their archives are being created.
+# Stop Arcane gracefully for the short backup window and always restart it,
+# including when any backup operation fails.
+restore_arcane() {
+  local status="$?"
+  local state
+  trap - EXIT
+  state="$(docker inspect --format '{{.State.Running}}' arcane 2>/dev/null || true)"
+  if [[ "$state" != "true" ]]; then
+    if docker start arcane >/dev/null; then
+      printf 'Arcane restarted after backup.\n'
+    else
+      printf 'ERROR: Arcane could not be restarted after backup.\n' >&2
+      status=1
+    fi
+  fi
+  exit "$status"
+}
+trap restore_arcane EXIT
+
+docker exec arcane-postgres pg_isready -q || {
+  printf 'PostgreSQL is not ready; refusing to create a backup.\n' >&2
+  exit 1
+}
+docker stop --time 30 arcane >/dev/null
+
 timestamp="$(date -u '+%Y%m%dT%H%M%SZ')"
 install -d -m 0700 "$BACKUP_ROOT"
 backup_dir="$(mktemp -d "$BACKUP_ROOT/$timestamp.XXXXXX")"
@@ -56,7 +87,8 @@ umask 077
 incomplete_marker="$backup_dir/INCOMPLETE"
 : >"$incomplete_marker"
 
-# pg_dumpall takes a consistent logical backup while PostgreSQL remains online.
+# Arcane is stopped, so no new application writes can race this database dump.
+# PostgreSQL remains online and accepts the local logical backup.
 postgres_user="$(docker exec arcane-postgres printenv POSTGRES_USER 2>/dev/null || true)"
 [[ -n "$postgres_user" ]] || postgres_user="postgres"
 docker exec arcane-postgres pg_dumpall --username="$postgres_user" \
@@ -66,8 +98,8 @@ docker exec arcane-postgres pg_dumpall --username="$postgres_user" \
   exit 1
 }
 
-# The application data volume and projects directory are copied without
-# stopping Arcane. PostgreSQL itself is backed up separately above.
+# Arcane remains stopped until the file-level archives have been created.
+# PostgreSQL itself is backed up separately above.
 tar --numeric-owner --xattrs --acls -czf "$backup_dir/arcane-data.tar.gz" \
   -C "$arcane_volume" .
 tar --numeric-owner --xattrs --acls -czf "$backup_dir/projects.tar.gz" \
