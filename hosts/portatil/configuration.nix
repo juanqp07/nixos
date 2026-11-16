@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [
@@ -56,15 +61,16 @@
   # ============================================================
 
   programs.appimage.package = pkgs.appimage-run.override {
-    extraPkgs = appimagePkgs: with appimagePkgs; [
-      libunwind
-      elfutils
-      libffi
-      libgpg-error
-      pcre2
-      mpv-unwrapped
-      webkitgtk_4_1
-    ];
+    extraPkgs =
+      appimagePkgs: with appimagePkgs; [
+        libunwind
+        elfutils
+        libffi
+        libgpg-error
+        pcre2
+        mpv-unwrapped
+        webkitgtk_4_1
+      ];
   };
 
   # ============================================================
@@ -187,8 +193,8 @@
   # ============================================================
 
   #services.ollama = {
-   # enable = true;
-    #package = pkgs.ollama-cuda;
+  # enable = true;
+  #package = pkgs.ollama-cuda;
   #};
 
   # ============================================================
@@ -257,35 +263,37 @@
     };
   };
 
-
   # ============================================================
   # UTILIDADES
   # ============================================================
 
-  environment.systemPackages = with pkgs; [
-    # Gaming extra específico portátil (base común en desktop-gaming.nix)
-    nvtopPackages.nvidia
-    vulkan-tools
+  environment.systemPackages =
+    with pkgs;
+    [
+      # Gaming extra específico portátil (base común en desktop-gaming.nix)
+      nvtopPackages.nvidia
+      vulkan-tools
 
-    # Intel / vídeo
-    intel-gpu-tools
-    libva-utils
-    vdpauinfo
+      # Intel / vídeo
+      intel-gpu-tools
+      libva-utils
+      vdpauinfo
 
-    # Gaming
-    # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
+      # Gaming
+      # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
 
-    # Sistema
-    powertop
-    smartmontools
-    cardwire
+      # Sistema
+      powertop
+      smartmontools
+      cardwire
 
-    # Portátil
-    brightnessctl
-  ] ++ [
-    # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
-    (pkgs.callPackage ../../packages/nori.nix { })
-    # Cliente de terminal de Nori.
-    (pkgs.callPackage ../../packages/nori-cli.nix { })
-  ];
+      # Portátil
+      brightnessctl
+    ]
+    ++ [
+      # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
+      (pkgs.callPackage ../../packages/nori.nix { })
+      # Cliente de terminal de Nori.
+      (pkgs.callPackage ../../packages/nori-cli.nix { })
+    ];
 }
