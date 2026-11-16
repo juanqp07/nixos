@@ -134,6 +134,13 @@ print_summary() {
     term_info "$result"
     ;;
   esac
+
+  if [[ "$ARCANE_BACKUP_CREATED" == yes ]]; then
+    term_info "Arcane: copia previa guardada en /mnt/datos/AppData/arcane/backups/nix-maintain."
+    if [[ "$OPERATION" == boot ]]; then
+      term_warning "Arcane se actualizará al reiniciar; después ejecuta: nix-maintain arcane-check"
+    fi
+  fi
 }
 
 die() {
@@ -186,6 +193,9 @@ PACKAGE_UPDATED=0
 PACKAGE_ADDED=0
 PACKAGE_REMOVED=0
 REBOOT_STATUS=unknown
+ARCANE_UPDATE_PENDING=no
+ARCANE_BACKUP_CREATED=no
+ARCANE_DESIRED_IMAGE=""
 
 notify_desktop() {
   local urgency="$1"
@@ -803,12 +813,70 @@ refresh_reboot_status() {
   fi
 }
 
+prepare_arcane_backup() {
+  ARCANE_UPDATE_PENDING=no
+  ARCANE_BACKUP_CREATED=no
+  ARCANE_DESIRED_IMAGE=""
+
+  [[ "$HOST" == atlas ]] || return 0
+
+  ARCANE_DESIRED_IMAGE="$(run_step_capture \
+    "Leyendo la imagen declarada de Arcane" \
+    nix eval --no-write-lock-file --raw \
+    ".#nixosConfigurations.atlas.config.virtualisation.oci-containers.containers.arcane.image")" ||
+    die "No se pudo consultar la imagen declarada de Arcane."
+
+  local running_image
+  running_image="$(run_step_capture \
+    "Consultando la imagen que ejecuta Arcane" \
+    docker inspect --format '{{.Config.Image}}' arcane)" ||
+    die "No se pudo identificar el contenedor Arcane actual; no se aplicará una posible actualización."
+
+  if [[ "$running_image" == "$ARCANE_DESIRED_IMAGE" ]]; then
+    term_skip "Arcane conserva la misma imagen; no hace falta una copia previa."
+    return 0
+  fi
+
+  section "04A" "COPIA DE SEGURIDAD DE ARCANE" "La imagen declarada cambia respecto al contenedor actual"
+  term_warning "Se guardarán PostgreSQL, /app/data, proyectos y archivos de entorno antes de recrear Arcane."
+  run_step_show "Creando copia de seguridad de Arcane" \
+    sudo bash "$SCRIPT_DIR/backup-arcane.sh" "$running_image" "$ARCANE_DESIRED_IMAGE" ||
+    die "La copia de Arcane no se completó. No se ha aplicado la nueva generación."
+
+  ARCANE_UPDATE_PENDING=yes
+  ARCANE_BACKUP_CREATED=yes
+}
+
+verify_arcane_after_switch() {
+  [[ "$HOST" == atlas && "$ARCANE_UPDATE_PENDING" == yes ]] || return 0
+
+  run_step_show "Verificando imagen, healthcheck y PostgreSQL de Arcane" \
+    sudo bash "$SCRIPT_DIR/verify-arcane.sh" "$ARCANE_DESIRED_IMAGE" ||
+    die "Arcane no ha superado la comprobación posterior a la actualización. Conserva la copia de seguridad y revisa docs/arcane-maintenance.md."
+}
+
+arcane_check() {
+  [[ "$HOST" == atlas ]] || die "El comando arcane-check solo está disponible en Atlas."
+  local expected_image
+  expected_image="$(run_step_capture \
+    "Leyendo la imagen declarada de Arcane" \
+    nix eval --no-write-lock-file --raw \
+    ".#nixosConfigurations.atlas.config.virtualisation.oci-containers.containers.arcane.image")" ||
+    die "No se pudo consultar la imagen declarada de Arcane."
+
+  run_step_show "Verificando Arcane y PostgreSQL" \
+    sudo bash "$SCRIPT_DIR/verify-arcane.sh" "$expected_image"
+}
+
 apply_generation() {
   section "05" "ACTIVACIÓN" "Desplegando la generación validada"
+  prepare_arcane_backup
+
   case "$OPERATION" in
   switch)
     run_step_show "Aplicando la configuración ahora" sudo nixos-rebuild switch --no-write-lock-file --flake ".#$HOST"
     APPLY_RESULT="Configuración aplicada"
+    verify_arcane_after_switch
     ;;
   boot)
     run_step_show "Preparando la configuración para el próximo arranque" sudo nixos-rebuild boot --no-write-lock-file --flake ".#$HOST"
@@ -858,6 +926,16 @@ run_update() {
   cp -- "$FLAKE_DIR/flake.lock" "$LOCK_SNAPSHOT"
   run_step_show "Actualizando las versiones de los inputs" nix flake update
   show_flake_input_changes
+
+  # Arcane is an OCI image pinned in the Atlas module, not a Nix Flake input.
+  # Keep routine updates within the current major release; major migrations
+  # require a separate, explicitly reviewed procedure.
+  if [[ "$HOST" == atlas ]]; then
+    need_command python3
+    run_step_show "Comprobando actualizaciones compatibles de Arcane" \
+      python3 "$SCRIPT_DIR/update-arcane.py"
+  fi
+
   # Actualiza la estrategia por si ha cambiado con las nuevas revisiones.
   OPERATION="$(get_operation)"
 }
@@ -938,12 +1016,14 @@ Uso:
   nix-maintenance.sh update
   nix-maintenance.sh apply
   nix-maintenance.sh clean [-y|--yes]
+  nix-maintenance.sh arcane-check
 
 Comandos:
-  maintain  Actualiza, construye, limpia según la política del host y aplica.
-  update    Actualiza los inputs, construye y pregunta antes de aplicar.
-  apply     Construye con las versiones fijadas y pregunta antes de aplicar.
-  clean     Limpia las generaciones antiguas según la política del host.
+  maintain      Actualiza, construye, limpia según la política del host y aplica.
+  update        Actualiza los inputs, construye y pregunta antes de aplicar.
+  apply         Construye con las versiones fijadas y pregunta antes de aplicar.
+  clean         Limpia las generaciones antiguas según la política del host.
+  arcane-check  Comprueba el estado de Arcane y PostgreSQL (solo Atlas).
 
 Opciones:
   -y, --yes  Omite confirmaciones en maintain y clean.
@@ -993,6 +1073,16 @@ apply)
   banner "MODO INTERACTIVO · versiones fijadas en flake.lock"
   note "No se actualizarán los inputs."
   run_build_apply no no
+  ;;
+arcane-check)
+  [[ "$#" -eq 1 ]] || {
+    usage >&2
+    exit 2
+  }
+  NOTIFICATION_TASK="Comprobación de Arcane"
+  NOTIFICATION_ENABLED=yes
+  banner "COMPROBACIÓN · Arcane"
+  arcane_check
   ;;
 clean)
   shift
