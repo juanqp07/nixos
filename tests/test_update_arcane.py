@@ -55,6 +55,33 @@ class ArcaneVersionTests(unittest.TestCase):
             "current",
         )
 
+    def test_selects_newest_release_within_installed_major(self) -> None:
+        self.assertEqual(
+            update_arcane.select_latest_same_major_release(
+                "v2.17.3",
+                ["v3.0.1", "v2.18.0", "v2.17.4", "v2.16.9"],
+            ),
+            "v2.18.0",
+        )
+
+    def test_keeps_current_version_when_only_newer_major_exists(self) -> None:
+        self.assertEqual(
+            update_arcane.select_latest_same_major_release(
+                "v2.17.3",
+                ["v3.0.1", "v3.0.0", "v2.17.3"],
+            ),
+            "v2.17.3",
+        )
+
+    def test_ignores_non_semver_tags_when_selecting_compatible_release(self) -> None:
+        self.assertEqual(
+            update_arcane.select_latest_same_major_release(
+                "v2.17.3",
+                ["latest", "v3.0.1", "v2.17.4"],
+            ),
+            "v2.17.4",
+        )
+
 
 class ArcaneImageTests(unittest.TestCase):
     def test_reads_single_pinned_manager_image(self) -> None:
