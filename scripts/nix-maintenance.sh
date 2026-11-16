@@ -113,6 +113,9 @@ print_summary() {
   if [[ "$ARCANE_UPDATED" == yes ]]; then
     term_info "Arcane: $ARCANE_VERSION_BEFORE → $ARCANE_VERSION_AFTER (cambio local pendiente de commit)"
   fi
+  if [[ "$ARCANE_AGENT_UPDATED" == yes ]]; then
+    term_info "Arcane Direct Agent: $ARCANE_AGENT_VERSION_BEFORE → $ARCANE_AGENT_VERSION_AFTER (cambio local pendiente de commit)"
+  fi
 
   case "$REBOOT_STATUS" in
   required)
@@ -155,7 +158,7 @@ done
 
 HOST="$(hostname -s)"
 [[ -n "$HOST" ]] || die "No se pudo detectar el hostname."
-if [[ "$HOST" == "atlas" ]]; then
+if [[ "$HOST" == "atlas" || "$HOST" == "pico" ]]; then
   need_command python3
 fi
 
@@ -194,6 +197,9 @@ PACKAGE_REMOVED=0
 ARCANE_UPDATED=no
 ARCANE_VERSION_BEFORE=""
 ARCANE_VERSION_AFTER=""
+ARCANE_AGENT_UPDATED=no
+ARCANE_AGENT_VERSION_BEFORE=""
+ARCANE_AGENT_VERSION_AFTER=""
 REBOOT_STATUS=unknown
 
 notify_desktop() {
@@ -899,11 +905,50 @@ update_arcane() {
   fi
 }
 
+read_arcane_agent_version() {
+  sed -nE 's/.*ghcr\\.io\\/getarcaneapp\\/agent:(v[0-9]+\\.[0-9]+\\.[0-9]+)@sha256:[0-9a-f]{64}.*/\\1/p' \\
+    "$FLAKE_DIR/hosts/zimablade/configuration.nix" | sed -n '1p'
+}
+
+update_arcane_agent() {
+  local automatic="$1"
+  local before after
+  local -a args=()
+
+  [[ "$HOST" == "pico" ]] || return 0
+
+  term_section "ACTUALIZACIÓN DEL DIRECT AGENT DE ARCANE"
+  term_info "Comprobando que el agente de Pico coincide con la versión fijada del Manager en Atlas."
+  before="$(read_arcane_agent_version)"
+  if [[ -z "$before" ]]; then
+    warning "No se ha podido leer la imagen fijada del Direct Agent; se omite su actualización."
+    return 0
+  fi
+
+  if [[ "$automatic" == "yes" ]]; then
+    args+=(--yes)
+  fi
+
+  # El Manager fijado en atlas-docker.nix es la fuente de verdad para la versión del agente.
+  if ! python3 "$SCRIPT_DIR/update-arcane-agent.py" "${args[@]}"; then
+    warning "No se ha actualizado el Direct Agent de Arcane. El mantenimiento NixOS continuará."
+    return 0
+  fi
+
+  after="$(read_arcane_agent_version)"
+  if [[ -n "$after" && "$after" != "$before" ]]; then
+    ARCANE_AGENT_UPDATED=yes
+    ARCANE_AGENT_VERSION_BEFORE="$before"
+    ARCANE_AGENT_VERSION_AFTER="$after"
+  fi
+}
+
 run_update() {
   local automatic="${1:-no}"
   section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
   check_lock_clean
   update_arcane "$automatic"
+  update_arcane_agent "$automatic"
   cp -- "$FLAKE_DIR/flake.lock" "$LOCK_SNAPSHOT"
   run_step_show "Actualizando las versiones de los inputs" nix flake update
   show_flake_input_changes
