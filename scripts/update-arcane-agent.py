@@ -19,20 +19,20 @@ BACKUP_SCRIPT = ROOT / "scripts" / "backup-arcane-agent.sh"
 MANAGER_RELATIVE_PATH = "modules/atlas-docker.nix"
 AGENT_RELATIVE_PATH = "hosts/zimablade/configuration.nix"
 AGENT_IMAGE_REPOSITORY = "ghcr.io/getarcaneapp/agent"
-VERSION_PATTERN = re.compile(r"^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
+VERSION_PATTERN = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 MANAGER_IMAGE_PATTERN = re.compile(
-    r'^[ \\t]*image[ \\t]*=[ \\t]*"ghcr\\.io/getarcaneapp/manager:'
-    r"(?P<tag>v[0-9]+\\.[0-9]+\\.[0-9]+)@"
+    r'^[ \t]*image[ \t]*=[ \t]*"ghcr\.io/getarcaneapp/manager:'
+    r"(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
     r"(?P<digest>sha256:[0-9a-f]{64})"
-    r'"[ \\t]*;[ \\t]*$',
+    r'"[ \t]*;[ \t]*$',
     re.MULTILINE,
 )
 AGENT_IMAGE_PATTERN = re.compile(
-    r'^(?P<prefix>[ \\t]*image[ \\t]*=[ \\t]*")'
-    r"ghcr\\.io/getarcaneapp/agent:(?P<tag>v[0-9]+\\.[0-9]+\\.[0-9]+)@"
+    r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
+    r"ghcr\.io/getarcaneapp/agent:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
     r"(?P<digest>sha256:[0-9a-f]{64})"
-    r'(?P<suffix>"[ \\t]*;[ \\t]*)$',
+    r'(?P<suffix>"[ \t]*;[ \t]*)$',
     re.MULTILINE,
 )
 
