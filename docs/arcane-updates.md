@@ -24,9 +24,14 @@ En modo interactivo se pide confirmación para la actualización de Arcane. Con
 principal. El script no instala pre-releases, no cambia a otra versión mayor y
 no actualiza contenedores cuando el mantenimiento se ejecuta en otro host.
 
-El cambio queda en `modules/atlas-docker.nix` como modificación local. El script
-no ejecuta `git add`, `git commit`, `git stash` ni descarta cambios. Revisa y
-confirma el diff cuando te convenga.
+El cambio queda en `modules/atlas-docker.nix` como modificación local. El Direct
+Agent que Pico ejecuta desde `hosts/zimablade/configuration.nix` conserva su
+versión fijada: este paso no lo actualiza ni lo despliega. Revisa las notas de
+la release antes de decidir si también corresponde actualizarlo; para una
+migración mayor sí debe coordinarse con el Manager.
+
+El script no ejecuta `git add`, `git commit`, `git stash` ni descarta cambios.
+Revisa y confirma el diff cuando te convenga.
 
 Atlas utiliza `system.autoUpgrade.operation = "boot"`. Por eso, `nix-maintain`
 prepara la generación; la imagen nueva se aplicará al arrancar con esa
@@ -47,7 +52,7 @@ Antes de cambiar la referencia de imagen, el actualizador ejecuta:
 sudo bash scripts/backup-arcane.sh
 ```
 
-La copia se guarda en `/mnt/datos/AppData/arcane/backups/<fecha-UTC>/` e
+La copia se guarda en `/mnt/datos/AppData/arcane/backups/<fecha-UTC>.<sufijo>/` e
 incluye:
 
 - Dump lógico de PostgreSQL (`arcane-postgres`).
