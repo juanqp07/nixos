@@ -292,6 +292,7 @@
     lazydocker
     smartmontools
     htop
+    python3 # nix-maintain sincroniza el Direct Agent con la versión del Manager de Atlas
   ];
 
   # --- 7. USUARIO ---
