@@ -244,13 +244,17 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if not confirm_update(manager_tag, agent_tag, arguments.yes):
-            print("Arcane Direct Agent update skipped; the pinned image was not changed.")
+            print(
+                "Arcane Direct Agent update skipped; the pinned image was not changed."
+            )
             return 0
 
         latest_digest = fetch_registry_digest(manager_tag)
         updated_content = replace_agent_image(agent_content, manager_tag, latest_digest)
         if updated_content == agent_content:
-            print(f"Arcane Direct Agent {manager_tag} is already pinned to this digest.")
+            print(
+                f"Arcane Direct Agent {manager_tag} is already pinned to this digest."
+            )
             return 0
 
         print(f"Creating a backup before updating Pico's Arcane Agent {agent_tag}...")
