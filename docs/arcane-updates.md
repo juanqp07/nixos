@@ -174,12 +174,13 @@ declaradas dentro de environment deben quedar así:
 | LOG_LEVEL | ARCANE_LOG_LEVEL |
 | LOG_JSON | ARCANE_LOG_JSON |
 | OIDC_ENABLED | ARCANE_OIDC_ENABLED |
+| PROJECTS_DIRECTORY | ARCANE_PROJECTS_DIRECTORY |
 
 Mantén PUID, PGID y DOCKER_HOST sin cambios: no son variables
 específicas de Arcane. El montaje
-/mnt/datos/arcane/projects:/app/data/projects también se conserva. No
-mantengas PROJECTS_DIRECTORY en la configuración v3: la ruta ya está definida
-por ese volumen y no aparece entre las variables documentadas de Arcane 3.
+/mnt/datos/arcane/projects:/app/data/projects también se conserva. Mantén
+ARCANE_PROJECTS_DIRECTORY con el mismo valor de la variable anterior: Arcane 3
+sigue soportando esa ruta.
 
 El archivo postgres.env pertenece al contenedor PostgreSQL y no debe
 renombrarse como si fuese un archivo de variables Arcane.
