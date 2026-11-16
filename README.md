@@ -19,6 +19,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
     * `atlas-docker.nix`: Docker, Arcane, proxy de socket y política DOCKER-USER exclusivos de Atlas.
 * **docs/arcane-updates.md**: actualización fijada de Arcane, copias de seguridad y migraciones mayores.
+* **docs/horizon-native-mods.md**: instalación de Horizon en Elytra y SDK requerido para compilar mods nativos.
     * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
     * `home-manager.nix`: Integración de Home Manager con NixOS.
 * **packages/**: accesos a los paquetes externos preparados para NixOS.

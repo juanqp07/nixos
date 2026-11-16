@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [
@@ -36,6 +41,17 @@
   # Perfiles energéticos AC/batería declarados en PowerDevil (Plasma 6).
   home-manager.users.juan.imports = [ ../../home/juan/laptop-power.nix ];
 
+  # Acceso alternativo que abre Horizon con el SDK disponible para compilar mods nativos.
+  # El acceso normal de Flatpak sigue arrancando Horizon sin modo de desarrollo.
+  home-manager.users.juan.xdg.desktopEntries.horizon-native-mods = {
+    name = "Horizon (compilar mods nativos)";
+    comment = "Abre Horizon con Freedesktop SDK 26.08 para compilar mods Rust nativos.";
+    exec = "${pkgs.flatpak}/bin/flatpak run --devel dev.playhorizon.Horizon";
+    icon = "dev.playhorizon.Horizon";
+    terminal = false;
+    categories = [ "Game" ];
+  };
+
   # Mantener el stateVersion de la instalación.
   system.stateVersion = "25.11";
 
@@ -45,15 +61,16 @@
   # ============================================================
 
   programs.appimage.package = pkgs.appimage-run.override {
-    extraPkgs = appimagePkgs: with appimagePkgs; [
-      libunwind
-      elfutils
-      libffi
-      libgpg-error
-      pcre2
-      mpv-unwrapped
-      webkitgtk_4_1
-    ];
+    extraPkgs =
+      appimagePkgs: with appimagePkgs; [
+        libunwind
+        elfutils
+        libffi
+        libgpg-error
+        pcre2
+        mpv-unwrapped
+        webkitgtk_4_1
+      ];
   };
 
   # ============================================================
@@ -176,8 +193,8 @@
   # ============================================================
 
   #services.ollama = {
-   # enable = true;
-    #package = pkgs.ollama-cuda;
+  # enable = true;
+  #package = pkgs.ollama-cuda;
   #};
 
   # ============================================================
@@ -203,35 +220,80 @@
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
   services.displayManager.sddm.settings.General.InputMethod = lib.mkForce "";
 
+  # ============================================================
+  # HORIZON + COMPILACIÓN DE MODS NATIVOS
+  # ============================================================
+
+  # Horizon se distribuye desde FlatPark; Flathub sigue proporcionando su SDK.
+  services.flatpak.remotes = [
+    {
+      name = "flatpark";
+      location = "https://dl.flatpark.org/flatpark.flatpakrepo";
+    }
+  ];
+
+  services.flatpak.packages = [
+    {
+      appId = "dev.playhorizon.Horizon";
+      origin = "flatpark";
+    }
+  ];
+
+  # La compilación de mods nativos se ejecuta dentro del sandbox de Flatpak.
+  # El Freedesktop SDK contiene el compilador C, pkg-config y los headers de ALSA/libudev.
+  # No se instalan esas dependencias globalmente en NixOS.
+  systemd.services.horizon-native-mod-sdk = {
+    description = "Install Freedesktop SDK 26.08 for Horizon native mods";
+    wantedBy = [ "default.target" ];
+    after = [ "flatpak-managed-install.service" ];
+    path = [ pkgs.flatpak ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      flatpak --system --noninteractive install --or-update flathub org.freedesktop.Sdk//26.08
+    '';
+  };
+
+  # Mantiene actualizado el SDK, que no forma parte de la lista de aplicaciones
+  # administradas por nix-flatpak.
+  systemd.timers.horizon-native-mod-sdk = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "weekly";
+      Persistent = true;
+    };
+  };
 
   # ============================================================
   # UTILIDADES
   # ============================================================
 
-  environment.systemPackages = with pkgs; [
-    # Gaming extra específico portátil (base común en desktop-gaming.nix)
-    nvtopPackages.nvidia
-    vulkan-tools
+  environment.systemPackages =
+    with pkgs;
+    [
+      # Gaming extra específico portátil (base común en desktop-gaming.nix)
+      nvtopPackages.nvidia
+      vulkan-tools
 
-    # Intel / vídeo
-    intel-gpu-tools
-    libva-utils
-    vdpauinfo
+      # Intel / vídeo
+      intel-gpu-tools
+      libva-utils
+      vdpauinfo
 
-    # Gaming
-    # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
+      # Gaming
+      # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
 
-    # Sistema
-    powertop
-    smartmontools
-    cardwire
+      # Sistema
+      powertop
+      smartmontools
+      cardwire
 
-    # Portátil
-    brightnessctl
-  ] ++ [
-    # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
-    (pkgs.callPackage ../../packages/nori.nix { })
-    # Cliente de terminal de Nori.
-    (pkgs.callPackage ../../packages/nori-cli.nix { })
-  ];
+      # Portátil
+      brightnessctl
+    ]
+    ++ [
+      # Aplicación declarativa, aislada con sus dependencias de WebKitGTK 4.1.
+      (pkgs.callPackage ../../packages/nori.nix { })
+      # Cliente de terminal de Nori.
+      (pkgs.callPackage ../../packages/nori-cli.nix { })
+    ];
 }
