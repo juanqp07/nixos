@@ -63,12 +63,18 @@ incluye:
 - `arcane.env` y `postgres.env`.
 - La declaración `modules/atlas-docker.nix` usada en ese momento.
 
-El dump de PostgreSQL se genera con `pg_dumpall` mientras el servidor sigue
-activo. El volumen de aplicación y los proyectos se archivan sin detener Arcane;
-por tanto, el dump SQL es la copia consistente de la base de datos y el archivo
-del volumen es una captura de sus archivos en ese momento. Las copias contienen secretos y datos privados: el directorio queda con
-permisos `0700` y sus archivos con permisos privados. No se borran copias
-antiguas automáticamente; revisa el espacio ocupado antes de limpiarlas.
+Antes de respaldar los datos, el script detiene Arcane de forma ordenada
+(`docker stop --time 30 arcane`) para evitar escrituras mientras copia el
+volumen y los proyectos. PostgreSQL permanece activo para generar el volcado
+lógico con `pg_dumpall`. Un trap vuelve a iniciar Arcane incluso si falla alguna
+parte de la copia; si no consigue iniciarlo, el script termina con error para
+que no se pase por alto la incidencia.
+
+La interrupción del panel y de las notificaciones de Arcane dura únicamente lo
+que tarda la copia. Los archivos contienen secretos y datos privados: el
+directorio queda con permisos `0700` y sus archivos con permisos privados. No
+se borran copias antiguas automáticamente; revisa el espacio ocupado antes de
+limpiarlas.
 
 ## Actualizaciones mayores
 
