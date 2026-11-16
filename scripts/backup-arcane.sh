@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Non-disruptive backup of the Arcane data managed on Atlas.
+# Consistent backup of the Arcane data managed on Atlas.
 
 set -Eeuo pipefail
 
