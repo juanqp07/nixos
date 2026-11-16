@@ -30,7 +30,7 @@ MANAGER_IMAGE_PATTERN = re.compile(
 )
 AGENT_IMAGE_PATTERN = re.compile(
     r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
-    r"ghcr\.io/getarcaneapp/agent:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
+    r"getarcaneapp/agent:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
     r"(?P<digest>sha256:[0-9a-f]{64})"
     r'(?P<suffix>"[ \t]*;[ \t]*)$',
     re.MULTILINE,
@@ -90,7 +90,7 @@ def replace_agent_image(content: str, tag: str, digest: str) -> str:
     """Replace only the pinned Arcane Agent tag and registry digest."""
     parse_version(tag)
     if not DIGEST_PATTERN.fullmatch(digest):
-        raise UpdateError(f"Invalid GHCR digest for Arcane Agent: {digest!r}")
+        raise UpdateError(f"Invalid registry digest for Arcane Agent: {digest!r}")
 
     matches = list(AGENT_IMAGE_PATTERN.finditer(content))
     if len(matches) != 1:
@@ -274,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
         atomic_write(AGENT_FILE, updated_content)
         print(f"Arcane Agent image updated: {agent_tag} -> {manager_tag}.")
         print(
-            f"GHCR digest pinned. Review and commit the change in "
+            f"Image registry digest pinned. Review and commit the change in "
             f"{AGENT_RELATIVE_PATH}; nix-maintain does not commit files."
         )
         return 0
