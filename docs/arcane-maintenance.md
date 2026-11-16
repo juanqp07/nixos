@@ -51,7 +51,7 @@ Cuando `system.autoUpgrade.operation = "switch"`, el mantenimiento espera a que:
 Si se preparó una generación con operación `boot`, la copia se hace antes de preparar el siguiente arranque. Después de reiniciar Atlas, ejecuta:
 
 ```bash
-nix-maintain arcane-check
+nix-arcane-check
 ```
 
 El comando también está disponible para comprobar el estado manualmente cuando sea necesario. Si falla, conserva la copia, revisa los logs con `docker logs arcane` y `docker logs arcane-postgres` y no elimines la copia previa.
