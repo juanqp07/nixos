@@ -1,4 +1,4 @@
-"""Offline tests for the Arcane Direct Agent updater."""
+"""Offline tests for the Arcane Agent updater."""
 
 from __future__ import annotations
 

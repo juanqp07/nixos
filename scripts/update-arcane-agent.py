@@ -1,4 +1,4 @@
-"""Keep Pico's pinned Arcane Direct Agent aligned with Atlas' Manager."""
+"""Keep Pico's pinned Arcane Agent aligned with Atlas' Manager."""
 
 from __future__ import annotations
 
@@ -61,11 +61,11 @@ def read_manager_version(content: str) -> str:
 
 
 def read_agent_image(content: str) -> tuple[str, str]:
-    """Return the pinned Direct Agent tag and digest."""
+    """Return the pinned Arcane Agent tag and digest."""
     matches = list(AGENT_IMAGE_PATTERN.finditer(content))
     if len(matches) != 1:
         raise UpdateError(
-            "Expected exactly one pinned Arcane Direct Agent image in "
+            "Expected exactly one pinned Arcane Agent image in "
             f"{AGENT_RELATIVE_PATH}; found {len(matches)}."
         )
     match = matches[0]
@@ -87,15 +87,15 @@ def agent_sync_status(manager_tag: str, agent_tag: str) -> str:
 
 
 def replace_agent_image(content: str, tag: str, digest: str) -> str:
-    """Replace only the pinned Direct Agent tag and registry digest."""
+    """Replace only the pinned Arcane Agent tag and registry digest."""
     parse_version(tag)
     if not DIGEST_PATTERN.fullmatch(digest):
-        raise UpdateError(f"Invalid GHCR digest for Arcane Agent: {digest!r}")
+        raise UpdateError(f"Invalid registry digest for Arcane Agent: {digest!r}")
 
     matches = list(AGENT_IMAGE_PATTERN.finditer(content))
     if len(matches) != 1:
         raise UpdateError(
-            f"Expected exactly one pinned Arcane Direct Agent image; found {len(matches)}."
+            f"Expected exactly one pinned Arcane Agent image; found {len(matches)}."
         )
 
     match = matches[0]
@@ -136,7 +136,7 @@ def ensure_modules_are_clean() -> None:
     )
     if result.stdout.strip():
         raise UpdateError(
-            "The Arcane Manager or Direct Agent declaration has local changes. "
+            "The Arcane Manager or Arcane Agent declaration has local changes. "
             "Commit or stash them before synchronizing the Agent."
         )
 
@@ -150,7 +150,7 @@ def confirm_update(manager_tag: str, agent_tag: str, automatic: bool) -> bool:
     try:
         answer = (
             input(
-                f"Update Pico's Arcane Direct Agent {agent_tag} to match "
+                f"Update Pico's Arcane Agent {agent_tag} to match "
                 f"Atlas Manager {manager_tag}? [s/N] "
             )
             .strip()
@@ -199,7 +199,7 @@ def atomic_write(path: Path, content: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Synchronize Pico's pinned Arcane Direct Agent with the Manager "
+            "Synchronize Pico's pinned Arcane Agent with the Manager "
             "version declared for Atlas, without crossing major versions."
         )
     )
@@ -220,14 +220,14 @@ def main(argv: list[str] | None = None) -> int:
 
         if status == "current":
             print(
-                f"Arcane Direct Agent {agent_tag} already matches the "
+                f"Arcane Agent {agent_tag} already matches the "
                 f"Atlas Manager pin; no Agent update is needed."
             )
             return 0
 
         if status == "major":
             print(
-                f"Arcane Manager {manager_tag} and Direct Agent {agent_tag} "
+                f"Arcane Manager {manager_tag} and Arcane Agent {agent_tag} "
                 "belong to different major versions."
             )
             print(
@@ -238,23 +238,19 @@ def main(argv: list[str] | None = None) -> int:
 
         if status == "agent-ahead":
             print(
-                f"Arcane Direct Agent {agent_tag} is newer than the pinned "
+                f"Arcane Agent {agent_tag} is newer than the pinned "
                 f"Atlas Manager {manager_tag}; refusing to downgrade it."
             )
             return 0
 
         if not confirm_update(manager_tag, agent_tag, arguments.yes):
-            print(
-                "Arcane Direct Agent update skipped; the pinned image was not changed."
-            )
+            print("Arcane Agent update skipped; the pinned image was not changed.")
             return 0
 
         latest_digest = fetch_registry_digest(manager_tag)
         updated_content = replace_agent_image(agent_content, manager_tag, latest_digest)
         if updated_content == agent_content:
-            print(
-                f"Arcane Direct Agent {manager_tag} is already pinned to this digest."
-            )
+            print(f"Arcane Agent {manager_tag} is already pinned to this digest.")
             return 0
 
         print(f"Creating a backup before updating Pico's Arcane Agent {agent_tag}...")
@@ -267,20 +263,20 @@ def main(argv: list[str] | None = None) -> int:
         current_agent = AGENT_FILE.read_text(encoding="utf-8")
         if current_manager != manager_content or current_agent != agent_content:
             raise UpdateError(
-                "The Manager or Direct Agent declaration changed during the update; "
+                "The Manager or Arcane Agent declaration changed during the update; "
                 "no edit was made."
             )
 
         atomic_write(AGENT_FILE, updated_content)
-        print(f"Arcane Direct Agent image updated: {agent_tag} -> {manager_tag}.")
+        print(f"Arcane Agent image updated: {agent_tag} -> {manager_tag}.")
         print(
-            f"GHCR digest pinned. Review and commit the change in "
+            f"Image registry digest pinned. Review and commit the change in "
             f"{AGENT_RELATIVE_PATH}; nix-maintain does not commit files."
         )
         return 0
 
     except (OSError, ValueError, UpdateError, subprocess.CalledProcessError) as error:
-        print(f"Arcane Direct Agent update skipped: {error}", file=sys.stderr)
+        print(f"Arcane Agent update skipped: {error}", file=sys.stderr)
         return 1
 
 
