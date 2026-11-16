@@ -238,7 +238,7 @@
   # No se instalan esas dependencias globalmente en NixOS.
   systemd.services.horizon-native-mod-sdk = {
     description = "Install Freedesktop SDK 26.08 for Horizon native mods";
-    wantedBy = [ "multi-user.target" ];
+    wantedBy = [ "default.target" ];
     after = [ "flatpak-managed-install.service" ];
     path = [ pkgs.flatpak ];
     serviceConfig.Type = "oneshot";
