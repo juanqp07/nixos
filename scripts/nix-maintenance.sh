@@ -138,7 +138,7 @@ print_summary() {
   if [[ "$ARCANE_BACKUP_CREATED" == yes ]]; then
     term_info "Arcane: copia previa guardada en /mnt/datos/AppData/arcane/backups/nix-maintain."
     if [[ "$OPERATION" == boot ]]; then
-      term_warning "Arcane se actualizará al reiniciar; después ejecuta: nix-maintain arcane-check"
+      term_warning "Arcane se actualizará al reiniciar; después ejecuta: nix-arcane-check"
     fi
   fi
 }
