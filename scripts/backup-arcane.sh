@@ -8,7 +8,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
-for command in docker tar cp install date du chmod; do
+for command in docker tar cp install date du chmod mktemp cut; do
   command -v "$command" >/dev/null 2>&1 || {
     printf 'Required command not found: %s\n' "$command" >&2
     exit 1
@@ -50,8 +50,8 @@ arcane_volume="$(docker volume inspect --format '{{.Mountpoint}}' arcane-data)"
 
 timestamp="$(date -u '+%Y%m%dT%H%M%SZ')"
 install -d -m 0700 "$BACKUP_ROOT"
-backup_dir="$BACKUP_ROOT/$timestamp"
-install -d -m 0700 "$backup_dir"
+backup_dir="$(mktemp -d "$BACKUP_ROOT/$timestamp.XXXXXX")"
+chmod 0700 "$backup_dir"
 umask 077
 incomplete_marker="$backup_dir/INCOMPLETE"
 : > "$incomplete_marker"
