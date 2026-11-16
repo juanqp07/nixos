@@ -116,46 +116,187 @@ directorio queda con permisos `0700` y sus archivos con permisos privados. No
 se borran copias antiguas automáticamente; revisa el espacio ocupado antes de
 limpiarlas.
 
-## Actualizaciones mayores
+## Migración a Arcane 3.x
 
-Una actualización de versión principal **se detecta, pero nunca se aplica
-automáticamente**, tampoco con `-y`. Debe revisarse su guía de migración y
-adaptarse la configuración antes de cambiar el tag.
+Una migración de versión principal **no se ejecuta con nix-maintain -y**. El
+actualizador normal debe seguir deteniéndose en 2.17.3 hasta que se complete
+este procedimiento. No cambies el tag por tu cuenta ni despliegues la
+configuración v3 antes de adaptar los archivos de entorno.
 
-Arcane 3.0 es un cambio incompatible desde 2.x. La guía oficial exige partir de
-2.17.3, respaldar los datos, renombrar las variables de Arcane al prefijo
-`ARCANE_`, actualizar Manager y todos los agentes a la misma versión y revisar
-roles y notificaciones. No basta con cambiar `v2.x` por `v3.x`.
+La migración debe hacerse en dos fases: primero el Manager de Atlas y, cuando
+esté disponible Arcane 3, volver a inscribir Pico como Agent normal. Durante
+ese intervalo Pico puede aparecer desconectado en el panel.
 
-Antes de migrar a 3.x:
+### 1. Preparación y copias de seguridad
 
-1. Comprueba que el Manager y los agentes que tengas conectados están en
-   versiones compatibles y resuelve los trabajos que requieran atención.
-2. Ejecuta `sudo bash scripts/backup-arcane.sh` y conserva la copia.
-3. Revisa `modules/atlas-docker.nix`, `arcane.env` y el archivo
-   `/var/lib/arcane-agent/agent.env` de Pico. Por ejemplo, la declaración Nix
-   `APP_URL` pasa a `ARCANE_APP_URL`. Actualiza las demás variables de Arcane
-   según la tabla de la guía oficial. No antepongas `ARCANE_` a variables estándar o de terceros como `PUID`,
-   `PGID`, `DOCKER_HOST`, `DOCKER_CONFIG`, `TZ` o `OTEL_*`.
-4. Retira variables eliminadas y aplica las conversiones indicadas por la guía.
-   En particular, no conserves nombres antiguos como `JWT_SECRET`,
-   `EDGE_MUX_DISABLED` o `EDGE_TRANSPORT=poll`.
-5. Actualiza Manager y cada agente a la misma versión mayor,
-   incluido el Direct Agent declarado en
-   `hosts/zimablade/configuration.nix`. Despliega después la configuración de
-   Pico con `nix-deploy-pico`. El contenedor `arcane-docker-proxy` de Atlas
-   es un proxy de la API Docker, no un agente Arcane.
-6. Revisa los roles, las claves API y configura de nuevo los proveedores de
-   notificaciones en System → Notifications.
-7. Solo entonces cambia la imagen a 3.x, fija su digest y aplica la nueva
-   generación. Valida logs, estado saludable, proyectos y notificaciones.
+Comprueba que Atlas y Pico siguen usando Arcane 2.17.3. En ambos equipos,
+guarda una copia antes de cambiar nada:
 
-La guía oficial contiene los pasos completos y las tablas de variables y
-cambios incompatibles:
+En Atlas:
+
+~~~bash
+sudo bash scripts/backup-arcane.sh
+~~~
+
+En Pico:
+
+~~~bash
+sudo bash scripts/backup-arcane-agent.sh
+~~~
+
+Las copias incluyen los volúmenes persistentes y los archivos de entorno. No
+borres el volumen arcane-agent-data de Pico: debe conservarse para que el
+Agent tenga almacenamiento persistente en v3.
+
+Antes de arrancar v3, resuelve también los trabajos de Arcane que aparezcan
+como **Needs attention**.
+
+### 2. Adaptar el entorno del Manager en Atlas
+
+En el archivo real
+/mnt/datos/AppData/arcane/arcane.env se han detectado estas claves:
+
+| Actual | Arcane 3 |
+|---|---|
+| ENCRYPTION_KEY | ARCANE_ENCRYPTION_KEY |
+| DATABASE_URL | ARCANE_DATABASE_URL |
+
+Renombra solo las claves; conserva exactamente sus valores. No compartas el
+contenido del archivo, porque contiene secretos. La copia de seguridad anterior
+conserva el archivo original.
+
+Además, en modules/atlas-docker.nix, los nombres de las variables Arcane
+declaradas dentro de environment deben quedar así:
+
+| Actual | Arcane 3 |
+|---|---|
+| APP_URL | ARCANE_APP_URL |
+| LOG_LEVEL | ARCANE_LOG_LEVEL |
+| LOG_JSON | ARCANE_LOG_JSON |
+| OIDC_ENABLED | ARCANE_OIDC_ENABLED |
+| PROJECTS_DIRECTORY | ARCANE_PROJECTS_DIRECTORY |
+
+Mantén PUID, PGID y DOCKER_HOST sin cambios: no son variables
+específicas de Arcane. El montaje
+/mnt/datos/arcane/projects:/app/data/projects también se conserva. Mantén
+ARCANE_PROJECTS_DIRECTORY con el mismo valor de la variable anterior: Arcane 3
+sigue soportando esa ruta.
+
+El archivo postgres.env pertenece al contenedor PostgreSQL y no debe
+renombrarse como si fuese un archivo de variables Arcane.
+
+### 3. Resolver los digests de v3
+
+La versión estable usada para esta migración es v3.0.1. No reutilices los
+digests de v2 ni copies un digest por arquitectura. Obtén el digest del
+manifiesto de cada imagen desde GHCR con el resolutor del repositorio:
+
+~~~bash
+python3 - <<'PY'
+import importlib.util
+from pathlib import Path
+
+path = Path("scripts/update-docker-digests.py")
+spec = importlib.util.spec_from_file_location("update_docker_digests", path)
+if spec is None or spec.loader is None:
+    raise SystemExit("No se pudo cargar el resolutor de digests")
+
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+for repository in (
+    "ghcr.io/getarcaneapp/manager",
+    "ghcr.io/getarcaneapp/agent",
+):
+    print(f"{repository}:v3.0.1@{module.fetch_digest(repository, 'v3.0.1')}")
+PY
+~~~
+
+En los módulos Nix se fijan las imágenes con el formato
+ghcr.io/getarcaneapp/manager:v3.0.1@sha256:... y
+ghcr.io/getarcaneapp/agent:v3.0.1@sha256:.... El digest debe salir del
+comando anterior; no se debe inventar ni dejar sin fijar.
+
+### 4. Actualizar primero el Manager de Atlas
+
+Actualiza en modules/atlas-docker.nix la imagen del Manager a
+ghcr.io/getarcaneapp/manager:v3.0.1 con el digest obtenido y aplica los
+nombres de variables de la sección 2. No cambies PostgreSQL ni el proxy Docker.
+
+Revisa el diff y evalúa la configuración antes de desplegar Atlas. Después del
+despliegue, comprueba el estado y los logs:
+
+~~~bash
+docker inspect --format '{{.State.Status}} / {{if .State.Health}}{{.State.Health.Status}}{{else}}sin healthcheck{{end}}' arcane
+docker logs --since 10m arcane
+~~~
+
+Inicia sesión en el panel y confirma que los proyectos existentes, usuarios y
+configuración se han conservado. No continúes con Pico si el Manager no inicia
+correctamente.
+
+### 5. Volver a inscribir Pico como Agent
+
+El contenedor actual de Pico es un **Direct Agent** de Arcane 2.x. En Arcane 3,
+los Direct Agents pasan a estado **Pending** y deben inscribirse de nuevo:
+
+1. Abre **Agents** en el Manager de Atlas y selecciona la entrada de Pico.
+2. En **Connection & Agent**, genera un nuevo **Enrollment Token** y copia el
+   comando de instalación.
+3. No reutilices el valor antiguo de AGENT_TOKEN. Es el token de la
+   instalación Direct Agent anterior.
+4. Guarda el token nuevo, que empieza por arc_etkn_, en
+   /var/lib/arcane-agent/agent.env con el nombre
+   ARCANE_AGENT_TOKEN. No lo introduzcas en Git, en la configuración Nix ni
+   en el historial de la shell. El archivo debe seguir siendo privado.
+
+La configuración Nix del Agent debe usar la imagen
+ghcr.io/getarcaneapp/agent:v3.0.1 con su digest y estas variables:
+
+~~~nix
+environment = {
+  ARCANE_AGENT = "true";
+  ARCANE_MANAGER_API_URL = "http://192.168.1.143:3552";
+};
+~~~
+
+El token se carga desde /var/lib/arcane-agent/agent.env mediante
+environmentFiles. Conserva el volumen arcane-agent-data:/app/data y el
+montaje de /var/lib/dockge/stacks.
+
+En v3 el Agent inicia una conexión saliente con el Manager. Por tanto, elimina
+AGENT_MODE, EDGE_TRANSPORT y MANAGER_API_URL, quita la publicación
+3553:3553 y elimina únicamente las reglas IPv4/IPv6 del firewall que
+permitían el acceso entrante al puerto 3553. No elimines las reglas de
+Technitium DNS (53, 8665 y 53443). Tampoco añadas un healthcheck TCP para 3553:
+el nuevo Agent no escucha en ese puerto.
+
+Despliega Pico después de haber generado y guardado el nuevo token. Comprueba
+en el panel que Pico aparece conectado y que conserva sus proyectos, Git Sync,
+webhooks y trabajos.
+
+### 6. Comprobaciones posteriores y vuelta atrás
+
+Comprueba lo siguiente antes de dar la migración por terminada:
+
+- Manager y Agent muestran la misma versión 3.x.
+- Pico aparece conectado y puede gestionar contenedores y proyectos.
+- Los proyectos existentes y los stacks de Dockge siguen disponibles.
+- Los roles personalizados y las claves API tienen los permisos esperados.
+- Los proveedores de notificaciones se configuran de nuevo en
+  **System → Notifications**, porque ahora son globales al Manager.
+- Si usas arcane-cli o scripts que llamen a la API, actualízalos a v3 y
+  revisa los cambios de comandos y rutas descritos en la guía oficial.
+
+Para volver a 2.x, restaura la copia completa tomada antes de la migración:
+base de datos, volumen del Manager, proyectos y archivos de entorno. En Pico,
+restaura también el volumen arcane-agent-data, su archivo de entorno y la
+configuración Nix anterior. **No basta con volver a etiquetar la imagen como
+v2** después de que Arcane haya migrado la base de datos.
+
+Documentación oficial:
 
 - [Arcane: migrar a 3.0](https://getarcane.app/docs/get-started/migrate-v3)
-- [Arcane: notas de versión](https://getarcane.app/changelog)
-
-Para volver a 2.x, restaura la copia de seguridad completa de base de datos,
-volumen, proyectos y archivos de entorno. No basta con regresar el tag de la
-imagen después de que una migración de base de datos haya comenzado.
+- [Arcane: variables de entorno](https://getarcane.app/docs/reference/environment-variables)
+- [Arcane: agentes remotos](https://getarcane.app/docs/remote/agents)
+- [Arcane: volver de 3.0 a 2.x](https://getarcane.app/docs/get-started/downgrading)
