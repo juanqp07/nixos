@@ -17,15 +17,15 @@ SPEC.loader.exec_module(update_agent)
 OLD_DIGEST = "sha256:" + "a" * 64
 NEW_DIGEST = "sha256:" + "b" * 64
 MANAGER = (
-    "    arcane = {\\n"
-    f'      image = "ghcr.io/getarcaneapp/manager:v2.17.3@{OLD_DIGEST}";\\n'
-    "    };\\n"
+    "    arcane = {\n"
+    f'      image = "ghcr.io/getarcaneapp/manager:v2.17.3@{OLD_DIGEST}";\n'
+    "    };\n"
 )
 AGENT = (
-    "      containers.arcane-agent = {\\n"
-    f'        image = "ghcr.io/getarcaneapp/agent:v2.17.2@{OLD_DIGEST}";\\n'
-    "        autoStart = true;\\n"
-    "      };\\n"
+    "      containers.arcane-agent = {\n"
+    f'        image = "ghcr.io/getarcaneapp/agent:v2.17.2@{OLD_DIGEST}";\n'
+    "        autoStart = true;\n"
+    "      };\n"
 )
 
 
@@ -90,13 +90,13 @@ class ArcaneAgentVersionTests(unittest.TestCase):
 
     def test_rejects_missing_or_duplicate_agent_image(self) -> None:
         with self.assertRaises(update_agent.UpdateError):
-            update_agent.read_agent_image("services.arcane.enable = true;\\n")
+            update_agent.read_agent_image("services.arcane.enable = true;\n")
         with self.assertRaises(update_agent.UpdateError):
             update_agent.read_agent_image(AGENT + AGENT)
 
     def test_rejects_missing_or_duplicate_manager_image(self) -> None:
         with self.assertRaises(update_agent.UpdateError):
-            update_agent.read_manager_version("services.arcane.enable = true;\\n")
+            update_agent.read_manager_version("services.arcane.enable = true;\n")
         with self.assertRaises(update_agent.UpdateError):
             update_agent.read_manager_version(MANAGER + MANAGER)
 
