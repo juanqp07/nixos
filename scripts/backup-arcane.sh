@@ -54,13 +54,13 @@ backup_dir="$(mktemp -d "$BACKUP_ROOT/$timestamp.XXXXXX")"
 chmod 0700 "$backup_dir"
 umask 077
 incomplete_marker="$backup_dir/INCOMPLETE"
-: > "$incomplete_marker"
+: >"$incomplete_marker"
 
 # pg_dumpall takes a consistent logical backup while PostgreSQL remains online.
 postgres_user="$(docker exec arcane-postgres printenv POSTGRES_USER 2>/dev/null || true)"
 [[ -n "$postgres_user" ]] || postgres_user="postgres"
 docker exec arcane-postgres pg_dumpall --username="$postgres_user" \
-  > "$backup_dir/postgres.sql"
+  >"$backup_dir/postgres.sql"
 [[ -s "$backup_dir/postgres.sql" ]] || {
   printf 'PostgreSQL produced an empty backup.\n' >&2
   exit 1
@@ -81,7 +81,7 @@ tar -tzf "$backup_dir/arcane-data.tar.gz" >/dev/null
 tar -tzf "$backup_dir/projects.tar.gz" >/dev/null
 [[ -s "$backup_dir/postgres.sql" ]]
 
-cat > "$backup_dir/README.txt" <<EOF
+cat >"$backup_dir/README.txt" <<EOF
 Arcane Atlas backup
 Created UTC: $timestamp
 
