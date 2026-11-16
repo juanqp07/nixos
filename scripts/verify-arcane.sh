@@ -2,10 +2,10 @@
 # Verify the deployed Arcane image, application health and PostgreSQL readiness.
 set -Eeuo pipefail
 
-expected_image="\${1:?Usage: verify-arcane.sh <expected-image>}"
+expected_image="${1:?Usage: verify-arcane.sh <expected-image>}"
 attempts=36
 interval=5
-docker="\${DOCKER:-docker}"
+docker="${DOCKER:-docker}"
 
 command -v "$docker" >/dev/null 2>&1 || {
   echo "Docker CLI is not available." >&2
@@ -36,8 +36,8 @@ for ((attempt = 1; attempt <= attempts; attempt++)); do
   fi
 
   printf 'Waiting for Arcane health (%s/%s): state=%s image=%s health=%s postgres=%s\n' \
-    "$attempt" "$attempts" "\${state:-missing}" "\${actual_image:-missing}" \
-    "\${health:-unknown}" "$postgres_ready"
+    "$attempt" "$attempts" "${state:-missing}" "${actual_image:-missing}" \
+    "${health:-unknown}" "$postgres_ready"
   sleep "$interval"
 done
 
