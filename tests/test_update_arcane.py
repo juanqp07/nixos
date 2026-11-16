@@ -37,7 +37,9 @@ class ArcaneVersionTests(unittest.TestCase):
             ("v2.18.0", (2, 18, 0)),
         )
 
-    def test_latest_stable_release_finds_major_upgrade_without_applying_it(self) -> None:
+    def test_latest_stable_release_finds_major_upgrade_without_applying_it(
+        self,
+    ) -> None:
         releases = [
             {"tag_name": "v3.0.1", "draft": False, "prerelease": False},
             {"tag_name": "v2.17.3", "draft": False, "prerelease": False},
