@@ -30,7 +30,7 @@ MANAGER_IMAGE_PATTERN = re.compile(
 )
 AGENT_IMAGE_PATTERN = re.compile(
     r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
-    r"ghcr\\.io/getarcaneapp/agent:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
+    r"ghcr\.io/getarcaneapp/agent:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
     r"(?P<digest>sha256:[0-9a-f]{64})"
     r'(?P<suffix>"[ \t]*;[ \t]*)$',
     re.MULTILINE,
