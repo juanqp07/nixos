@@ -70,7 +70,7 @@ class ArcaneImageTests(unittest.TestCase):
             NEW_DIGEST,
         )
         self.assertIn(
-            f'ghcr.io/getarcaneapp/manager:v2.18.0@{NEW_DIGEST}',
+            f"ghcr.io/getarcaneapp/manager:v2.18.0@{NEW_DIGEST}",
             updated,
         )
         self.assertIn("autoStart = true;", updated)
