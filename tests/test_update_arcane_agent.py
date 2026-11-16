@@ -23,7 +23,7 @@ MANAGER = (
 )
 AGENT = (
     "      containers.arcane-agent = {\n"
-    f'        image = "getarcaneapp/agent:v2.17.2@{OLD_DIGEST}";\n'
+    f'        image = "ghcr.io/getarcaneapp/agent:v2.17.2@{OLD_DIGEST}";\n'
     "        autoStart = true;\n"
     "      };\n"
 )
@@ -78,7 +78,7 @@ class ArcaneAgentVersionTests(unittest.TestCase):
             NEW_DIGEST,
         )
         self.assertIn(
-            f"getarcaneapp/agent:v2.17.3@{NEW_DIGEST}",
+            f"ghcr.io/getarcaneapp/agent:v2.17.3@{NEW_DIGEST}",
             updated,
         )
         self.assertIn("autoStart = true;", updated)
