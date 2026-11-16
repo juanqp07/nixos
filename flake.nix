@@ -68,11 +68,13 @@
       nixosConfigurations = {
         elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
           ./modules/desktop-gaming.nix
+          ./modules/development-tools.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
 
         titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
           ./modules/desktop-gaming.nix
+          ./modules/development-tools.nix
           ./modules/titan-interactive.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
@@ -151,7 +153,8 @@
       formatter.aarch64-linux = nixpkgs.legacyPackages.aarch64-linux.nixfmt;
 
       # devShells por proyecto: `nix develop .#python` etc. o auto con direnv.
-      # Evitan meter toolchains globales en systemPackages.
+      # Complementan las herramientas base de Python y Rust instaladas en los
+      # escritorios; Node, Go y Java siguen siendo opt-in por proyecto.
       devShells.x86_64-linux =
         let
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
@@ -194,7 +197,11 @@
               rustfmt
               clippy
               gcc
+              clang
+              mold
               pkg-config
+              cmake
+              gnumake
             ];
           };
         };

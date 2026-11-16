@@ -341,8 +341,8 @@
     protonup-qt
     protontricks
 
-    # Desarrollo: los toolchains de Python, Node/Bun, Go y Rust
-    # se proporcionan por proyecto mediante los devShells de flake.nix.
+    # Desarrollo: las herramientas base de Python y Rust se instalan
+    # desde development-tools.nix; Node/Bun, Go y Java siguen en devShells.
     android-studio
     vscode
     antigravity-ide
