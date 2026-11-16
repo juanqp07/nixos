@@ -6,9 +6,7 @@ import importlib.util
 import unittest
 from pathlib import Path
 
-SCRIPT = Path(
-    Path(__file__).resolve().parents[1] / "scripts" / "update-arcane.py"
-)
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "update-arcane.py"
 SPEC = importlib.util.spec_from_file_location("update_arcane", SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"Could not load Arcane updater from {SCRIPT}")
