@@ -134,7 +134,7 @@
       # El token de inscripción se guarda fuera del repositorio en agent.env.
       containers.arcane-agent = {
         # Mantener el agente alineado con el Manager estable de Atlas.
-        image = "getarcaneapp/agent:v3.0.1@sha256:4285608a7a085acb8296c5a76261fd1b738a40760dcf46e48a4361240cd94692";
+        image = "ghcr.io/getarcaneapp/agent:v3.0.1@sha256:4285608a7a085acb8296c5a76261fd1b738a40760dcf46e48a4361240cd94692";
         autoStart = true;
 
         environment = {
