@@ -110,7 +110,7 @@
 
         arcane = {
           # Fijar la versión evita que :latest adelante el Manager a la rama v3-next.
-          image = "ghcr.io/getarcaneapp/manager:v2.17.3@sha256:2e0dc9f5ef03599181a49baf6470055d82e24d9cb15bbc62498ea642c0f882a7";
+          image = "ghcr.io/getarcaneapp/manager:v3.0.1@sha256:80a2f71c60bc1bff3e618e6e71efec98ad365ba4f0395aa76e234d8ba75e5a99";
           autoStart = true;
 
           # NixOS gestiona el ciclo de vida; desactivar el updater interno evita
@@ -133,13 +133,13 @@
           ];
 
           environment = {
-            APP_URL = "http://192.168.1.143:3552";
+            ARCANE_APP_URL = "http://192.168.1.143:3552";
             PUID = "1000";
             PGID = "1000";
-            LOG_LEVEL = "info";
-            LOG_JSON = "false";
-            OIDC_ENABLED = "false";
-            PROJECTS_DIRECTORY = "/app/data/projects";
+            ARCANE_LOG_LEVEL = "info";
+            ARCANE_LOG_JSON = "false";
+            ARCANE_OIDC_ENABLED = "false";
+            ARCANE_PROJECTS_DIRECTORY = "/app/data/projects";
             DOCKER_HOST = "tcp://arcane-docker-proxy:2375";
           };
 
