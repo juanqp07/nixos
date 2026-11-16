@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -169,7 +170,7 @@ def create_backup() -> None:
 
 def atomic_write(path: Path, content: str) -> None:
     """Replace the Nix module atomically and preserve its permissions."""
-    mode = path.stat().st_mode
+    mode = stat.S_IMODE(path.stat().st_mode)
     temporary_path: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
