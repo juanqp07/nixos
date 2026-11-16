@@ -5,12 +5,12 @@ Debe desplegarse **después** de que el Manager de Atlas esté funcionando en v3
 
 ## Cambios incluidos
 
-- Actualiza la imagen oficial del agente a v3.0.1 y fija el digest multi-arquitectura de Docker Hub.
+- Actualiza la imagen oficial del agente a v3.0.1 y fija el digest multi-arquitectura de GHCR.
 - Cambia la configuración a `ARCANE_AGENT`, `ARCANE_MANAGER_API_URL` y `ARCANE_AGENT_TOKEN`.
 - Elimina el modo Direct, el transporte Edge antiguo y la publicación de TCP/3553.
 - Elimina del firewall de Pico las reglas de entrada de 3553; conserva las reglas DNS de Technitium.
 - Conserva el volumen `arcane-agent-data:/app/data` y los stacks de Dockge.
-- Actualiza el mantenedor para sincronizar el agente con el Manager desde Docker Hub.
+- Actualiza el mantenedor para sincronizar el agente con el Manager desde GHCR.
 
 ## Por qué hay que reinscribir Pico
 
