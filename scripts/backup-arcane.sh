@@ -3,8 +3,8 @@
 set -Eeuo pipefail
 umask 077
 
-running_image="\${1:?Usage: backup-arcane.sh <running-image> <target-image>}"
-target_image="\${2:?Usage: backup-arcane.sh <running-image> <target-image>}"
+running_image="${1:?Usage: backup-arcane.sh <running-image> <target-image>}"
+target_image="${2:?Usage: backup-arcane.sh <running-image> <target-image>}"
 
 backup_root="/mnt/datos/AppData/arcane/backups/nix-maintain"
 projects_dir="/mnt/datos/arcane/projects"
@@ -14,8 +14,8 @@ timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup_dir="$backup_root/$timestamp"
 
 fail() {
-  printf 'Arcane backup failed: %s\n' "$*"
-  printf 'Any partial files were left in: %s\n' "$backup_dir"
+  printf 'Arcane backup failed: %s\n' "$*" >&2
+  printf 'Any partial files were left in: %s\n' "$backup_dir" >&2
   exit 1
 }
 
@@ -46,7 +46,7 @@ printf 'Running image: %s\nTarget image: %s\nCreated at (UTC): %s\n' \
 # pg_dumpall is a transactionally consistent logical backup of every Arcane
 # database and role. The dump is taken while the database is online.
 docker exec arcane-postgres sh -ec \
-  'pg_dumpall --clean --if-exists --username "\${POSTGRES_USER:-postgres}"' \
+  'pg_dumpall --clean --if-exists --username "${POSTGRES_USER:-postgres}"' \
   >"$backup_dir/postgres.sql" ||
   fail "Could not dump the Arcane PostgreSQL databases."
 [[ -s "$backup_dir/postgres.sql" ]] ||
