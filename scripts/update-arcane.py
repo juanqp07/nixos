@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Update Atlas's pinned Arcane image within the current major release."""
 
 from __future__ import annotations
@@ -27,7 +26,9 @@ ACCEPT_MANIFESTS = (
     "application/vnd.oci.image.manifest.v1+json, "
     "application/vnd.docker.distribution.manifest.v2+json"
 )
-VERSION_RE = re.compile(r"^v(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$")
+VERSION_RE = re.compile(
+    r"^v(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)$"
+)
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 IMAGE_RE = re.compile(
     r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
@@ -99,7 +100,7 @@ def fetch_releases() -> list[dict[str, Any]]:
         with urllib.request.urlopen(request, timeout=30) as response:
             payload = json.load(response)
             if not isinstance(payload, list):
-                raise ValueError("GitHub returned an unexpected releases payload")
+                raise TypeError("GitHub returned an unexpected releases payload")
             releases.extend(item for item in payload if isinstance(item, dict))
             url = _next_link(response.headers.get("Link"))
 
@@ -114,7 +115,7 @@ def _read_json(url: str, headers: dict[str, str] | None = None) -> dict[str, Any
     with urllib.request.urlopen(request, timeout=30) as response:
         payload = json.load(response)
     if not isinstance(payload, dict):
-        raise ValueError(f"Registry returned an invalid JSON object for {url}")
+        raise TypeError(f"Registry returned an invalid JSON object for {url}")
     return payload
 
 
@@ -160,7 +161,13 @@ def replace_image_reference(content: str, new_tag: str, digest: str) -> tuple[st
     old_tag = match.group("tag")
     old_reference = match.group("repository") + old_tag + match.group("digest")
     new_reference = match.group("repository") + new_tag + "@" + digest
-    updated = content[: match.start()] + match.group("prefix") + new_reference + match.group("suffix") + content[match.end() :]
+    updated = (
+        content[: match.start()]
+        + match.group("prefix")
+        + new_reference
+        + match.group("suffix")
+        + content[match.end() :]
+    )
     return updated, old_reference
 
 
@@ -173,7 +180,9 @@ def module_has_local_changes() -> bool:
         check=False,
     )
     if result.returncode not in (0, 1):
-        raise RuntimeError("Could not inspect the Git state of modules/atlas-docker.nix")
+        raise RuntimeError(
+            "Could not inspect the Git state of modules/atlas-docker.nix"
+        )
     return result.returncode == 1
 
 
@@ -227,14 +236,18 @@ def main() -> int:
             )
 
         if latest_compatible is None or latest_compatible[1] <= current_version:
-            print(f"Arcane: {current_tag} ya es la versión estable más reciente de la rama {current_version[0]}.")
+            print(
+                f"Arcane: {current_tag} ya es la versión estable más reciente de la rama {current_version[0]}."
+            )
             return 0
 
         new_tag = latest_compatible[0]
         digest = fetch_manifest_digest(new_tag)
         updated, _old_reference = replace_image_reference(content, new_tag, digest)
         if updated == content:
-            print(f"Arcane: {current_tag} ya apunta al digest publicado para {new_tag}.")
+            print(
+                f"Arcane: {current_tag} ya apunta al digest publicado para {new_tag}."
+            )
             return 0
 
         atomic_write(MODULE, updated)
@@ -244,9 +257,18 @@ def main() -> int:
         )
         return 0
 
-    except (OSError, urllib.error.URLError, json.JSONDecodeError, ValueError, RuntimeError) as error:
+    except (
+        OSError,
+        urllib.error.URLError,
+        json.JSONDecodeError,
+        ValueError,
+        RuntimeError,
+    ) as error:
         # A registry/API outage must not prevent ordinary NixOS maintenance.
-        print(f"Arcane: no se pudo comprobar la actualización; se conserva la versión actual ({error}).", file=sys.stderr)
+        print(
+            f"Arcane: no se pudo comprobar la actualización; se conserva la versión actual ({error}).",
+            file=sys.stderr,
+        )
         return 0
 
 
