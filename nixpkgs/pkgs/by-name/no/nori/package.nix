@@ -18,7 +18,9 @@ let
     };
   };
 
-  asset = assets.${stdenv.hostPlatform.system} or (throw "Nori is not supported on ${stdenv.hostPlatform.system}");
+  asset =
+    assets.${stdenv.hostPlatform.system}
+      or (throw "Nori is not supported on ${stdenv.hostPlatform.system}");
 in
 appimageTools.wrapType2 (finalAttrs: {
   pname = "nori";
