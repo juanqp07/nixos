@@ -105,6 +105,10 @@
 
   programs.kdeconnect.enable = true;
 
+  # Compartir archivos entre dispositivos de la red local.
+  # El módulo nativo instala LocalSend y abre TCP/UDP 53317 en el firewall.
+  programs.localsend.enable = true;
+
   # Montaje automático de unidades extraíbles (USB, incluida PS Vita con VitaShell).
   services.udisks2.enable = true;
 
