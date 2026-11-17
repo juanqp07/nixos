@@ -2,7 +2,7 @@ name: Update Flake inputs and container digests
 
 on:
   schedule:
-    - cron: "17 8 * * 3"
+    - cron: "17 8 * * *"
   workflow_dispatch:
 
 permissions:
