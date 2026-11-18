@@ -42,9 +42,6 @@
     enable32Bit = true;
   };
 
-  # Electron/Chromium: prioriza Ozone nativo cuando Plasma está en Wayland.
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
-
   environment.variables = {
     "HSA_OVERRIDE_GFX_VERSION" = "10.3.0";
   };
@@ -77,9 +74,6 @@
     clinfo
     vulkan-tools
     amdgpu_top
-
-    # Interfaz gráfica de OpenCode; el CLI se mantiene compartido con Elytra.
-    opencode-desktop
 
     # Aplicación declarativa compartida con Elytra.
     (callPackage ../../packages/nori.nix { })
