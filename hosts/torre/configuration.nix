@@ -56,6 +56,10 @@
 
   services.openssh.enable = true;
 
+  # LM Studio API: permitir el acceso al puerto 1234 únicamente por NetBird.
+  # Mantener la autenticación por API activada en LM Studio; no abrir el puerto globalmente.
+  networking.firewall.interfaces."wt0".allowedTCPPorts = [ 1234 ];
+
   services.sunshine = {
     enable = true;
     autoStart = true;
@@ -104,6 +108,7 @@
       Unit = "headset-led-off.service";
     };
   };
+
 
   # ---------------------------------------------------------
   # 5. SSD DE JUEGOS (1 TB, ext4)
