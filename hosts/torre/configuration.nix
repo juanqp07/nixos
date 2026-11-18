@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }: # Añadimos 'lib' aquí
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: # Añadimos 'lib' aquí
 
 {
 
@@ -56,6 +61,10 @@
 
   services.openssh.enable = true;
 
+  # LM Studio API: permitir el acceso al puerto 1234 únicamente por NetBird.
+  # Mantener la autenticación por API activada en LM Studio; no abrir el puerto globalmente.
+  networking.firewall.interfaces."wt0".allowedTCPPorts = [ 1234 ];
+
   services.sunshine = {
     enable = true;
     autoStart = true;
@@ -112,7 +121,10 @@
   fileSystems."/mnt/juegos" = {
     device = "/dev/disk/by-uuid/c1e5373f-923c-4cad-98fa-187a01897700";
     fsType = "ext4";
-    options = [ "defaults" "noatime" ];
+    options = [
+      "defaults"
+      "noatime"
+    ];
   };
 
   # Preparar las bibliotecas y garantizar que juan pueda escribir en ellas.
@@ -134,7 +146,6 @@
     "z /mnt/juegos/Downloads 0775 juan users -"
     "z /mnt/juegos/Data 0775 juan users -"
   ];
-
 
   # ---------------------------------------------------------
   # 5. CONTROL GPU (LACT)
