@@ -77,16 +77,14 @@ cuando el proyecto tenga un archivo `.envrc` con `use flake .#python`,
 
 ## 🤖 OpenCode en los escritorios
 
-El CLI `opencode` se instala desde `modules/desktop-gaming.nix` en **Elytra y Titan**. Se conserva para trabajar desde Fish/terminal, ejecutar sesiones en proyectos y utilizar el agente sin abrir una aplicación gráfica.
+**Elytra y Titan instalan tanto OpenCode CLI como OpenCode Desktop** desde el módulo compartido `modules/desktop-gaming.nix`. No hay diferencias por host: puedes trabajar desde Fish/terminal o abrir la interfaz gráfica en cualquiera de los dos equipos.
 
-La interfaz **OpenCode Desktop** (`opencode-desktop`) se instala únicamente en **Titan**, desde `hosts/torre/configuration.nix`. La torre dispone de 32 GiB de RAM; Elytra tiene 16 GiB y límites de memoria más estrictos, por lo que allí se mantiene el CLI para evitar añadir otra aplicación Electron. Desktop aporta pestañas de sesiones, revisión de diffs, navegador integrado y conexión a proyectos por SSH.
+- `opencode`: CLI para terminal, scripts y sesiones rápidas.
+- `opencode-desktop`: aplicación gráfica para gestionar sesiones, revisar cambios y trabajar con proyectos mediante su interfaz.
 
-Nixpkgs construye Desktop reutilizando la misma versión fijada del paquete `opencode`; no se añaden inputs, repositorios externos ni instalaciones manuales. Titan activa `NIXOS_OZONE_WL` para que Electron utilice Ozone nativo en sesiones Wayland.
+Los dos paquetes pueden coexistir: usan ejecutables distintos y Nixpkgs construye Desktop reutilizando la misma versión fijada del paquete `opencode`. Instalar Desktop no mantiene Electron ejecutándose en segundo plano; el consumo adicional de memoria aparece cuando abres la interfaz.
 
-Comandos:
-
-- `opencode`: CLI disponible en Elytra y Titan.
-- `opencode-desktop`: aplicación gráfica disponible en Titan.
+El módulo compartido activa `NIXOS_OZONE_WL` para que Electron utilice Ozone nativo en las sesiones Plasma Wayland de ambos equipos. No se añaden inputs ni repositorios externos.
 
 ## 🖥️ RustDesk en los escritorios
 
