@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }: # Añadimos 'lib' aquí
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: # Añadimos 'lib' aquí
 
 {
 
@@ -109,7 +114,6 @@
     };
   };
 
-
   # ---------------------------------------------------------
   # 5. SSD DE JUEGOS (1 TB, ext4)
   # ---------------------------------------------------------
@@ -117,7 +121,10 @@
   fileSystems."/mnt/juegos" = {
     device = "/dev/disk/by-uuid/c1e5373f-923c-4cad-98fa-187a01897700";
     fsType = "ext4";
-    options = [ "defaults" "noatime" ];
+    options = [
+      "defaults"
+      "noatime"
+    ];
   };
 
   # Preparar las bibliotecas y garantizar que juan pueda escribir en ellas.
@@ -139,7 +146,6 @@
     "z /mnt/juegos/Downloads 0775 juan users -"
     "z /mnt/juegos/Data 0775 juan users -"
   ];
-
 
   # ---------------------------------------------------------
   # 5. CONTROL GPU (LACT)
