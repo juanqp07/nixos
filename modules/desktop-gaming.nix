@@ -91,6 +91,9 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # Electron/Chromium usa Ozone nativo en las sesiones Plasma Wayland.
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
+
   # Discover se instala automáticamente al habilitar Flatpak/fwupd en Plasma.
   # No lo necesitamos: las aplicaciones Flatpak se gestionan declarativamente.
   environment.plasma6.excludePackages = with pkgs.kdePackages; [
@@ -352,6 +355,7 @@
     antigravity-ide
     jetbrains.idea
     opencode
+    opencode-desktop
     lmstudio
     android-tools
     bashInteractive

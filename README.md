@@ -75,6 +75,17 @@ incluye direnv + nix-direnv en el módulo común; puedes usar `direnv allow`
 cuando el proyecto tenga un archivo `.envrc` con `use flake .#python`,
 `use flake .#node`, etc.
 
+## 🤖 OpenCode en los escritorios
+
+**Elytra y Titan instalan tanto OpenCode CLI como OpenCode Desktop** desde el módulo compartido `modules/desktop-gaming.nix`. No hay diferencias por host: puedes trabajar desde Fish/terminal o abrir la interfaz gráfica en cualquiera de los dos equipos.
+
+- `opencode`: CLI para terminal, scripts y sesiones rápidas.
+- `opencode-desktop`: aplicación gráfica para gestionar sesiones, revisar cambios y trabajar con proyectos mediante su interfaz.
+
+Los dos paquetes pueden coexistir: usan ejecutables distintos y Nixpkgs construye Desktop reutilizando la misma versión fijada del paquete `opencode`. Instalar Desktop no mantiene Electron ejecutándose en segundo plano; el consumo adicional de memoria aparece cuando abres la interfaz.
+
+El módulo compartido activa `NIXOS_OZONE_WL` para que Electron utilice Ozone nativo en las sesiones Plasma Wayland de ambos equipos. No se añaden inputs ni repositorios externos.
+
 ## 🖥️ RustDesk en los escritorios
 
 El cliente estándar `rustdesk-flutter` de Nixpkgs se instala en Elytra y Titan desde `modules/desktop-gaming.nix`. No se configura un servicio de sistema para acceso previo al inicio de sesión, ni la variante unattended/DRM. El relay autoalojado `hbbs`/`hbbr` de Atlas permanece independiente y sin cambios.
