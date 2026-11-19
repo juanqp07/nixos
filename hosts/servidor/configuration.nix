@@ -184,6 +184,7 @@
     intel-gpu-tools # intel_gpu_top: verificar QSV/iGPU en jellyfin/immich
     libva-utils # vainfo: comprobar VA-API antes de probar una transcodificación
     lazydocker # gestión TUI de los ~70 contenedores
+    opencode
   ];
 
   # --- ACTUALIZACIONES AUTOMÁTICAS ---
