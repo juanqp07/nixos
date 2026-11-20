@@ -945,14 +945,27 @@ update_arcane_agent() {
 
 run_update() {
   local automatic="${1:-no}"
-  section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
-  check_lock_clean
+  local update_inputs="${2:-no}"
+
+  if [[ "$update_inputs" == "yes" ]]; then
+    section "02" "ACTUALIZACIONES" "Sincronizando las entradas del flake"
+    check_lock_clean
+  else
+    section "02" "ACTUALIZACIONES" "Conservando las versiones fijadas en flake.lock"
+  fi
+
   update_arcane "$automatic"
   update_arcane_agent "$automatic"
-  cp -- "$FLAKE_DIR/flake.lock" "$LOCK_SNAPSHOT"
-  run_step_show "Actualizando las versiones de los inputs" nix flake update
-  show_flake_input_changes
-  # Actualiza la estrategia por si ha cambiado con las nuevas revisiones.
+
+  if [[ "$update_inputs" == "yes" ]]; then
+    cp -- "$FLAKE_DIR/flake.lock" "$LOCK_SNAPSHOT"
+    run_step_show "Actualizando las versiones de los inputs" nix flake update
+    show_flake_input_changes
+  else
+    term_skip "Actualización de inputs omitida; se utilizarán las versiones fijadas en flake.lock."
+  fi
+
+  # Actualiza la estrategia según la configuración resultante.
   OPERATION="$(get_operation)"
 }
 
@@ -1001,7 +1014,9 @@ run_maintenance() {
     die "No se pudo verificar el estado de reinicio."
   fi
 
-  run_update "$automatic"
+  # El mantenimiento rutinario conserva flake.lock; nix-update permite
+  # refrescar los inputs de forma explícita cuando el usuario lo decide.
+  run_update "$automatic" no
   case "$OPERATION" in
   switch) note "Estrategia: aplicar inmediatamente (switch)." ;;
   boot) note "Estrategia: preparar para el próximo arranque (boot)." ;;
@@ -1034,8 +1049,8 @@ Uso:
   nix-maintenance.sh clean [-y|--yes]
 
 Comandos:
-  maintain  Actualiza, construye, limpia según la política del host y aplica.
-  update    Actualiza los inputs, construye y pregunta antes de aplicar.
+  maintain  Actualiza aplicaciones gestionadas, construye y aplica con los inputs fijados.
+  update    Actualiza explícitamente los inputs, construye y pregunta antes de aplicar.
   apply     Construye con las versiones fijadas y pregunta antes de aplicar.
   clean     Limpia las generaciones antiguas según la política del host.
 
@@ -1071,7 +1086,7 @@ update)
   capture_baseline
   show_store_usage "ANTES DE ACTUALIZAR"
   banner "MODO INTERACTIVO · actualizar y revisar antes de aplicar"
-  run_update no
+  run_update no yes
   run_build_apply no no
   ;;
 apply)
