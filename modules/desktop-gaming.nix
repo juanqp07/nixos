@@ -312,7 +312,7 @@
     # Ofimática e idiomas.
     hunspell
     hunspellDicts.es_ES
-    marktext
+    typora
 
     # KDE y utilidades de escritorio.
     kdePackages.kate
