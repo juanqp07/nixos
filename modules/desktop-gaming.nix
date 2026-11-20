@@ -303,6 +303,7 @@
 
     # Comunicación, navegación y acceso remoto.
     openvpn
+    wireguard-tools
     rustdesk-flutter
     telegram-desktop
     vesktop
