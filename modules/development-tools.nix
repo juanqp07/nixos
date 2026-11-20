@@ -31,5 +31,8 @@
     pkg-config
     cmake
     gnumake
+
+    # Importación y conversión de documentos.
+    pandoc
   ];
 }
