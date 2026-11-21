@@ -60,7 +60,7 @@ def read_manager_api_url(content: str) -> str:
     url = matches[0].group(1)
     parsed = urlsplit(url)
     try:
-        parsed.port
+        _port = parsed.port
     except ValueError as error:
         raise UpdateError("ARCANE_MANAGER_API_URL contains an invalid port.") from error
 
