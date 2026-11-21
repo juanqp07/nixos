@@ -43,6 +43,13 @@ agent_volume="$(docker volume inspect --format '{{.Mountpoint}}' arcane-agent-da
   exit 1
 }
 
+# Capture the running image before systemd stops the unit and --rm removes it.
+agent_image="$(docker inspect --format '{{.Config.Image}}' arcane-agent)"
+[[ -n "$agent_image" ]] || {
+  printf 'Arcane Agent container image could not be determined.\n' >&2
+  exit 1
+}
+
 # NixOS owns the Agent container lifecycle. Its oci-containers unit uses
 # Docker's --rm behaviour and removes the container when stopped, so docker
 # start cannot restore it. Use systemd to recreate the declared container.
@@ -97,7 +104,7 @@ tar --numeric-owner --xattrs --acls -czf "$backup_dir/arcane-agent-data.tar.gz" 
   -C "$agent_volume" .
 cp -a "$AGENT_ENV" "$backup_dir/agent.env"
 cp -- "$MODULE_FILE" "$backup_dir/zimablade-configuration.nix"
-docker inspect --format '{{.Config.Image}}' arcane-agent >"$backup_dir/container-image.txt"
+printf '%s\n' "$agent_image" >"$backup_dir/container-image.txt"
 
 tar -tzf "$backup_dir/arcane-agent-data.tar.gz" >/dev/null
 [[ -s "$backup_dir/agent.env" ]]
