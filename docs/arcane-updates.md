@@ -40,10 +40,15 @@ Al ejecutar `nix-maintain` o `nix-maintain -y` en Atlas:
 
 Al ejecutar `nix-maintain` o `nix-maintain -y` en Pico:
 
-1. Lee la versión fijada del Manager en `modules/atlas-docker.nix` y la imagen
-   del Agent en `hosts/zimablade/configuration.nix`.
-2. Usa el Manager como fuente de verdad y propone alinear el Agent con esa
-   versión si ambos pertenecen a la misma rama principal.
+1. Lee la URL del Manager desde `ARCANE_MANAGER_API_URL` en
+   `hosts/zimablade/configuration.nix`.
+2. Consulta en tiempo real `/api/app/version` de Atlas y usa
+   `currentVersion` como versión de referencia. No depende de que el checkout
+   de Pico tenga sincronizado `modules/atlas-docker.nix` ni de publicar cambios
+   locales de los servidores en GitHub.
+La versión consultada es la que está ejecutándose en Atlas, no una generación
+que solo esté preparada para el siguiente arranque. Por tanto, actualiza Pico
+después de que Atlas haya arrancado con la nueva versión del Manager.
 3. No hace downgrade si el Agent es más nuevo y no aplica automáticamente
    migraciones entre versiones principales distintas.
 4. Antes de cambiar la imagen, ejecuta
@@ -54,12 +59,15 @@ Al ejecutar `nix-maintain` o `nix-maintain -y` en Pico:
 Con `-y` se aceptan automáticamente solo actualizaciones de la misma versión
 principal. Si Manager y Agent ya coinciden, no se modifica nada. Si sus versiones
 principales difieren, el mantenedor se detiene y remite a la guía de migración.
+Si Atlas no responde o su endpoint de versión devuelve datos inválidos, Pico
+omite la actualización sin recurrir a una versión antigua del checkout.
 
 Los cambios quedan en el checkout local. El script no ejecuta `git add`,
 `git commit`, `git stash` ni despliega remotamente. Revisa el diff, evalúa
 las configuraciones y prepara/despliega las generaciones de Atlas y Pico de
-forma explícita. En Pico, el checkout debe contener la misma versión fijada del
-Manager que se haya decidido desplegar en Atlas.
+forma explícita. Pico obtiene la versión de referencia directamente del
+Manager que está ejecutándose en Atlas; no es necesario subir los cambios
+locales de Atlas a GitHub ni sincronizar manualmente ese archivo en Pico.
 
 Ambos servidores usan `system.autoUpgrade.operation = "boot"`: la generación
 preparada se activa en el siguiente arranque, no durante la comprobación.

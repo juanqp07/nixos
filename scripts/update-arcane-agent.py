@@ -1,9 +1,10 @@
-"""Keep Pico's pinned Arcane Agent aligned with Atlas' Manager."""
+"""Keep Pico's pinned Arcane Agent aligned with the running Atlas Manager."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import re
 import stat
@@ -11,22 +12,18 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-MANAGER_FILE = ROOT / "modules" / "atlas-docker.nix"
 AGENT_FILE = ROOT / "hosts" / "zimablade" / "configuration.nix"
 BACKUP_SCRIPT = ROOT / "scripts" / "backup-arcane-agent.sh"
-MANAGER_RELATIVE_PATH = "modules/atlas-docker.nix"
 AGENT_RELATIVE_PATH = "hosts/zimablade/configuration.nix"
 AGENT_IMAGE_REPOSITORY = "ghcr.io/getarcaneapp/agent"
 VERSION_PATTERN = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
-MANAGER_IMAGE_PATTERN = re.compile(
-    r'^[ \t]*image[ \t]*=[ \t]*"ghcr\.io/getarcaneapp/manager:'
-    r"(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
-    r"(?P<digest>sha256:[0-9a-f]{64})"
-    r'"[ \t]*;[ \t]*$',
-    re.MULTILINE,
+MANAGER_API_URL_PATTERN = re.compile(
+    r'ARCANE_MANAGER_API_URL\s*=\s*"(https?://[^"]+)"\s*;'
 )
 AGENT_IMAGE_PATTERN = re.compile(
     r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
@@ -35,6 +32,8 @@ AGENT_IMAGE_PATTERN = re.compile(
     r'(?P<suffix>"[ \t]*;[ \t]*)$',
     re.MULTILINE,
 )
+
+MANAGER_API_TIMEOUT = 10
 
 
 class UpdateError(RuntimeError):
@@ -49,15 +48,65 @@ def parse_version(tag: str) -> tuple[int, int, int]:
     return tuple(int(part) for part in match.groups())
 
 
-def read_manager_version(content: str) -> str:
-    """Read the single pinned Arcane Manager version used as the source of truth."""
-    matches = list(MANAGER_IMAGE_PATTERN.finditer(content))
+def read_manager_api_url(content: str) -> str:
+    """Read the configured Atlas Manager URL from Pico's Agent declaration."""
+    matches = list(MANAGER_API_URL_PATTERN.finditer(content))
     if len(matches) != 1:
         raise UpdateError(
-            "Expected exactly one pinned Arcane Manager image in "
-            f"{MANAGER_RELATIVE_PATH}; found {len(matches)}."
+            "Expected exactly one ARCANE_MANAGER_API_URL in "
+            f"{AGENT_RELATIVE_PATH}; found {len(matches)}."
         )
-    return matches[0].group("tag")
+
+    url = matches[0].group(1)
+    parsed = urlsplit(url)
+    try:
+        _port = parsed.port
+    except ValueError as error:
+        raise UpdateError("ARCANE_MANAGER_API_URL contains an invalid port.") from error
+
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise UpdateError(
+            "ARCANE_MANAGER_API_URL must be an HTTP(S) base URL without "
+            "credentials, query parameters or fragments."
+        )
+    return url.rstrip("/")
+
+
+def fetch_manager_version(manager_api_url: str) -> str:
+    """Read the running Manager version from Arcane's public app-version endpoint."""
+    endpoint = f"{manager_api_url}/api/app/version"
+    request = Request(
+        endpoint,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "juanqp07-nixos-arcane-agent-updater/1.0",
+        },
+    )
+    try:
+        with urlopen(request, timeout=MANAGER_API_TIMEOUT) as response:
+            payload = json.load(response)
+    except (OSError, TimeoutError, ValueError) as error:
+        raise UpdateError(
+            f"Could not query the running Arcane Manager at {endpoint}: {error}"
+        ) from error
+
+    if not isinstance(payload, dict):
+        raise UpdateError("Arcane Manager returned an invalid version response.")
+    manager_tag = payload.get("currentVersion")
+    if not isinstance(manager_tag, str):
+        raise UpdateError(
+            "Arcane Manager response does not contain a string currentVersion."
+        )
+
+    parse_version(manager_tag)
+    return manager_tag
 
 
 def read_agent_image(content: str) -> tuple[str, str]:
@@ -118,15 +167,14 @@ def fetch_registry_digest(tag: str) -> str:
     return module.fetch_digest(AGENT_IMAGE_REPOSITORY, tag)
 
 
-def ensure_modules_are_clean() -> None:
-    """Never overwrite edits to either the Agent pin or its Manager source of truth."""
+def ensure_agent_config_is_clean() -> None:
+    """Never overwrite local edits to the Agent declaration."""
     result = subprocess.run(
         [
             "git",
             "status",
             "--porcelain=v1",
             "--",
-            MANAGER_RELATIVE_PATH,
             AGENT_RELATIVE_PATH,
         ],
         cwd=ROOT,
@@ -136,7 +184,7 @@ def ensure_modules_are_clean() -> None:
     )
     if result.stdout.strip():
         raise UpdateError(
-            "The Arcane Manager or Arcane Agent declaration has local changes. "
+            "The Arcane Agent declaration has local changes. "
             "Commit or stash them before synchronizing the Agent."
         )
 
@@ -199,8 +247,8 @@ def atomic_write(path: Path, content: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Synchronize Pico's pinned Arcane Agent with the Manager "
-            "version declared for Atlas, without crossing major versions."
+            "Synchronize Pico's pinned Arcane Agent with the running Atlas "
+            "Manager version, without crossing major versions."
         )
     )
     parser.add_argument(
@@ -211,23 +259,24 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
 
     try:
-        ensure_modules_are_clean()
-        manager_content = MANAGER_FILE.read_text(encoding="utf-8")
+        ensure_agent_config_is_clean()
         agent_content = AGENT_FILE.read_text(encoding="utf-8")
-        manager_tag = read_manager_version(manager_content)
+        manager_api_url = read_manager_api_url(agent_content)
+        manager_tag = fetch_manager_version(manager_api_url)
         agent_tag, _agent_digest = read_agent_image(agent_content)
+        print(f"Running Atlas Arcane Manager version: {manager_tag}.")
         status = agent_sync_status(manager_tag, agent_tag)
 
         if status == "current":
             print(
-                f"Arcane Agent {agent_tag} already matches the "
-                f"Atlas Manager pin; no Agent update is needed."
+                f"Arcane Agent {agent_tag} already matches the running "
+                "Atlas Manager; no Agent update is needed."
             )
             return 0
 
         if status == "major":
             print(
-                f"Arcane Manager {manager_tag} and Arcane Agent {agent_tag} "
+                f"Running Arcane Manager {manager_tag} and Arcane Agent {agent_tag} "
                 "belong to different major versions."
             )
             print(
@@ -238,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if status == "agent-ahead":
             print(
-                f"Arcane Agent {agent_tag} is newer than the pinned "
+                f"Arcane Agent {agent_tag} is newer than the running "
                 f"Atlas Manager {manager_tag}; refusing to downgrade it."
             )
             return 0
@@ -256,15 +305,20 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Creating a backup before updating Pico's Arcane Agent {agent_tag}...")
         create_backup()
 
-        # Recheck the worktree and source after the backup. Never overwrite edits
+        # Recheck the Agent declaration after the backup; never overwrite edits
         # made while the registry was being queried or the backup was running.
-        ensure_modules_are_clean()
-        current_manager = MANAGER_FILE.read_text(encoding="utf-8")
+        ensure_agent_config_is_clean()
         current_agent = AGENT_FILE.read_text(encoding="utf-8")
-        if current_manager != manager_content or current_agent != agent_content:
+        if current_agent != agent_content:
             raise UpdateError(
-                "The Manager or Arcane Agent declaration changed during the update; "
+                "The Arcane Agent declaration changed during the update; "
                 "no edit was made."
+            )
+        current_manager_tag = fetch_manager_version(manager_api_url)
+        if current_manager_tag != manager_tag:
+            raise UpdateError(
+                "Atlas Manager version changed during the Agent update "
+                f"({manager_tag} -> {current_manager_tag}); retry the maintenance."
             )
 
         atomic_write(AGENT_FILE, updated_content)
