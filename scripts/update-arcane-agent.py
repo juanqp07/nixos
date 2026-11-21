@@ -23,8 +23,8 @@ AGENT_IMAGE_REPOSITORY = "ghcr.io/getarcaneapp/agent"
 VERSION_PATTERN = re.compile(r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 MANAGER_API_URL_PATTERN = re.compile(
-    r'^[ \t]*ARCANE_MANAGER_API_URL[ \t]*=[ \t]*'
-    r'"(?P<url>https?://[^"]+)"[ \t]*;[ \t]*
+    r'ARCANE_MANAGER_API_URL\s*=\s*"(https?://[^"]+)"\s*;'
+)
 MANAGER_API_TIMEOUT = 10
 
 
@@ -49,7 +49,7 @@ def read_manager_api_url(content: str) -> str:
             f"{AGENT_RELATIVE_PATH}; found {len(matches)}."
         )
 
-    url = matches[0].group("url")
+    url = matches[0].group(1)
     parsed = urlsplit(url)
     try:
         parsed.port
