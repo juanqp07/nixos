@@ -8,7 +8,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
-for command in docker tar cp install date du chmod mktemp cut mountpoint; do
+for command in docker systemctl tar cp install date du chmod mktemp cut mountpoint; do
   command -v "$command" >/dev/null 2>&1 || {
     printf 'Required command not found: %s\n' "$command" >&2
     exit 1
@@ -21,6 +21,7 @@ mountpoint -q "$DATA_ROOT" || {
   exit 1
 }
 ARCANE_ROOT="$DATA_ROOT/AppData/arcane"
+ARCANE_SERVICE="docker-arcane.service"
 PROJECTS_DIR="$DATA_ROOT/arcane/projects"
 BACKUP_ROOT="$ARCANE_ROOT/backups"
 MODULE_FILE="$(cd -- "$(dirname -- "$0")/.." && pwd)/modules/atlas-docker.nix"
@@ -38,6 +39,11 @@ MODULE_FILE="$(cd -- "$(dirname -- "$0")/.." && pwd)/modules/atlas-docker.nix"
   exit 1
 }
 
+systemctl is-active --quiet "$ARCANE_SERVICE" || {
+  printf 'Required systemd service is not active: %s\n' "$ARCANE_SERVICE" >&2
+  exit 1
+}
+
 for container in arcane arcane-postgres; do
   state="$(docker inspect --format '{{.State.Running}}' "$container" 2>/dev/null || true)"
   [[ "$state" == "true" ]] || {
@@ -52,23 +58,42 @@ arcane_volume="$(docker volume inspect --format '{{.Mountpoint}}' arcane-data)"
   exit 1
 }
 
-# A database dump is internally consistent, but the app-data volume and
-# projects directory must not change while their archives are being created.
-# Stop Arcane gracefully for the short backup window and always restart it,
-# including when any backup operation fails.
+# NixOS owns the container lifecycle. Its oci-containers unit uses Docker's
+# --rm behaviour and removes the container when stopped, so docker start cannot
+# restore it. Stop and restart the systemd unit to recreate the declared container.
+# Keep this trap active for every operation that follows, including failures.
 restore_arcane() {
   local status="$?"
-  local state
+  local service_state
+  local container_state
+  local restore_failed=0
   trap - EXIT
-  state="$(docker inspect --format '{{.State.Running}}' arcane 2>/dev/null || true)"
-  if [[ "$state" != "true" ]]; then
-    if docker start arcane >/dev/null; then
-      printf 'Arcane restarted after backup.\n'
+
+  service_state="$(systemctl is-active "$ARCANE_SERVICE" 2>/dev/null || true)"
+  container_state="$(docker inspect --format '{{.State.Running}}' arcane 2>/dev/null || true)"
+
+  if [[ "$service_state" != "active" || "$container_state" != "true" ]]; then
+    printf 'Restoring Arcane through %s...\n' "$ARCANE_SERVICE"
+    if [[ "$service_state" == "active" ]]; then
+      systemctl restart "$ARCANE_SERVICE" || restore_failed=1
     else
-      printf 'ERROR: Arcane could not be restarted after backup.\n' >&2
+      systemctl start "$ARCANE_SERVICE" || restore_failed=1
+    fi
+
+    if ((restore_failed == 0)); then
+      service_state="$(systemctl is-active "$ARCANE_SERVICE" 2>/dev/null || true)"
+      container_state="$(docker inspect --format '{{.State.Running}}' arcane 2>/dev/null || true)"
+    fi
+
+    if ((restore_failed != 0)) || [[ "$service_state" != "active" || "$container_state" != "true" ]]; then
+      printf 'ERROR: Arcane could not be restored successfully.\n' >&2
+      printf 'Systemd state: %s; container running: %s\n' "${service_state:-unknown}" "${container_state:-no}" >&2
       status=1
+    else
+      printf 'Arcane systemd service and container are running after backup.\n'
     fi
   fi
+
   exit "$status"
 }
 trap restore_arcane EXIT
@@ -77,7 +102,7 @@ docker exec arcane-postgres pg_isready -q || {
   printf 'PostgreSQL is not ready; refusing to create a backup.\n' >&2
   exit 1
 }
-docker stop --time 30 arcane >/dev/null
+systemctl stop "$ARCANE_SERVICE"
 
 timestamp="$(date -u '+%Y%m%dT%H%M%SZ')"
 install -d -m 0700 "$BACKUP_ROOT"
@@ -125,6 +150,8 @@ Contents:
 - atlas-docker.nix: NixOS container declaration used at backup time.
 
 The backup directory is private (0700) and its files are private (0600).
+The Manager was stopped and restored through docker-arcane.service. NixOS
+recreates its auto-removed container from the declared configuration.
 Keep this backup until the updated Arcane Manager and its notifications have
 been checked after the next Atlas restart.
 EOF

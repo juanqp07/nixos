@@ -83,9 +83,12 @@ La copia se guarda en
 - `arcane.env` y `postgres.env`.
 - La declaración `modules/atlas-docker.nix` utilizada.
 
-El script detiene Arcane mientras copia los datos y lo vuelve a iniciar al
-terminar. Los backups contienen secretos y datos privados: conserva permisos
-restringidos y no los subas al repositorio.
+El script detiene `docker-arcane.service` mientras copia los datos y lo vuelve
+a iniciar mediante systemd al terminar. Esto es importante porque
+`oci-containers` elimina el contenedor al detenerlo (`--rm`); systemd lo crea
+de nuevo a partir de la declaración NixOS. No se debe intentar recuperarlo con
+`docker start`. Los backups contienen secretos y datos privados: conserva
+permisos restringidos y no los subas al repositorio.
 
 ### Agent en Pico
 
@@ -98,8 +101,11 @@ sudo bash scripts/backup-arcane-agent.sh
 La copia se guarda en
 `/var/lib/arcane-agent/backups/<fecha-UTC>.<sufijo>/` e incluye el volumen
 Docker `arcane-agent-data`, el archivo privado `agent.env`, la declaración Nix
-del Agent y la referencia de imagen del contenedor. El agente se detiene de
-forma ordenada durante el archivo del volumen y se reinicia al terminar.
+del Agent y la referencia de imagen del contenedor. El script detiene
+`docker-arcane-agent.service` durante el archivo del volumen y lo vuelve a
+iniciar mediante systemd. Como `oci-containers` elimina el contenedor al
+detenerlo (`--rm`), systemd lo crea de nuevo a partir de la declaración NixOS;
+no se debe usar `docker start` para recuperarlo.
 El archivo `agent.env` contiene el token de inscripción: trata el backup como
 un secreto y mantenlo fuera de Git.
 
