@@ -76,7 +76,11 @@ class ArcaneAgentVersionTests(unittest.TestCase):
                 update_agent.fetch_manager_version(MANAGER_URL)
 
     def test_manager_unreachable_fails_closed(self) -> None:
-        with patch.object(update_agent, "urlopen", side_effect=OSError("connection refused")):
+        with patch.object(
+            update_agent,
+            "urlopen",
+            side_effect=OSError("connection refused"),
+        ):
             with self.assertRaisesRegex(update_agent.UpdateError, "Could not query"):
                 update_agent.fetch_manager_version(MANAGER_URL)
 
@@ -87,7 +91,10 @@ class ArcaneAgentVersionTests(unittest.TestCase):
         self.assertEqual(update_agent.agent_sync_status("v3.1.1", "v2.17.3"), "major")
 
     def test_agent_ahead_of_manager_is_never_downgraded(self) -> None:
-        self.assertEqual(update_agent.agent_sync_status("v3.0.1", "v3.1.1"), "agent-ahead")
+        self.assertEqual(
+            update_agent.agent_sync_status("v3.0.1", "v3.1.1"),
+            "agent-ahead",
+        )
 
     def test_matching_versions_need_no_update(self) -> None:
         self.assertEqual(update_agent.agent_sync_status("v3.1.1", "v3.1.1"), "current")
