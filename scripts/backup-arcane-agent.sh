@@ -65,12 +65,12 @@ restore_agent() {
       systemctl start "$AGENT_SERVICE" || restore_failed=1
     fi
 
-    if (( restore_failed == 0 )); then
+    if ((restore_failed == 0)); then
       service_state="$(systemctl is-active "$AGENT_SERVICE" 2>/dev/null || true)"
       container_state="$(docker inspect --format '{{.State.Running}}' arcane-agent 2>/dev/null || true)"
     fi
 
-    if (( restore_failed != 0 )) || [[ "$service_state" != "active" || "$container_state" != "true" ]]; then
+    if ((restore_failed != 0)) || [[ "$service_state" != "active" || "$container_state" != "true" ]]; then
       printf 'ERROR: Arcane Agent could not be restored successfully.\n' >&2
       printf 'Systemd state: %s; container running: %s\n' "${service_state:-unknown}" "${container_state:-no}" >&2
       status=1
