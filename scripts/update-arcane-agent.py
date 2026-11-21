@@ -25,7 +25,11 @@ DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 MANAGER_API_URL_PATTERN = re.compile(
     r'ARCANE_MANAGER_API_URL\s*=\s*"(https?://[^"]+)"\s*;'
 )
-MANAGER_API_TIMEOUT = 10
+AGENT_IMAGE_PATTERN = re.compile(
+    r'^(?P<prefix>[ \t]*image[ \t]*=[ \t]*")'
+    r"ghcr\.io/getarcaneapp/agent:(?P<tag>v[0-9]+\.[0-9]+\.[0-9]+)@"
+    r"(?P<digest>sha256:[0-9a-f]{64})"
+    r'(?P<suffix>"[ \t]*;[ \t]*)MANAGER_API_TIMEOUT = 10
 
 
 class UpdateError(RuntimeError):
@@ -355,10 +359,10 @@ def read_manager_api_url(content: str) -> str:
             f"{AGENT_RELATIVE_PATH}; found {len(matches)}."
         )
 
-    url = matches[0].group("url")
+    url = matches[0].group(1)
     parsed = urlsplit(url)
     try:
-        _port = parsed.port
+        parsed.port
     except ValueError as error:
         raise UpdateError("ARCANE_MANAGER_API_URL contains an invalid port.") from error
 
@@ -611,6 +615,12 @@ def main(argv: list[str] | None = None) -> int:
             raise UpdateError(
                 "The Arcane Agent declaration changed during the update; "
                 "no edit was made."
+            )
+        current_manager_tag = fetch_manager_version(manager_api_url)
+        if current_manager_tag != manager_tag:
+            raise UpdateError(
+                "Atlas Manager version changed during the Agent update "
+                f"({manager_tag} -> {current_manager_tag}); retry the maintenance."
             )
 
         atomic_write(AGENT_FILE, updated_content)
