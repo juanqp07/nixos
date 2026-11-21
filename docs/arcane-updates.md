@@ -46,6 +46,9 @@ Al ejecutar `nix-maintain` o `nix-maintain -y` en Pico:
    `currentVersion` como versión de referencia. No depende de que el checkout
    de Pico tenga sincronizado `modules/atlas-docker.nix` ni de publicar cambios
    locales de los servidores en GitHub.
+La versión consultada es la que está ejecutándose en Atlas, no una generación
+que solo esté preparada para el siguiente arranque. Por tanto, actualiza Pico
+después de que Atlas haya arrancado con la nueva versión del Manager.
 3. No hace downgrade si el Agent es más nuevo y no aplica automáticamente
    migraciones entre versiones principales distintas.
 4. Antes de cambiar la imagen, ejecuta
