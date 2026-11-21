@@ -155,8 +155,8 @@
   # WAYLAND / ELECTRON
   # ============================================================
 
+  # NIXOS_OZONE_WL ya viene de modules/desktop-gaming.nix.
   environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
     LIBVA_DRIVER_NAME = "iHD";
   };
 
@@ -205,8 +205,14 @@
 
   # fstrim está habilitado en desktop-gaming.nix.
 
-  # Dev remoto (VSCode Remote-SSH al portátil)
-  services.openssh.enable = true;
+  # Dev remoto (VSCode Remote-SSH al portátil).
+  # Al ser un portátil que se conecta a Wi-Fi ajenas, SSH y Sunshine no se abren
+  # en todas las interfaces: solo por NetBird (wt0). Para volver a abrirlos en la
+  # LAN, pon openFirewall = true y borra las reglas de wt0 de abajo.
+  services.openssh = {
+    enable = true;
+    openFirewall = false;
+  };
 
   # Sunshine para Moonlight: instalado, pero sin arranque automático.
   # En Wayland, CAP_SYS_ADMIN permite la captura DRM/KMS.
@@ -214,7 +220,25 @@
     enable = true;
     autoStart = false;
     capSysAdmin = true;
-    openFirewall = true;
+    openFirewall = false;
+  };
+
+  # Puertos de SSH y de Sunshine (puerto base 47989) solo por NetBird.
+  networking.firewall.interfaces.wt0 = {
+    allowedTCPPorts = [
+      22
+      47984
+      47989
+      47990
+      48010
+    ];
+    allowedUDPPorts = [
+      47998
+      47999
+      48000
+      48002
+      48010
+    ];
   };
 
   # Evita que SDDM muestre automáticamente el teclado virtual (regresión de Plasma 6.8).
