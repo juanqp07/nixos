@@ -65,24 +65,30 @@ class ArcaneAgentVersionTests(unittest.TestCase):
 
     def test_rejects_manager_response_without_current_version(self) -> None:
         response = io.BytesIO(b'{"displayVersion":"3.1.1"}')
-        with patch.object(update_agent, "urlopen", return_value=response):
-            with self.assertRaises(update_agent.UpdateError):
-                update_agent.fetch_manager_version(MANAGER_URL)
+        with (
+            patch.object(update_agent, "urlopen", return_value=response),
+            self.assertRaises(update_agent.UpdateError),
+        ):
+            update_agent.fetch_manager_version(MANAGER_URL)
 
     def test_rejects_invalid_manager_version(self) -> None:
         response = io.BytesIO(b'{"currentVersion":"next"}')
-        with patch.object(update_agent, "urlopen", return_value=response):
-            with self.assertRaises(update_agent.UpdateError):
-                update_agent.fetch_manager_version(MANAGER_URL)
+        with (
+            patch.object(update_agent, "urlopen", return_value=response),
+            self.assertRaises(update_agent.UpdateError),
+        ):
+            update_agent.fetch_manager_version(MANAGER_URL)
 
     def test_manager_unreachable_fails_closed(self) -> None:
-        with patch.object(
-            update_agent,
-            "urlopen",
-            side_effect=OSError("connection refused"),
+        with (
+            patch.object(
+                update_agent,
+                "urlopen",
+                side_effect=OSError("connection refused"),
+            ),
+            self.assertRaisesRegex(update_agent.UpdateError, "Could not query"),
         ):
-            with self.assertRaisesRegex(update_agent.UpdateError, "Could not query"):
-                update_agent.fetch_manager_version(MANAGER_URL)
+            update_agent.fetch_manager_version(MANAGER_URL)
 
     def test_agent_behind_running_manager_on_same_major_is_updated(self) -> None:
         self.assertEqual(update_agent.agent_sync_status("v3.1.1", "v3.0.1"), "update")
