@@ -1,8 +1,10 @@
 # Arcane 3 en Atlas: migración del Manager
 
-Este cambio prepara **Arcane Manager en Atlas** para v3.0.1. No actualiza Pico:
-el antiguo Direct Agent se migra en un PR separado y deberá reinscribirse después
-de que el Manager esté funcionando en v3.
+Esta nota documenta la migración de **Arcane Manager en Atlas** a v3.0.1.
+La configuración actual de `main` ya fija el Manager en esa versión y también
+fija Arcane Agent v3.0.1 en Pico; la migración del Agent se documenta por separado
+en [arcane-v3-pico.md](arcane-v3-pico.md). Los pasos siguientes describen el
+procedimiento histórico, no una actualización pendiente.
 
 ## Cambios incluidos
 
@@ -11,14 +13,16 @@ de que el Manager esté funcionando en v3.
 - Mantiene `PUID`, `PGID` y `DOCKER_HOST` sin cambios.
 - No modifica PostgreSQL, sus credenciales ni el socket proxy.
 
-El archivo `/mnt/datos/AppData/arcane/arcane.env` no está versionado. En el
-estado actual contiene las claves `ENCRYPTION_KEY` y `DATABASE_URL`; ambas
-deben renombrarse también.
+El archivo `/mnt/datos/AppData/arcane/arcane.env` no está versionado y su
+contenido real no puede comprobarse desde este repositorio. Durante la migración,
+las claves de Arcane debían quedar como `ARCANE_ENCRYPTION_KEY` y
+`ARCANE_DATABASE_URL`; confirma esos nombres directamente en Atlas sin mostrar
+ni compartir sus valores.
 
-## Antes de desplegar
+## Lista histórica de la migración
 
-1. Comprueba que Atlas y Pico siguen en Arcane 2.17.3 y que no hay trabajos de
-   Arcane en estado `Needs attention`.
+1. En el estado previo a la migración, comprueba que Atlas y Pico están en
+   Arcane 2.17.3 y que no hay trabajos de Arcane en estado `Needs attention`.
 2. Ejecuta la copia de seguridad del Manager:
    `sudo bash scripts/backup-arcane.sh`.
 3. Haz una copia del archivo de entorno y renombra sus dos claves:
@@ -35,8 +39,8 @@ deben renombrarse también.
 4. Revisa el diff Nix y prepara la nueva generación. No borres volúmenes ni
    cambies el valor de `DATABASE_URL`: únicamente cambia el nombre de la variable.
 5. Tras actualizar Atlas, valida el healthcheck, logs, acceso al panel y acceso
-   a los proyectos. El agente de Pico puede quedar desconectado hasta completar
-   la segunda parte y la reinscripción del agente v3.
+   a los proyectos. En la secuencia original, Pico se reinscribía después con
+   los pasos de [arcane-v3-pico.md](arcane-v3-pico.md).
 
 ## Comprobaciones posteriores
 

@@ -157,17 +157,16 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
 - Atlas mantiene journald limitado por `SystemMaxUse=1G`; Pico mantiene
   `json-file` con rotación. No se unifican drivers sin comparar retención,
   almacenamiento, consulta de logs y consumo real.
-- Atlas y Pico fijan Arcane Manager y Direct Agent a `v2.17.3` en vez de
-  `:latest`. El `.goreleaser.yaml` de la propia release `v2.17.3` confirma los
-  nombres de imagen GHCR y que ambas se etiquetan como `v<versión>`; los builds
-  `BUILD_NEXT` usan la etiqueta `next` separada. Se elige la misma release para
-  ambos componentes y se evita que una referencia móvil introduzca una versión
-  distinta sin revisar el flake. Próximas actualizaciones: copia de seguridad de
-  base de datos/volúmenes y datos Arcane; cambiar Manager y Agent juntos, revisar
-  changelog/migraciones, construir la generación y desplegar primero Atlas y
-  después Pico. No usar `:latest` ni `:next` en estos servicios persistentes.
+- En la limpieza original se fijaron Arcane Manager y el entonces Direct Agent
+  a `v2.17.3`, evitando `:latest` y `:next`. Esa referencia describe el estado
+  histórico de aquella rama, no el estado actual del flake. La migración posterior
+  a Arcane 3 está reflejada en `modules/atlas-docker.nix` y
+  `hosts/zimablade/configuration.nix`: ambos componentes están fijados ahora a
+  `v3.0.1` con digest. Las futuras actualizaciones siguen requiriendo copia de
+  seguridad, revisión de changelog/migraciones, evaluación y despliegue ordenado
+  de Manager y Agent; las versiones mayores no se aplican automáticamente.
 
-  Fuentes upstream: [release v2.17.3](https://github.com/getarcaneapp/arcane/releases/tag/v2.17.3),
+  Referencia histórica: [release v2.17.3](https://github.com/getarcaneapp/arcane/releases/tag/v2.17.3),
   [Changelog](https://getarcane.app/changelog) y
   [manifiesto de publicación de imágenes de esa versión](https://github.com/getarcaneapp/arcane/blob/v2.17.3/.goreleaser.yaml).
 - Se conserva `postgres:17-alpine`: fija la versión mayor 17 y permite recibir
@@ -180,9 +179,11 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
   `trustedInterfaces`: el módulo
   de firewall de NixOS acepta incondicionalmente el tráfico recibido por una
   interfaz marcada como confiable. El agente conserva el socket Docker local.
-  Atlas inicia la conexión hacia Pico por TCP/3553, filtrada en `DOCKER-USER`;
-  no hace falta confiar en `docker0`. Se mantiene `wt0` como interfaz confiable
-  para la administración por NetBird.
+  En aquel diseño Direct antiguo, Atlas iniciaba la conexión hacia Pico por
+  TCP/3553. La migración posterior a Arcane Agent v3 sustituyó ese flujo: Pico
+  inicia la conexión hacia Atlas por TCP/3552 y ya no publica ni escucha en
+  TCP/3553. No se necesita confiar en `docker0`; se mantiene `wt0` como interfaz
+  confiable para la administración por NetBird.
   Fuente: [opción trustedInterfaces en el módulo NixOS 26.05 fijado](https://github.com/NixOS/nixpkgs/blob/ac588ef1c914865dad517b337ea0eb9694a4021c/nixos/modules/services/networking/firewall.nix#L164-L172). Un bind mount de socket con `:ro` no convierte
   la API Docker en una API de solo lectura; reducir ese permiso requiere un
   proxy con allowlist validada contra las operaciones reales del agente.

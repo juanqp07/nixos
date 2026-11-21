@@ -117,17 +117,24 @@ usa `network_mode: host`, `DOCKER-USER` no filtra ese tráfico y habrá que
 revisar INPUT antes de aplicar la generación. Una LAN con IPv6 global fuera
 de ULA necesitará añadir su prefijo real para mantener acceso IPv6 directo.
 
-El Arcane Agent de Pico funciona en modo Direct: publica TCP/3553 y el Manager
-de Atlas (192.168.1.143) inicia la conexión. La unidad
-`pico-technitium-docker-firewall` filtra ese puerto en `DOCKER-USER`: solo
-acepta conexiones IPv4 desde Atlas y descarta el resto, también por IPv6. No
-se abre 3553 en `networking.firewall.allowedTCPPorts`, porque el puerto
-publicado por Docker bridge atraviesa `DOCKER-USER`, no INPUT.
+Arcane Agent de Pico está declarado en `hosts/zimablade/configuration.nix`
+como agente v3.0.1. Usa `ARCANE_AGENT=true`, obtiene el Manager mediante
+`ARCANE_MANAGER_API_URL=http://192.168.1.143:3552` e inicia la conexión hacia
+Atlas. No escucha ni publica TCP/3553: no se debe abrir ese puerto en INPUT ni
+añadir una regla para él en `DOCKER-USER`.
 
-El contenedor Agent monta `/var/run/docker.sock` sin modo de solo lectura.
-Eso concede capacidad de administración muy elevada y es inherente a la
-función de Arcane Edge. Mantén el token de agente fuera de Git y permite
-administrar el entorno solo a cuentas de confianza.
+El tráfico del agente llega al puerto publicado TCP/3552 del Manager en Atlas.
+La política `ATLAS-DOCKER-PRIVATE` permite ese servicio desde la LAN
+`192.168.1.0/24` y NetBird (`wt0`), y bloquea otros orígenes. La cadena
+`PICO-TECHNITIUM-PRIVATE` solo protege los puertos publicados de Technitium
+(53/tcp+udp, 8665/tcp y 53443/tcp); no filtra el agente Arcane.
+
+El token de inscripción `ARCANE_AGENT_TOKEN` se guarda fuera de Git en
+`/var/lib/arcane-agent/agent.env`, y el volumen `arcane-agent-data` conserva
+el estado persistente del agente. El contenedor monta
+`/var/run/docker.sock`: esto concede capacidad de administración muy elevada
+sobre Pico y es inherente a la función del agente. Mantén el token fuera del
+repositorio y limita la administración de este entorno a cuentas de confianza.
 
 ## Privilegios Docker
 

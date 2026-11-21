@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Consistent backup of the Arcane Direct Agent data managed on Pico.
+# Consistent backup of the Arcane Agent data managed on Pico.
 
 set -Eeuo pipefail
 
@@ -46,9 +46,9 @@ restore_agent() {
   current_state="$(docker inspect --format '{{.State.Running}}' arcane-agent 2>/dev/null || true)"
   if [[ "$current_state" != "true" ]]; then
     if docker start arcane-agent >/dev/null; then
-      printf 'Arcane Direct Agent restarted after backup.\n'
+      printf 'Arcane Agent restarted after backup.\n'
     else
-      printf 'ERROR: Arcane Direct Agent could not be restarted after backup.\n' >&2
+      printf 'ERROR: Arcane Agent could not be restarted after backup.\n' >&2
       status=1
     fi
   fi
@@ -77,7 +77,7 @@ tar -tzf "$backup_dir/arcane-agent-data.tar.gz" >/dev/null
 [[ -s "$backup_dir/container-image.txt" ]]
 
 cat >"$backup_dir/README.txt" <<EOF
-Arcane Direct Agent Pico backup
+Arcane Agent Pico backup
 Created UTC: $timestamp
 
 Contents:
@@ -95,6 +95,6 @@ EOF
 chmod -R go-rwx "$backup_dir"
 rm -f "$incomplete_marker"
 
-printf 'Arcane Direct Agent backup created: %s\n' "$backup_dir"
+printf 'Arcane Agent backup created: %s\n' "$backup_dir"
 printf 'Backup size: '
 du -sh "$backup_dir" | cut -f1

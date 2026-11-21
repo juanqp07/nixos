@@ -114,7 +114,7 @@ print_summary() {
     term_info "Arcane: $ARCANE_VERSION_BEFORE → $ARCANE_VERSION_AFTER (cambio local pendiente de commit)"
   fi
   if [[ "$ARCANE_AGENT_UPDATED" == yes ]]; then
-    term_info "Arcane Direct Agent: $ARCANE_AGENT_VERSION_BEFORE → $ARCANE_AGENT_VERSION_AFTER (cambio local pendiente de commit)"
+    term_info "Arcane Agent: $ARCANE_AGENT_VERSION_BEFORE → $ARCANE_AGENT_VERSION_AFTER (cambio local pendiente de commit)"
   fi
 
   case "$REBOOT_STATUS" in
@@ -917,11 +917,11 @@ update_arcane_agent() {
 
   [[ "$HOST" == "pico" ]] || return 0
 
-  term_section "ACTUALIZACIÓN DEL DIRECT AGENT DE ARCANE"
+  term_section "ACTUALIZACIÓN DEL AGENTE ARCANE"
   term_info "Comprobando que el agente de Pico coincide con la versión fijada del Manager en Atlas."
   before="$(read_arcane_agent_version)"
   if [[ -z "$before" ]]; then
-    warning "No se ha podido leer la imagen fijada del Direct Agent; se omite su actualización."
+    warning "No se ha podido leer la imagen fijada del Agent; se omite su actualización."
     return 0
   fi
 
@@ -931,7 +931,7 @@ update_arcane_agent() {
 
   # El Manager fijado en atlas-docker.nix es la fuente de verdad para la versión del agente.
   if ! python3 "$SCRIPT_DIR/update-arcane-agent.py" "${args[@]}"; then
-    warning "No se ha actualizado el Direct Agent de Arcane. El mantenimiento NixOS continuará."
+    warning "No se ha actualizado Arcane Agent. El mantenimiento NixOS continuará."
     return 0
   fi
 

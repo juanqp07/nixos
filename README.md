@@ -9,7 +9,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
     * `portatil/` (elytra): Laptop i5-13450HX (Raptor Lake HX) + NVIDIA RTX 5050 Max-Q / UHD integrada (PRIME offload).
     * `torre/` (titan): PC Ryzen 5 5600X + RX 6700 XT 12GB + 32GB RAM (AMD nativo).
     * `servidor/` (**atlas · servidor principal**): Minisforum UN1250 con Intel Core i5-1250P y 32GB RAM; servidor headless para Docker y servicios del homelab.
-    * `zimablade/` (**pico · servidor secundario**): ZimaBlade con Intel Celeron N3450 (Apollo Lake); servidor headless para Docker y Arcane Direct Agent (TCP/3553 limitado a Atlas), administrado desde Atlas.
+    * `zimablade/` (**pico · servidor secundario**): ZimaBlade con Intel Celeron N3450 (Apollo Lake); servidor headless para Docker y Arcane Agent v3, que inicia la conexión hacia el Manager de Atlas sin publicar TCP/3553.
     * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
 **Atlas y Pico son los dos servidores del homelab.** Ambos ejecutan NixOS sin entorno gráfico, usan Docker y tienen NetBird (interfaz `wt0`) y OpenSSH para administración remota. Atlas es el servidor principal (Minisforum UN1250); Pico es el servidor secundario (ZimaBlade).
 
@@ -270,7 +270,7 @@ La revisión de exposición de red, privilegios Docker y modularización de Atla
 
 El workflow `Update Flake inputs and container digests` revisa semanalmente los inputs de `flake.lock` y fija mediante SHA-256 las imágenes OCI declaradas en los módulos de Atlas y Pico. Cuando encuentra cambios, abre o actualiza una PR y solicita la validación completa de los cinco hosts. No despliega cambios automáticamente. Consulta [docs/dependency-updates.md](docs/dependency-updates.md) para ejecutarlo manualmente y revisar los cambios.
 
-En Atlas, `nix-maintain` comprueba las releases estables de Arcane Manager y acepta actualizaciones de la misma versión principal tras hacer una copia de seguridad. En Pico, mantiene el Direct Agent alineado con la versión fijada del Manager, también con copia de seguridad local. Las migraciones mayores se detienen para revisión manual. Consulta [docs/arcane-updates.md](docs/arcane-updates.md).
+En Atlas, `nix-maintain` comprueba las releases estables de Arcane Manager y acepta actualizaciones de la misma versión principal tras hacer una copia de seguridad. En Pico, mantiene Arcane Agent alineado con la versión fijada del Manager, también con copia de seguridad local. El agente v3 inicia conexiones salientes hacia Atlas por TCP/3552; no escucha ni publica TCP/3553. Las migraciones mayores se detienen para revisión manual. Consulta [docs/arcane-updates.md](docs/arcane-updates.md) y [docs/arcane-v3-pico.md](docs/arcane-v3-pico.md).
 
 ## ⚠️ Notas de configuración
 * **Git y Flakes**: los archivos nuevos deben estar añadidos a Git para que un flake basado en Git pueda verlos. Añade solo los archivos necesarios (por ejemplo, `git add modules/nuevo-modulo.nix`); los alias `nix-up` y `nix-update` no deben preparar automáticamente todos tus cambios.

@@ -1,6 +1,6 @@
 # Endurecimiento Docker y CrowdSec: Atlas, Pico y Titan
 
-**Revisión:** 10 de noviembre de 2026
+**Revisión:** 21 de noviembre de 2026
 **Alcance:** configuración declarativa de Arcane en Atlas y su agente remoto en Pico, además del endurecimiento Docker y las comprobaciones del stack CrowdSec/Zoraxy en Atlas. Esta documentación no implica que las generaciones NixOS se hayan desplegado en los hosts.
 
 ## Resumen por equipo
@@ -8,7 +8,7 @@
 | Equipo | Estado | Cambios de esta rama |
 |---|---|---|
 | Atlas | CrowdSec/Zoraxy ya adquiere y parsea logs; bouncer consulta LAPI. Reglas de red pendientes de desplegar. | Socket proxy Wollomatic con allowlist por método/ruta para Arcane y política DOCKER-USER para puertos publicados, incluidos DNS y consolas Technitium. |
-| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Direct Agent en TCP/3553, limitado al Manager de Atlas mediante DOCKER-USER; política de publicación para Technitium. |
+| Pico (ZimaBlade) | NetBird, Fail2ban, rotación de logs y poda Docker. | Arcane Agent v3.0.1 con conexión saliente al Manager de Atlas por TCP/3552 y sin puerto de escucha/publicación 3553; política DOCKER-USER para Technitium. |
 | Titan | Ya está en el flake como host NixOS. La SSD de juegos y Avahi se corrigieron en PR #18. | No se cambian kernel, AMDGPU, scheduler ni ajustes de overdrive sin pruebas físicas. |
 
 Los paneles de administración de Atlas y Pico no están redirigidos desde el router a Internet, según la información del propietario. Las reglas DOCKER-USER son defensa en profundidad ante una publicación accidental de puertos, no una afirmación de que esos paneles estuvieran expuestos públicamente.
@@ -126,68 +126,52 @@ Las líneas en whitelist no representan fallos: la lista excluye las direcciones
 
 ## Pico (ZimaBlade)
 
-### Arcane Direct Agent
+### Arcane Agent v3
 
-Pico ejecuta el agente Direct de Arcane; el único Manager y PostgreSQL permanecen
-en Atlas. En este modo el Manager inicia las conexiones hacia el agente remoto:
+La configuración versionada declara Arcane Manager v3.0.1 en Atlas
+(`modules/atlas-docker.nix`) y Arcane Agent v3.0.1 en Pico
+(`hosts/zimablade/configuration.nix`). El Manager y el agente se fijan por
+tag y digest; NixOS controla sus imágenes y evita que las actualice por su
+cuenta un updater interno.
 
-- El agente usa `AGENT_MODE=true`, la versión fijada `v2.17.3` y el token
-  generado al crear un entorno **Direct** en Arcane.
-- Docker publica `3553:3553`. En el Manager de Atlas, el Agent API URL de Pico
-  debe ser `http://192.168.1.147:3553`.
-- `MANAGER_API_URL=http://192.168.1.143:3552` identifica el Manager de Atlas.
-- El socket local `/var/run/docker.sock` permite al agente administrar Docker
-  en Pico; el token debe tratarse como una credencial administrativa del host.
-- El token se guarda exclusivamente en
-  `/var/lib/arcane-agent/agent.env` como `AGENT_TOKEN=...`; nunca se versiona
-  ni se copia a documentación o registros.
-- La política `PICO-TECHNITIUM-PRIVATE` de `DOCKER-USER` permite TCP/3553 solo
-  cuando el origen IPv4 es Atlas (`192.168.1.143`) y descarta los demás orígenes.
-  La regla IPv6 bloquea TCP/3553. No se abre el puerto en
-  `networking.firewall.allowedTCPPorts`: al publicarlo Docker bridge, el filtro
-  correcto está en `DOCKER-USER`, no en INPUT.
-- El volumen persistente `arcane-agent-data` y la ruta
-  `/var/lib/dockge/stacks` se conservan. En Arcane, **Storage & Limits →
-  Projects Directory** debe seguir apuntando a `/var/lib/dockge/stacks`.
+Pico utiliza `ARCANE_AGENT=true`, `ARCANE_AGENT_TRANSPORT=auto` y
+`ARCANE_MANAGER_API_URL=http://192.168.1.143:3552`. El agente inicia la
+conexión hacia el Manager de Atlas por TCP/3552. **No escucha en TCP/3553 ni
+publica ese puerto**: no debe añadirse una apertura de 3553 al firewall INPUT
+ni una regla para ese puerto en la cadena `DOCKER-USER` de Pico.
 
-#### Alta y despliegue del agente
+El Manager publica TCP/3552 en Atlas. La política `ATLAS-DOCKER-PRIVATE`
+permite el acceso desde la LAN `192.168.1.0/24` y NetBird (`wt0`) antes
+de bloquear otros orígenes. La unidad `pico-technitium-docker-firewall`
+sigue dedicada a los puertos publicados de Technitium: DNS 53/tcp+udp y
+consolas 8665/tcp y 53443/tcp.
 
-1. En el Manager de Atlas, crea un entorno **Direct** para Pico con Agent API URL
-   `http://192.168.1.147:3553` y genera el token de inscripción. Si el entorno
-   existente está registrado como Edge, crea el Direct nuevo y utiliza su token;
-   no reutilices a ciegas el token anterior.
-2. En Pico, crea el archivo de secreto antes de activar la generación NixOS:
+El token de inscripción se mantiene fuera del repositorio en
+`/var/lib/arcane-agent/agent.env` con la variable
+`ARCANE_AGENT_TOKEN=...`. No reutilices el antiguo `AGENT_TOKEN` del modo
+Direct ni copies el valor del token a Git, documentación o registros. El
+volumen Docker `arcane-agent-data` conserva el estado y la clave persistente
+del agente; no lo borres al actualizar o reinscribir Pico.
 
-       sudo install -d -m 0700 -o juan -g users /var/lib/arcane-agent
-       sudo install -m 0600 -o juan -g users /dev/null /var/lib/arcane-agent/agent.env
-       sudoedit /var/lib/arcane-agent/agent.env
+El agente monta `/var/run/docker.sock` para administrar el motor local de
+Pico. Este acceso tiene privilegios equivalentes a la administración del host:
+el token y el acceso al Manager deben reservarse a cuentas de plena confianza.
+No expongas el socket Docker por TCP.
 
-   El contenido debe ser únicamente el token proporcionado por Arcane:
+#### Reinscripción y validación
 
-       AGENT_TOKEN=arc_...
+La migración de v2 a v3 puede dejar los agentes Direct antiguos en estado
+Pending. Para reinscribir Pico, genera un token nuevo desde **Agents →
+Connection & Agent → Generate Enrollment Token** en el Manager de Atlas y
+sustituye el valor de `ARCANE_AGENT_TOKEN` en el archivo privado de Pico.
+Los pasos completos y las comprobaciones están en
+[`docs/arcane-v3-pico.md`](arcane-v3-pico.md).
 
-3. Construye y revisa `sudo nixos-rebuild build --flake .#pico`; después aplica
-   `sudo nixos-rebuild switch --flake .#pico`.
-4. Comprueba `sudo docker ps`, `sudo docker logs arcane-agent` y que Pico
-   aparezca Online en el selector de entornos de Atlas. En Pico revisa además
-   `sudo iptables -vnL PICO-TECHNITIUM-PRIVATE`: el contador de la regla
-   permitida debe aumentar cuando Atlas acceda al agente.
-5. Verifica que el entorno puede listar contenedores y proyectos existentes
-   antes de retirar cualquier servicio o dato de Dockge.
-
-La release `v2.17.3` emite una advertencia al arrancar con el modo Direct. Esta
-configuración mantiene deliberadamente ese modo porque Atlas debe iniciar la
-conexión a Pico por TCP/3553. Antes de actualizar Arcane a una versión mayor,
-revisar sus cambios de compatibilidad y planificar la migración del agente y del
-Manager conjuntamente; no actualizar las imágenes de forma independiente.
-
-Si cambia la IP de Atlas, actualiza `MANAGER_API_URL` y `ATLAS_IP` en
-`hosts/zimablade/configuration.nix`. Si cambia la IP de Pico, actualiza el Agent
-API URL del entorno en Atlas. El puerto publicado no debe exponerse al resto de
-la LAN ni a Internet: la regla de origen único en `DOCKER-USER` es intencional.
-
-El cambio conserva `/var/lib/dockge/stacks` y el volumen `arcane-agent-data`.
-No elimina datos persistentes ni contenedores de Dockge automáticamente.
+Tras desplegar la generación, comprueba el contenedor y sus logs en Pico y
+confirma que el entorno aparece Online en Arcane de Atlas. Verifica también
+que conserva `/var/lib/dockge/stacks` como Projects Directory y que los
+proyectos existentes siguen disponibles. No hace falta publicar TCP/3553
+para esta arquitectura v3.
 
 ## Titan
 

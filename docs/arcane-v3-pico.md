@@ -1,7 +1,11 @@
 # Arcane 3 en Pico: migración del agente
 
-Este cambio sustituye el antiguo Direct Agent por el agente remoto de Arcane 3.
-Debe desplegarse **después** de que el Manager de Atlas esté funcionando en v3.0.1.
+Esta nota documenta la migración del antiguo Direct Agent al agente remoto de
+Arcane 3. La configuración versionada en `main` ya fija Manager y Agent en
+v3.0.1. Los pasos siguientes registran el procedimiento de migración y sirven
+para reinscribir Pico durante una recuperación; no indican que el despliegue
+esté pendiente. La declaración del repositorio no permite verificar el estado
+runtime del contenedor ni la validez del token guardado en Pico.
 
 ## Cambios incluidos
 
@@ -12,7 +16,7 @@ Debe desplegarse **después** de que el Manager de Atlas esté funcionando en v3
 - Conserva el volumen `arcane-agent-data:/app/data` y los stacks de Dockge.
 - Actualiza el mantenedor para sincronizar el agente con el Manager desde GHCR.
 
-## Por qué hay que reinscribir Pico
+## Reinscripción durante la migración
 
 En v3 los Direct Agents antiguos pasan a estado Pending. No se debe reutilizar
 el valor antiguo de `AGENT_TOKEN` como si fuera el nuevo token de inscripción.
@@ -37,7 +41,7 @@ Con el Manager de Atlas ya actualizado:
 5. Revisa la generación Nix y despliega la nueva configuración en Pico.
 6. Comprueba que Pico aparece Online y revisa Git Sync, webhooks, jobs y stacks.
 
-## Red
+## Red en la configuración actual
 
 El agente v3 inicia la conexión hacia Atlas. No escucha en TCP/3553 ni necesita
 un puerto publicado. Por eso se eliminan `ports = [ "3553:3553" ]` y las reglas
