@@ -8,7 +8,7 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
-for command in docker systemctl tar cp install date du chmod mktemp cut mountpoint; do
+for command in docker systemctl sleep tar cp install date du chmod mktemp cut mountpoint; do
   command -v "$command" >/dev/null 2>&1 || {
     printf 'Required command not found: %s\n' "$command" >&2
     exit 1
@@ -80,13 +80,22 @@ restore_arcane() {
       systemctl start "$ARCANE_SERVICE" || restore_failed=1
     fi
 
+    # systemctl start/restart returns when a Type=simple unit's process has
+    # been launched, not when Docker has finished creating the container.
+    # Wait for both systemd and Docker to report the restored container running.
     if ((restore_failed == 0)); then
-      service_state="$(systemctl is-active "$ARCANE_SERVICE" 2>/dev/null || true)"
-      container_state="$(docker inspect --format '{{.State.Running}}' arcane 2>/dev/null || true)"
+      for ((attempt = 1; attempt <= 90; attempt++)); do
+        service_state="$(systemctl is-active "$ARCANE_SERVICE" 2>/dev/null || true)"
+        container_state="$(docker inspect --format '{{.State.Running}}' arcane 2>/dev/null || true)"
+        if [[ "$service_state" == "active" && "$container_state" == "true" ]]; then
+          break
+        fi
+        sleep 1
+      done
     fi
 
     if ((restore_failed != 0)) || [[ "$service_state" != "active" || "$container_state" != "true" ]]; then
-      printf 'ERROR: Arcane could not be restored successfully.\n' >&2
+      printf 'ERROR: Arcane did not reach a running container state within 90 seconds.\n' >&2
       printf 'Systemd state: %s; container running: %s\n' "${service_state:-unknown}" "${container_state:-no}" >&2
       status=1
     else
