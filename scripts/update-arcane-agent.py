@@ -35,8 +35,10 @@ AGENT_IMAGE_PATTERN = re.compile(
 
 MANAGER_API_TIMEOUT = 10
 
+
 class UpdateError(RuntimeError):
     """Raised when an Arcane Agent update cannot be completed safely."""
+
 
 def parse_version(tag: str) -> tuple[int, int, int]:
     """Parse a stable vMAJOR.MINOR.PATCH release tag."""
@@ -44,6 +46,7 @@ def parse_version(tag: str) -> tuple[int, int, int]:
     if match is None:
         raise UpdateError(f"Arcane version is not stable SemVer: {tag!r}")
     return tuple(int(part) for part in match.groups())
+
 
 def read_manager_api_url(content: str) -> str:
     """Read the configured Atlas Manager URL from Pico's Agent declaration."""
@@ -75,6 +78,7 @@ def read_manager_api_url(content: str) -> str:
         )
     return url.rstrip("/")
 
+
 def fetch_manager_version(manager_api_url: str) -> str:
     """Read the running Manager version from Arcane's public app-version endpoint."""
     endpoint = f"{manager_api_url}/api/app/version"
@@ -104,6 +108,7 @@ def fetch_manager_version(manager_api_url: str) -> str:
     parse_version(manager_tag)
     return manager_tag
 
+
 def read_agent_image(content: str) -> tuple[str, str]:
     """Return the pinned Arcane Agent tag and digest."""
     matches = list(AGENT_IMAGE_PATTERN.finditer(content))
@@ -114,6 +119,7 @@ def read_agent_image(content: str) -> tuple[str, str]:
         )
     match = matches[0]
     return match.group("tag"), match.group("digest")
+
 
 def agent_sync_status(manager_tag: str, agent_tag: str) -> str:
     """Classify the agent relative to the Manager without downgrades or major jumps."""
@@ -127,6 +133,7 @@ def agent_sync_status(manager_tag: str, agent_tag: str) -> str:
     if manager_version < agent_version:
         return "agent-ahead"
     return "current"
+
 
 def replace_agent_image(content: str, tag: str, digest: str) -> str:
     """Replace only the pinned Arcane Agent tag and registry digest."""
@@ -147,6 +154,7 @@ def replace_agent_image(content: str, tag: str, digest: str) -> str:
     )
     return content[: match.start()] + replacement + content[match.end() :]
 
+
 def fetch_registry_digest(tag: str) -> str:
     """Reuse the repository's shared OCI registry digest resolver."""
     script_path = ROOT / "scripts" / "update-docker-digests.py"
@@ -157,6 +165,7 @@ def fetch_registry_digest(tag: str) -> str:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.fetch_digest(AGENT_IMAGE_REPOSITORY, tag)
+
 
 def ensure_agent_config_is_clean() -> None:
     """Never overwrite local edits to the Agent declaration."""
@@ -179,6 +188,7 @@ def ensure_agent_config_is_clean() -> None:
             "Commit or stash them before synchronizing the Agent."
         )
 
+
 def confirm_update(manager_tag: str, agent_tag: str, automatic: bool) -> bool:
     """Require confirmation unless the caller explicitly selected --yes."""
     if automatic:
@@ -198,6 +208,7 @@ def confirm_update(manager_tag: str, agent_tag: str, automatic: bool) -> bool:
         answer = ""
     return answer in {"s", "si", "sí", "y", "yes"}
 
+
 def create_backup() -> None:
     """Back up the Agent volume, enrollment environment and Nix declaration."""
     if not BACKUP_SCRIPT.is_file():
@@ -207,6 +218,7 @@ def create_backup() -> None:
         cwd=ROOT,
         check=True,
     )
+
 
 def atomic_write(path: Path, content: str) -> None:
     """Replace the Nix configuration atomically and preserve its permissions."""
@@ -230,6 +242,7 @@ def atomic_write(path: Path, content: str) -> None:
     finally:
         if temporary_path and os.path.exists(temporary_path):
             os.unlink(temporary_path)
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -319,6 +332,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError, UpdateError, subprocess.CalledProcessError) as error:
         print(f"Arcane Agent update skipped: {error}", file=sys.stderr)
         return 1
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
