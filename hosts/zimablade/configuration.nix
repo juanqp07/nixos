@@ -13,7 +13,7 @@
   # En NixOS 25.11 el kernel suele ser muy moderno (6.12+),
   # el soporte para Apollo Lake está maduro.
   # NOTA: sin i915.enable_guc (Apollo Lake no tiene GuC/HuC, daba errores en dmesg).
-  boot.kernelPackages = pkgs.linuxPackages;
+  # Kernel: el predeterminado del canal estable (boot.kernelPackages sin tocar).
 
   # Cargar el microcodigo Intel disponible al inicio; esto no garantiza una
   # mitigacion para cada vulnerabilidad. En el Celeron N3450, la revision
@@ -74,9 +74,11 @@
       jails = {
         sshd = {
           enabled = true;
-          filter = "sshd[mode=aggressive]";
 
           settings = {
+            # El filtro va en settings: jails.<n>.filter de nixpkgs descarta el
+            # valor de texto y usaría "sshd" sin el modo aggressive.
+            filter = "sshd[mode=aggressive]";
             maxretry = 3;
             findtime = "10m";
           };
@@ -120,6 +122,9 @@
       };
       logDriver = "json-file";
       daemon.settings = {
+        # Con stateVersion >= 24.11 el default es false: cada reinicio de dockerd
+        # paraba los contenedores (incluido el DNS Technitium).
+        "live-restore" = true;
         "log-opts" = {
           "max-size" = "10m";
           "max-file" = "3";

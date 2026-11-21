@@ -10,7 +10,7 @@
   # cgroupv1 eliminado en kernel 6.x: no se fuerzan flags obsoletos.
   # Servidor: intel_pstate/HWP con governor powersave; irqbalance distribuye
   # interrupciones entre los P-cores/E-cores del i5-1250P. No se fuerza performance.
-  boot.kernelPackages = pkgs.linuxPackages;
+  # Kernel: el predeterminado del canal estable (boot.kernelPackages sin tocar).
   hardware.enableRedistributableFirmware = true;
 
   # En Alder Lake, intel_pstate usa el modo activo por defecto cuando HWP está
@@ -50,9 +50,11 @@
       jails = {
         sshd = {
           enabled = true;
-          filter = "sshd[mode=aggressive]";
 
           settings = {
+            # El filtro va en settings: jails.<n>.filter de nixpkgs descarta el
+            # valor de texto y usaría "sshd" sin el modo aggressive.
+            filter = "sshd[mode=aggressive]";
             maxretry = 3;
             findtime = "10m";
           };

@@ -11,10 +11,9 @@
   # ARRANQUE Y KERNEL
   # ============================================================
 
+  # "splash" lo añade boot.plymouth y "loglevel" boot.consoleLogLevel (0).
   boot.kernelParams = [
     "quiet"
-    "splash"
-    "loglevel=3"
     "rd.systemd.show_status=false"
     "rd.udev.log_level=3"
     "udev.log_priority=3"
@@ -47,8 +46,10 @@
     bantime = "1h";
     jails.sshd = {
       enabled = true;
-      filter = "sshd[mode=aggressive]";
       settings = {
+        # El filtro va en settings: la opción jails.<n>.filter de nixpkgs
+        # descarta el valor de texto y usaría "sshd" sin el modo aggressive.
+        filter = "sshd[mode=aggressive]";
         maxretry = 5;
         findtime = "10m";
       };
@@ -359,14 +360,12 @@
     opencode-desktop
     lmstudio
     android-tools
-    bashInteractive
-    stdenv.cc
 
-    # Contenedores y gestión de AppImage.
+    # Contenedores y gestión de AppImage. appimage-run lo instala
+    # programs.appimage (con las extraPkgs de cada host).
     distrobox
     lazydocker
     gearlever
-    appimage-run
 
     # Hardware, monitorización y dispositivos.
     openrgb-with-all-plugins
@@ -578,22 +577,5 @@
     # No desinstala aplicaciones instaladas manualmente.
     uninstallUnmanaged = false;
   };
-
-  # ============================================================
-  # OVERLAYS
-  # ============================================================
-
-  nixpkgs.overlays = [
-    # Workaround temporal para dwarfs 0.15.8 (NixOS/nixpkgs#585413):
-    # en nixpkgs f4a03c0 fallan seis pruebas de CTest en Hydra y en local.
-    # Desactivamos solo las pruebas de compilación: Gear Lever conserva
-    # DwarFS y sus herramientas para trabajar con AppImages en ejecución.
-    (final: prev: {
-      dwarfs = prev.dwarfs.overrideAttrs (old: {
-        doCheck = false;
-        cmakeFlags = (lib.remove "-DWITH_TESTS=ON" (old.cmakeFlags or [ ])) ++ [ "-DWITH_TESTS=OFF" ];
-      });
-    })
-  ];
 
 }
