@@ -10,8 +10,9 @@ actualizador interno de Arcane.
 
 La configuración de `main` fija actualmente:
 
-- **Atlas:** Arcane Manager `v3.0.1`.
-- **Pico:** Arcane Agent `v3.0.1`, alineado con la versión del Manager.
+- **Atlas:** Arcane Manager `v3.1.1`, con el digest ya observado en runtime.
+- **Pico:** Arcane Agent `v3.0.1`; sigue en la misma rama mayor y no se actualiza
+  en este cambio, a la espera de revisar su estado runtime.
 - **Conexión:** el Agent inicia la conexión hacia
   `http://192.168.1.143:3552` (Manager en Atlas).
 - **Puerto 3553:** el Agent v3 no escucha ni publica TCP/3553. No se debe
@@ -119,10 +120,11 @@ un secreto y mantenlo fuera de Git.
 
 ## Migración de Arcane 2 a Arcane 3: ya aplicada
 
-La configuración versionada ya refleja Arcane 3.0.1 en Atlas y Pico. Los
-documentos `docs/arcane-v3-atlas.md` y `docs/arcane-v3-pico.md` conservan el
-procedimiento y las comprobaciones de la migración, como referencia histórica
-y para recuperación.
+La configuración versionada refleja Arcane 3 en ambos hosts. En esta rama,
+Atlas declara Manager v3.1.1 y Pico mantiene Agent v3.0.1 hasta completar su
+revisión. Los documentos `docs/arcane-v3-atlas.md` y
+`docs/arcane-v3-pico.md` conservan el procedimiento y las comprobaciones de
+la migración, como referencia histórica y para recuperación.
 
 Puntos importantes de la migración:
 

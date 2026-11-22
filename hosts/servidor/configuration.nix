@@ -23,6 +23,11 @@
   # NetworkManager ya se habilita en modules/common-system.nix.
   networking.hostName = "atlas";
 
+  # Redis/Valkey: permitir reservas virtuales de memoria necesarias para fork()
+  # durante RDB/AOF sin reservar RAM física por adelantado. No fija límites
+  # ni modifica los cgroups o la memoria asignada a los contenedores.
+  boot.kernel.sysctl."vm.overcommit_memory" = 1;
+
   services = {
     irqbalance.enable = true;
 
@@ -178,6 +183,8 @@
   environment.systemPackages = with pkgs; [
     htop
     iotop
+    sysstat # iostat, mpstat y pidstat; instalar herramientas sin activar recopilación periódica
+    bpftrace # diagnóstico eBPF bajo demanda; no ejecuta servicios en segundo plano
     ethtool
     smartmontools
     pass

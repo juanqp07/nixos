@@ -67,6 +67,13 @@ Antes de iniciar Arcane, la unidad `arcane-proxy-ready` ejecuta `docker exec arc
 
 La allowlist sigue la integración oficial de Arcane e incluye las rutas necesarias para consultar contenedores, eventos, imágenes, redes, volúmenes, builds, registros y operaciones de gestión. Se mantienen bloqueados los métodos y endpoints que no están expresamente declarados. No se debe sustituir por `allowGET=.*`, `allowPOST=.*` ni publicar el puerto 2375 fuera de la red privada.
 
+El Manager de Atlas tampoco usa `--health-cmd`: Docker CLI lo serializa como
+`CMD-SHELL`, pero la imagen no incluye `/bin/sh`. La configuración desactiva
+ese healthcheck Docker y programa `arcane-healthcheck.timer`, que ejecuta el
+binario `./arcane health` directamente dentro del contenedor mediante
+`docker exec`. Esto mantiene la comprobación real sin añadir una shell a la
+imagen ni relajar su aislamiento.
+
 El helper temporal de actualización de Arcane requiere el alias `arcane-upgrader` en `-allowfrom`. La versión actual de Arcane debe crear ese alias; tras cambiar una instalación antigua, recrear el contenedor Arcane una vez para que las futuras autoactualizaciones puedan conectar.
 
 La red `arcane-net` se conserva para Arcane, el proxy y PostgreSQL. El montaje directo del socket en Zoraxy es independiente y no se modifica.
@@ -128,11 +135,12 @@ Las líneas en whitelist no representan fallos: la lista excluye las direcciones
 
 ### Arcane Agent v3
 
-La configuración versionada declara Arcane Manager v3.0.1 en Atlas
+La configuración de esta rama declara Arcane Manager v3.1.1 en Atlas
 (`modules/atlas-docker.nix`) y Arcane Agent v3.0.1 en Pico
-(`hosts/zimablade/configuration.nix`). El Manager y el agente se fijan por
-tag y digest; NixOS controla sus imágenes y evita que las actualice por su
-cuenta un updater interno.
+(`hosts/zimablade/configuration.nix`). Ambos siguen fijados por tag y digest;
+NixOS controla sus imágenes y evita que las actualice por su cuenta un updater
+interno. El Agent de Pico no se actualiza en este cambio: primero se debe revisar
+su estado runtime y después usar el flujo documentado en `docs/arcane-updates.md`.
 
 Pico utiliza `ARCANE_AGENT=true`, `ARCANE_AGENT_TRANSPORT=auto` y
 `ARCANE_MANAGER_API_URL=http://192.168.1.143:3552`. El agente inicia la

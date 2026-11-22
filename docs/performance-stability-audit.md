@@ -200,3 +200,46 @@ Pruebas de tres minutos en cada host, CPU y memoria por separado. Son verificaci
 
 Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las siguientes tareas útiles son evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, mantener la carga del microcódigo activada y volver a revisar RFDS si Intel publica una revisión aplicable o el kernel ofrece una mitigación validada.
 
+
+
+## Ajustes seguros adicionales en Atlas (22 de noviembre de 2026)
+
+### Cambio declarativo
+
+- Se fija `vm.overcommit_memory = 1` únicamente en Atlas. Redis recomienda este modo para evitar fallos de `fork()` al realizar tareas de persistencia RDB/AOF. El ajuste permite sobreasignación de memoria virtual; no reserva RAM física ni cambia los límites de memoria de Docker. Debe seguir monitorizándose el uso real de RAM y la presión de memoria.
+- Se añaden `sysstat` (incluye `iostat`, `mpstat` y `pidstat`) y `bpftrace` a las herramientas administrativas de Atlas. Son herramientas bajo demanda; no se habilita ningún servicio de recopilación periódica ni agente residente.
+
+Fuente para overcommit: [documentación oficial de Redis](https://redis.io/docs/latest/operate/oss_and_stack/management/admin/). Para `sysstat`: [proyecto sysstat](https://github.com/sysstat/sysstat).
+
+### Diagnóstico runtime compartido por el propietario
+
+- Memoria: 31 GiB totales, 18 GiB disponibles; zram de 23,3 GiB con solo 4 KiB usados. No hay evidencia para aumentar zram ni cambiar swappiness.
+- Transparent Huge Pages: modo actual `madvise`. Se conserva: desactivarlo globalmente podría cambiar el comportamiento de cargas distintas de Redis (por ejemplo, ML), y primero conviene comprobar si Redis/Valkey siguen mostrando avisos o problemas de latencia.
+- Cgroups: versión 2 con driver `systemd`; controladores `cpuset`, `cpu`, `io`, `memory`, `hugetlb`, `pids`, `rdma`, `misc` y `dmem` disponibles. PSI está expuesto en CPU, memoria y E/S, sin presión media reciente en la captura. No se imponen `MemoryHigh`, `MemoryMax`, `CPUWeight` ni `IOWeight` a los contenedores.
+- Watchdog: aparece `intel_oc_wdt` con timeout de 60 segundos, junto a más de un dispositivo watchdog. No se activa `RuntimeWatchdogSec` hasta identificar `/dev/watchdog`, inspeccionar el segundo dispositivo y verificar capacidades/estado del controlador; un watchdog mal seleccionado podría provocar reinicios inesperados.
+- Almacenamiento: NVMe con planificador `none` y SSD SATA con `mq-deadline`. Se mantienen; no hay mediciones de latencia que justifiquen cambiarlos. La utilidad `iostat` no estaba instalada en el host y queda disponible mediante `sysstat` tras activar la generación.
+- GPU: están presentes `/dev/dri/card0` y `/dev/dri/renderD128`, Intel Alder Lake-P. Esto confirma el dispositivo en el host, no que cada contenedor lo tenga montado. No se modifican los Compose ni los permisos de dispositivos sin inspeccionar sus configuraciones reales.
+- Docker: cgroups v2 con driver `systemd`, seguridad `seccomp` integrada y namespaces de cgroups. No se cambia el runtime, el snapshotter ni los perfiles de seguridad de los contenedores.
+- Red: BBR está disponible, CUBIC es el algoritmo actual y la interfaz física `enp2s0` usa FQ-CoDel. Las colas observadas no tenían paquetes descartados ni backlog. Se pospone el cambio a BBR/FQ hasta comparar latencia y rendimiento bajo carga; no se altera el tráfico de los contenedores.
+
+### Cambios deliberadamente no aplicados
+
+No se desactiva globalmente Transparent Huge Pages, no se cambian algoritmos TCP/colas, no se modifican los límites ni prioridades de recursos Docker, no se activa el watchdog, no se cambia el planificador de discos y no se modifican los mapeos de GPU. Estas decisiones quedan pendientes de pruebas específicas para evitar efectos secundarios en multimedia, IA, bases de datos y DNS.
+
+La instalación de herramientas y el sysctl no modifica ni recrea contenedores. La corrección declarativa de Arcane sí recreará únicamente el Manager al activar la generación; conserva los volúmenes existentes y no cambia PostgreSQL, sus credenciales ni la red privada. La validación final debe realizarse en Atlas después de activar la generación.
+
+### Arcane Manager: diagnóstico del healthcheck y corrección declarativa
+
+La inspección de `arcane` el 22 de noviembre de 2026 mostró la imagen `v3.1.1` con digest `sha256:f12cfe86238b892956d945681613e9056676ca0cda0d980abacad033ebb72bee`. El contenedor estaba `running` pero `unhealthy`, con 3324 fallos consecutivos. Los últimos resultados no indicaban un fallo de la aplicación: Docker intentaba ejecutar `/bin/sh`, que no existe en la imagen mínima del Manager.
+
+La causa era `--health-cmd=./arcane health --timeout 2s` en `extraOptions` de NixOS. El Docker CLI transforma siempre `--health-cmd` en `CMD-SHELL`; no existe un modo de indicar `CMD` exec-form mediante esa opción. La prueba manual `docker exec arcane ./arcane health --timeout 2s` terminó con código 0, confirmando que el binario de salud funciona directamente.
+
+La configuración elimina el healthcheck de Docker mediante `--no-healthcheck` y añade una unidad `systemd` oneshot ejecutada por `arcane-healthcheck.timer` cada minuto. Esta invoca `docker exec` directamente, sin shell dentro del contenedor. Un fallo real queda registrado como fallo de la unidad `arcane-healthcheck.service` y puede consultarse con `journalctl -u arcane-healthcheck.service`; Docker ya no mostrará un estado `healthy/unhealthy` para este contenedor, de forma intencionada.
+
+La declaración de Atlas se alinea con la versión y digest ya observados en runtime (`v3.1.1`); no es una actualización de versión nueva en el servidor, sino evitar que una reconstrucción futura lo haga retroceder a `v3.0.1`. No se actualiza el Agent de Pico en esta revisión porque todavía falta su auditoría runtime.
+
+Fuentes: [Docker CLI: `--health-cmd` se serializa como `CMD-SHELL`](https://github.com/docker/cli/blob/master/cli/command/container/opts.go), [Docker Engine API: diferencia entre `CMD` y `CMD-SHELL`](https://docs.docker.com/reference/api/engine/version/v1.57/schemas/HealthConfig/).
+
+### Firewall Docker: punto pendiente, sin cambio automático
+
+La política `ATLAS-DOCKER-PRIVATE` usa una lista explícita de puertos privados/control y termina con `RETURN`. Por tanto, esta cadena no bloquea por sí sola los puertos publicados que no estén en esas listas; su ausencia no demuestra que sean accesibles desde Internet, porque también intervienen el resto de reglas y el router. No se añade un bloqueo general en esta revisión para no interrumpir los servicios públicos de Zoraxy ni las aplicaciones que requieren acceso externo. Antes de endurecerla más, hay que comparar la salida completa de `docker ps --format 'table {{.Names}}\t{{.Ports}}'` con `PRIVATE_PORTS`, `CONTROL_PORTS` y las reglas efectivas de IPv4/IPv6.

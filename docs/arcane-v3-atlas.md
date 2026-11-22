@@ -1,10 +1,11 @@
 # Arcane 3 en Atlas: migración del Manager
 
-Esta nota documenta la migración de **Arcane Manager en Atlas** a v3.0.1.
-La configuración actual de `main` ya fija el Manager en esa versión y también
-fija Arcane Agent v3.0.1 en Pico; la migración del Agent se documenta por separado
-en [arcane-v3-pico.md](arcane-v3-pico.md). Los pasos siguientes describen el
-procedimiento histórico, no una actualización pendiente.
+Esta nota conserva el procedimiento histórico de migración de **Arcane Manager en Atlas** a v3.0.1.
+La configuración de esta rama fija ahora el Manager en v3.1.1 con el mismo digest
+confirmado en el contenedor en ejecución. El Agent de Pico sigue fijado en
+v3.0.1; no se actualiza aquí porque su auditoría runtime queda pendiente y el
+flujo de actualización se documenta en [arcane-v3-pico.md](arcane-v3-pico.md).
+Los pasos siguientes describen el procedimiento histórico de migración a Arcane 3.
 
 ## Cambios incluidos
 
@@ -42,12 +43,26 @@ ni compartir sus valores.
    a los proyectos. En la secuencia original, Pico se reinscribía después con
    los pasos de [arcane-v3-pico.md](arcane-v3-pico.md).
 
-## Comprobaciones posteriores
+## Healthcheck del Manager
+
+La imagen del Manager no incluye `/bin/sh`. No configures `--health-cmd` con
+Docker CLI: el CLI lo convierte en `CMD-SHELL` y el chequeo falla antes de
+ejecutar el binario. La configuración desactiva el healthcheck nativo y usa
+`arcane-healthcheck.timer`, que ejecuta directamente
+`docker exec arcane ./arcane health --timeout 2s` desde el host.
+
+Comprobaciones posteriores:
 
 ```bash
-docker inspect --format '{{.State.Status}} / {{if .State.Health}}{{.State.Health.Status}}{{else}}no healthcheck{{end}}' arcane
+docker inspect --format '{{.State.Status}} / {{if .State.Health}}{{.State.Health.Status}}{{else}}sin healthcheck Docker (comprobación systemd){{end}}' arcane
+systemctl status arcane-healthcheck.timer
+systemctl status arcane-healthcheck.service
+journalctl -u arcane-healthcheck.service -n 20 --no-pager
 docker logs --since 10m arcane
 ```
+
+Un resultado `sin healthcheck Docker` es esperado. La salud funcional se refleja
+en la unidad `arcane-healthcheck.service` y en su timer.
 
 Arcane v3 hace una migración de base de datos. Para volver a 2.x no basta con
 cambiar la etiqueta de imagen: hay que restaurar la copia previa completa
