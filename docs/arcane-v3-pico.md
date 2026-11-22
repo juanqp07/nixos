@@ -1,10 +1,11 @@
 # Arcane 3 en Pico: migración del agente
 
 Esta nota documenta la migración del antiguo Direct Agent al agente remoto de
-Arcane 3. La configuración versionada en `main` ya fija Manager y Agent en
-v3.0.1. Los pasos siguientes registran el procedimiento de migración y sirven
-para reinscribir Pico durante una recuperación; no indican que el despliegue
-esté pendiente. La declaración del repositorio no permite verificar el estado
+Arcane 3. El Manager de Atlas se declara ahora en v3.1.1, mientras que el Agent
+de Pico permanece en v3.0.1; esta PR no modifica Pico porque su auditoría runtime
+está pendiente. Los pasos siguientes registran el procedimiento de migración y
+sirven para reinscribir Pico durante una recuperación; no indican que la
+migración de v2 a v3 esté pendiente. La declaración del repositorio no permite verificar el estado
 runtime del contenedor ni la validez del token guardado en Pico.
 
 ## Cambios incluidos
