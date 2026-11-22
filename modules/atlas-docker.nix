@@ -114,7 +114,7 @@
 
         arcane = {
           # Fijar la versión evita que :latest adelante el Manager a la rama v3-next.
-          image = "ghcr.io/getarcaneapp/manager:v3.0.1@sha256:80a2f71c60bc1bff3e618e6e71efec98ad365ba4f0395aa76e234d8ba75e5a99";
+          image = "ghcr.io/getarcaneapp/manager:v3.1.1@sha256:f12cfe86238b892956d945681613e9056676ca0cda0d980abacad033ebb72bee";
           autoStart = true;
 
           # NixOS gestiona el ciclo de vida; desactivar el updater interno evita
@@ -154,11 +154,9 @@
 
           extraOptions = [
             "--network=arcane-net"
-            "--health-cmd=./arcane health --timeout 2s"
-            "--health-start-period=15s"
-            "--health-interval=10s"
-            "--health-timeout=5s"
-            "--health-retries=5"
+            # Docker CLI --health-cmd siempre genera CMD-SHELL; esta imagen no incluye /bin/sh.
+            # La comprobación directa se ejecuta desde systemd (arcane-healthcheck.timer).
+            "--no-healthcheck"
           ];
         };
 
@@ -359,6 +357,27 @@
       docker-arcane-postgres = {
         requires = [ "arcane-network.service" ];
         after = [ "arcane-network.service" ];
+      };
+
+      # El Manager es una imagen mínima sin /bin/sh. Docker CLI --health-cmd
+      # usa CMD-SHELL, así que se comprueba el binario directamente desde el host.
+      arcane-healthcheck = {
+        description = "Check Arcane Manager health without a container shell";
+        after = [ "docker.service" "docker-arcane.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${config.virtualisation.docker.package}/bin/docker exec arcane ./arcane health --timeout 2s";
+        };
+      };
+    };
+
+    timers.arcane-healthcheck = {
+      description = "Periodic health check for Arcane Manager";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "2min";
+        OnUnitActiveSec = "1min";
+        AccuracySec = "15s";
       };
     };
   };
