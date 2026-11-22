@@ -363,7 +363,10 @@
       # usa CMD-SHELL, así que se comprueba el binario directamente desde el host.
       arcane-healthcheck = {
         description = "Check Arcane Manager health without a container shell";
-        after = [ "docker.service" "docker-arcane.service" ];
+        after = [
+          "docker.service"
+          "docker-arcane.service"
+        ];
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${config.virtualisation.docker.package}/bin/docker exec arcane ./arcane health --timeout 2s";
