@@ -200,3 +200,30 @@ Pruebas de tres minutos en cada host, CPU y memoria por separado. Son verificaci
 
 Las cuatro pruebas de CPU/RAM terminaron con código 0 y sin fallos reportados. Esto respalda la estabilidad básica bajo una carga limitada, pero no mide temperaturas de larga duración, rendimiento de servicios ni la presencia/ausencia de throttling de hardware. Se mantienen los parámetros de CPU, zram y scheduler sin cambios. Para Atlas, las siguientes tareas útiles son evaluar el límite de memoria de Grafana y validar una transcodificación Intel real; para Pico, mantener la carga del microcódigo activada y volver a revisar RFDS si Intel publica una revisión aplicable o el kernel ofrece una mitigación validada.
 
+
+
+## Ajustes seguros adicionales en Atlas (22 de noviembre de 2026)
+
+### Cambio declarativo
+
+- Se fija `vm.overcommit_memory = 1` únicamente en Atlas. Redis recomienda este modo para evitar fallos de `fork()` al realizar tareas de persistencia RDB/AOF. El ajuste permite sobreasignación de memoria virtual; no reserva RAM física ni cambia los límites de memoria de Docker. Debe seguir monitorizándose el uso real de RAM y la presión de memoria.
+- Se añaden `sysstat` (incluye `iostat`, `mpstat` y `pidstat`) y `bpftrace` a las herramientas administrativas de Atlas. Son herramientas bajo demanda; no se habilita ningún servicio de recopilación periódica ni agente residente.
+
+Fuente para overcommit: [documentación oficial de Redis](https://redis.io/docs/latest/operate/oss_and_stack/management/admin/). Para `sysstat`: [proyecto sysstat](https://github.com/sysstat/sysstat).
+
+### Diagnóstico runtime compartido por el propietario
+
+- Memoria: 31 GiB totales, 18 GiB disponibles; zram de 23,3 GiB con solo 4 KiB usados. No hay evidencia para aumentar zram ni cambiar swappiness.
+- Transparent Huge Pages: modo actual `madvise`. Se conserva: desactivarlo globalmente podría cambiar el comportamiento de cargas distintas de Redis (por ejemplo, ML), y primero conviene comprobar si Redis/Valkey siguen mostrando avisos o problemas de latencia.
+- Cgroups: versión 2 con driver `systemd`; controladores `cpuset`, `cpu`, `io`, `memory`, `hugetlb`, `pids`, `rdma`, `misc` y `dmem` disponibles. PSI está expuesto en CPU, memoria y E/S, sin presión media reciente en la captura. No se imponen `MemoryHigh`, `MemoryMax`, `CPUWeight` ni `IOWeight` a los contenedores.
+- Watchdog: aparece `intel_oc_wdt` con timeout de 60 segundos, junto a más de un dispositivo watchdog. No se activa `RuntimeWatchdogSec` hasta identificar `/dev/watchdog`, inspeccionar el segundo dispositivo y verificar capacidades/estado del controlador; un watchdog mal seleccionado podría provocar reinicios inesperados.
+- Almacenamiento: NVMe con planificador `none` y SSD SATA con `mq-deadline`. Se mantienen; no hay mediciones de latencia que justifiquen cambiarlos. La utilidad `iostat` no estaba instalada en el host y queda disponible mediante `sysstat` tras activar la generación.
+- GPU: están presentes `/dev/dri/card0` y `/dev/dri/renderD128`, Intel Alder Lake-P. Esto confirma el dispositivo en el host, no que cada contenedor lo tenga montado. No se modifican los Compose ni los permisos de dispositivos sin inspeccionar sus configuraciones reales.
+- Docker: cgroups v2 con driver `systemd`, seguridad `seccomp` integrada y namespaces de cgroups. No se cambia el runtime, el snapshotter ni los perfiles de seguridad de los contenedores.
+- Red: BBR está disponible, CUBIC es el algoritmo actual y la interfaz física `enp2s0` usa FQ-CoDel. Las colas observadas no tenían paquetes descartados ni backlog. Se pospone el cambio a BBR/FQ hasta comparar latencia y rendimiento bajo carga; no se altera el tráfico de los contenedores.
+
+### Cambios deliberadamente no aplicados
+
+No se desactiva globalmente Transparent Huge Pages, no se cambian algoritmos TCP/colas, no se modifican los límites ni prioridades de recursos Docker, no se activa el watchdog, no se cambia el planificador de discos y no se modifican los mapeos de GPU. Estas decisiones quedan pendientes de pruebas específicas para evitar efectos secundarios en multimedia, IA, bases de datos y DNS.
+
+La actualización de NixOS es declarativa y no reinicia ni recrea los contenedores por sí misma. La aplicación de los nuevos paquetes añade herramientas al sistema; el sysctl de overcommit se aplica en el host. La validación final debe realizarse en Atlas tras activar la generación.
