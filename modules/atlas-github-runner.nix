@@ -71,13 +71,13 @@ in
     createHome = true;
     subUidRanges = [
       {
-        start = 200000;
+        startUid = 200000;
         count = 65536;
       }
     ];
     subGidRanges = [
       {
-        start = 200000;
+        startGid = 200000;
         count = 65536;
       }
     ];
