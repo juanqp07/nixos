@@ -7,6 +7,9 @@ let
     python3
     gawk
     unzip
+    # Docker CLI + Buildx client only. No runner gets the production Docker socket.
+    docker-client
+    docker-buildx
   ];
 
   mkRunner =
@@ -35,6 +38,17 @@ let
       ]
       ++ labels;
 
+      # Runners may access only the dedicated rootless BuildKit socket.
+      # This is deliberately NOT the host Docker socket: membership in the
+      # docker group would grant effective root access to Atlas.
+      serviceOverrides = {
+        Slice = "github-runners.slice";
+        CPUWeight = 20;
+        IOWeight = 20;
+        Nice = 10;
+        SupplementaryGroups = [ "github-buildkit" ];
+      };
+
       # Some downloaded Linux tools (for example, Android SDK binaries) use
       # glibc. Keep the loader available without granting access to nix-daemon.
       extraEnvironment = {
@@ -45,17 +59,70 @@ let
       # Keep common utilities shared, while project toolchains remain isolated
       # to the runner that needs them.
       extraPackages = runnerPackages ++ packages;
-
-      # All CI services share a resource-controlled systemd slice.
-      serviceOverrides = {
-        Slice = "github-runners.slice";
-        CPUWeight = 20;
-        IOWeight = 20;
-        Nice = 10;
-      };
     };
 in
 {
+  # Dedicated unprivileged account and subordinate ID ranges for rootless BuildKit.
+  users.groups.github-buildkit = { };
+  users.users.github-buildkit = {
+    isSystemUser = true;
+    group = "github-buildkit";
+    home = "/var/lib/github-buildkit";
+    createHome = true;
+    subUidRanges = [
+      {
+        start = 200000;
+        count = 65536;
+      }
+    ];
+    subGidRanges = [
+      {
+        start = 200000;
+        count = 65536;
+      }
+    ];
+  };
+
+  # One isolated rootless BuildKit daemon is shared by the three trusted
+  # private-repository runners. It has no access to the production Docker API.
+  systemd.services.github-buildkit = {
+    description = "Rootless BuildKit for GitHub Actions runners on Atlas";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+
+    path = with pkgs; [
+      rootlesskit
+      slirp4netns
+      fuse-overlayfs
+      shadow
+    ];
+
+    environment = {
+      HOME = "/var/lib/github-buildkit";
+      XDG_RUNTIME_DIR = "/run/github-buildkit";
+    };
+
+    serviceConfig = {
+      Type = "simple";
+      User = "github-buildkit";
+      Group = "github-buildkit";
+      UMask = "0007";
+      StateDirectory = "github-buildkit";
+      StateDirectoryMode = "0700";
+      RuntimeDirectory = "github-buildkit";
+      RuntimeDirectoryMode = "0770";
+      ExecStart = "${pkgs.buildkit}/bin/buildkitd --rootless --addr unix:///run/github-buildkit/buildkitd.sock --root /var/lib/github-buildkit";
+      Restart = "on-failure";
+      RestartSec = "5s";
+      Delegate = true;
+      LimitNOFILE = 1048576;
+      Slice = "github-runners.slice";
+      CPUWeight = 20;
+      IOWeight = 20;
+      Nice = 10;
+    };
+  };
+
   # Three isolated registrations serve two private repositories. FCTV has
   # two workers so its independent workflow jobs can run concurrently.
   services.github-runners = {
@@ -98,6 +165,7 @@ in
 
   # Aggregate limits keep CI from starving Atlas' production services.
   # Capacity: two FCTV jobs plus one Kigo job, sharing 3 CPU and 10 GiB.
+  # BuildKit is placed in the same slice so builds count against the same budget.
   systemd.slices.github-runners.sliceConfig = {
     CPUQuota = "300%";
     MemoryHigh = "8G";
