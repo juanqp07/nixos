@@ -22,8 +22,12 @@ let
       inherit name url tokenFile;
       tokenType = "access";
 
-      # A runner is re-registered after every job.
+      # Ephemeral runners are re-registered after completing a job.
       ephemeral = true;
+
+      # Replace a stale GitHub registration with this runner's same name.
+      # This can happen when Atlas stops/reboots while the runner is idle.
+      replace = true;
 
       extraLabels = [
         "atlas"
