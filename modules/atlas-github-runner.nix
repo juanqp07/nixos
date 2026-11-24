@@ -1,51 +1,88 @@
 { pkgs, ... }:
 
 let
-  tokenFile = "/var/lib/secrets/github-runner/fctv.token";
+  runnerPackages = with pkgs; [
+    curl
+    jq
+    unzip
+  ];
+
+  mkRunner =
+    {
+      name,
+      url,
+      tokenFile,
+      labels,
+    }:
+    {
+      enable = true;
+
+      inherit name url tokenFile;
+      tokenType = "access";
+
+      # A runner is destroyed and re-registered after each job.
+      ephemeral = true;
+
+      extraLabels = [
+        "atlas"
+        "nixos"
+      ] ++ labels;
+
+      extraPackages = runnerPackages;
+
+      # All three runners share one resource-controlled systemd slice.
+      serviceOverrides = {
+        Slice = "github-runners.slice";
+        CPUWeight = 20;
+        IOWeight = 20;
+        Nice = 10;
+      };
+    };
 in
 {
-  # Runner exclusivo de FCTV. NixOS ejecuta el servicio con DynamicUser y
-  # aislamiento systemd; no se añade al grupo docker ni se expone el socket.
-  services.github-runners.fctv = {
-    enable = true;
+  # One isolated runner registration per repository. The host is shared, but
+  # GitHub credentials and workspaces are not shared between projects.
+  services.github-runners = {
+    fctv = mkRunner {
+      name = "atlas-fctv";
+      url = "https://github.com/juanqp07/fctv";
+      tokenFile = "/var/lib/secrets/github-runner/fctv.token";
+      labels = [ "fctv" ];
+    };
 
-    url = "https://github.com/juanqp07/fctv";
-    name = "atlas-fctv";
+    kigo = mkRunner {
+      name = "atlas-kigo";
+      url = "https://github.com/juanqp07/kigo";
+      tokenFile = "/var/lib/secrets/github-runner/kigo.token";
+      labels = [ "kigo" ];
+    };
 
-    # PAT fine-grained guardado fuera del repositorio y del Nix Store.
-    inherit tokenFile;
-    tokenType = "access";
-
-    # Registra un runner nuevo por trabajo y limpia su estado al terminar.
-    ephemeral = true;
-
-    extraLabels = [
-      "atlas"
-      "nixos"
-      "fctv"
-    ];
-
-    extraPackages = with pkgs; [
-      curl
-      jq
-      unzip
-    ];
-
-    # Evita que una compilación CI monopolice Atlas o su memoria.
-    serviceOverrides = {
-      CPUQuota = "400%";
-      CPUWeight = 25;
-      IOWeight = 50;
-      MemoryMax = "8G";
-      Nice = 10;
+    nixos = mkRunner {
+      name = "atlas-nixos";
+      url = "https://github.com/juanqp07/nixos";
+      tokenFile = "/var/lib/secrets/github-runner/nixos.token";
+      labels = [ "nixos-config" ];
     };
   };
 
-  # El directorio existe tras el rebuild, pero el PAT se provisiona manualmente.
+  # Aggregate resource limits prevent three simultaneous jobs from starving
+  # Atlas' Docker workloads and system services.
+  systemd.slices.github-runners.sliceConfig = {
+    CPUQuota = "300%";
+    MemoryHigh = "10G";
+    MemoryMax = "12G";
+    IOWeight = 20;
+  };
+
+  # Provision PATs manually; never put them in Git or the Nix Store.
   systemd.tmpfiles.rules = [
     "d /var/lib/secrets/github-runner 0700 root root -"
   ];
 
-  # No intentar registrar el servicio hasta que el secreto esté instalado.
-  systemd.services.github-runner-fctv.unitConfig.ConditionPathExists = tokenFile;
+  # Avoid failed registration loops before each PAT has been provisioned.
+  systemd.services = {
+    github-runner-fctv.unitConfig.ConditionPathExists = "/var/lib/secrets/github-runner/fctv.token";
+    github-runner-kigo.unitConfig.ConditionPathExists = "/var/lib/secrets/github-runner/kigo.token";
+    github-runner-nixos.unitConfig.ConditionPathExists = "/var/lib/secrets/github-runner/nixos.token";
+  };
 }
