@@ -35,7 +35,7 @@ En Atlas:
 sudo install -d -m 0700 -o root -g root /var/lib/secrets/github-runner
 
 read -rsp "GitHub fine-grained PAT: " TOKEN
-printf '\\n'
+printf '\n'
 printf '%s' "$TOKEN" | sudo tee /var/lib/secrets/github-runner/fctv.token >/dev/null
 unset TOKEN
 
