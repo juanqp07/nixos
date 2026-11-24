@@ -134,3 +134,59 @@ El runner no recibe acceso al Docker del host. Los jobs que necesiten `docker bu
 El SDK Android se descarga dentro del job, en `$RUNNER_TEMP`; solo se proporciona JDK 17 y las herramientas auxiliares mediante Nix. Debe limitarse el paralelismo de Gradle y comprobarse el consumo de disco y memoria.
 
 La modalidad efímera limpia el estado del runner después de un trabajo, pero no convierte el host en una máquina virtual desechable. Ejecuta en Atlas únicamente workflows y cambios de confianza.
+
+
+## Construcción de imágenes Docker
+
+Los runners disponen de Docker CLI y Buildx, pero **no** del socket `/var/run/docker.sock` del host. Las compilaciones se envían a un daemon BuildKit rootless dedicado:
+
+- Servicio systemd: `github-buildkit.service`.
+- Usuario sin privilegios: `github-buildkit`.
+- Socket Unix: `/run/github-buildkit/buildkitd.sock`.
+- Estado persistente: `/var/lib/github-buildkit`.
+- Los runners reciben únicamente acceso al grupo `github-buildkit`.
+- BuildKit comparte `github-runners.slice` y sus límites de 3 CPU / 10 GiB con los trabajos de CI.
+
+El daemon rootless no administra contenedores, redes, volúmenes ni imágenes del Docker de producción. No añadas los runners al grupo `docker`, no montes el socket de producción y no cambies `DOCKER_HOST` para apuntar al daemon Docker del host.
+
+En cada job que construya una imagen, crea un builder remoto de Buildx:
+
+```yaml
+- name: Configure isolated BuildKit
+  run: |
+    docker buildx create \
+      --name atlas-buildkit \
+      --driver remote \
+      unix:///run/github-buildkit/buildkitd.sock \
+      --use
+    docker buildx inspect --bootstrap
+
+- name: Build image
+  run: |
+    docker buildx build \
+      --tag ghcr.io/${{ github.repository }}:${{ github.sha }} \
+      --load .
+```
+
+Para publicar en GHCR, autentica el CLI con el token efímero del workflow y usa `--push` en lugar de `--load`:
+
+```yaml
+permissions:
+  contents: read
+  packages: write
+
+steps:
+  - name: Login to GHCR
+    run: |
+      echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+        --username "${{ github.actor }}" --password-stdin
+
+  - name: Build and push
+    run: |
+      docker buildx build \
+        --tag ghcr.io/${{ github.repository }}:${{ github.sha }} \
+        --push .
+```
+
+El builder remoto es compartido por los runners: no almacenes secretos dentro de capas, argumentos o contexto de build. Usa BuildKit secrets cuando una compilación necesite credenciales. Los runners deben seguir limitados a repositorios privados de confianza; un workflow puede ejecutar código arbitrario con los permisos del runner.
+
