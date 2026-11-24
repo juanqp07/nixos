@@ -25,7 +25,8 @@ let
 
       extraLabels = [
         "atlas"
-      ] ++ labels;
+      ]
+      ++ labels;
 
       extraPackages = runnerPackages;
 
