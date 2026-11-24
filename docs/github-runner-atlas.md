@@ -1,76 +1,117 @@
-# GitHub Actions runner de Atlas (FCTV)
+# Runners de GitHub Actions en Atlas
 
-## Qué instala
+## Diseño
 
-El módulo `modules/atlas-github-runner.nix` registra un runner **a nivel del repositorio privado** `juanqp07/fctv`.
+Atlas aloja tres registros independientes de GitHub Actions, uno por repositorio:
 
-- Nombre en GitHub: `atlas-fctv`.
-- Etiquetas adicionales: `atlas`, `nixos`, `fctv`.
-- Ejecución efímera: cada instancia atiende un solo trabajo y vuelve a registrarse.
-- Usuario dinámico administrado por systemd; no se concede acceso al grupo `docker` ni al socket del Docker de producción.
-- Límites del servicio: 4 CPU equivalentes y 8 GiB de memoria máxima; prioridad reducida frente a los servicios del servidor.
+| Runner | Repositorio | Visibilidad | Etiqueta adicional |
+|---|---|---|---|
+| `atlas-fctv` | `juanqp07/fctv` | Privado | `fctv` |
+| `atlas-kigo` | `juanqp07/kigo` | Privado | `kigo` |
+| `atlas-nixos` | `juanqp07/nixos` | Público | `nixos-config` |
 
-El servicio queda condicionado a la existencia del token. Un rebuild de NixOS sin el secreto no provoca intentos de registro fallidos.
+Son tres servicios efímeros independientes en el mismo host. Cada uno tiene su propia credencial, identidad de runner y estado; no se comparte un registro ni un token entre repositorios.
 
-## 1. Crear un token de GitHub
+Los tres servicios utilizan el módulo oficial `services.github-runners` de la revisión estable fijada en `flake.lock`. Systemd los coloca en `github-runners.slice`, que limita el conjunto a un máximo de 3 CPU equivalentes y 12 GiB de RAM (10 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales de Atlas.
 
-En GitHub, abre **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+Los runners usan usuarios dinámicos gestionados por systemd. No se añaden al grupo `docker` ni reciben acceso al socket Docker de producción.
 
-Configura:
+## 1. Crear tres Fine-grained PATs
+
+Crea **un token diferente para cada repositorio** desde GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
+
+En cada token configura:
 
 1. Resource owner: `juanqp07`.
-2. Repository access: **Only select repositories** → `fctv`.
+2. Repository access: **Only select repositories** y selecciona únicamente el repositorio correspondiente (`fctv`, `kigo` o `nixos`).
 3. Repository permissions: **Administration: Read and write**.
-4. Usa una expiración razonable y guarda el token generado, que empieza por `github_pat_`.
+4. Establece una expiración razonable y guarda el token generado (prefijo `github_pat_`).
 
-GitHub exige permiso de escritura de Administration para el endpoint de creación del token de registro de runners a nivel de repositorio ([permisos de los fine-grained PAT](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)). No concedas acceso a otros repositorios.
+El endpoint de GitHub para crear el token de registro del runner de un repositorio exige permiso de escritura `Administration`. Consulta [la documentación de GitHub](https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository).
 
-## 2. Instalar el secreto en Atlas
+No reutilices un PAT entre repositorios ni concedas acceso a repositorios adicionales.
 
-El archivo debe contener el PAT en una sola línea, sin salto de línea. No lo añadas al repositorio, a `flake.nix`, a `configuration.nix` ni a ningún archivo gestionado por Nix.
+## 2. Instalar los tokens en Atlas
 
-En Atlas:
+En Atlas, guarda cada PAT en su archivo correspondiente. El contenido debe ser una sola línea, sin salto de línea. No añadas estos archivos a Git, Nix Store, `flake.nix` ni a `configuration.nix`.
 
 ```bash
 sudo install -d -m 0700 -o root -g root /var/lib/secrets/github-runner
 
-read -rsp "GitHub fine-grained PAT: " TOKEN
-printf '\n'
-printf '%s' "$TOKEN" | sudo tee /var/lib/secrets/github-runner/fctv.token >/dev/null
-unset TOKEN
-
-sudo chown root:root /var/lib/secrets/github-runner/fctv.token
-sudo chmod 0600 /var/lib/secrets/github-runner/fctv.token
+for repo in fctv kigo nixos; do
+  read -rsp "Fine-grained PAT for $repo: " TOKEN
+  printf '\n'
+  printf '%s' "$TOKEN" | sudo tee "/var/lib/secrets/github-runner/$repo.token" >/dev/null
+  unset TOKEN
+  sudo chown root:root "/var/lib/secrets/github-runner/$repo.token"
+  sudo chmod 0600 "/var/lib/secrets/github-runner/$repo.token"
+done
 ```
 
-## 3. Aplicar NixOS y arrancar
+Puedes provisionar los tokens en momentos distintos. El servicio correspondiente no arranca hasta que exista su archivo.
+
+## 3. Aplicar NixOS y comprobar los servicios
 
 Desde el checkout local actualizado del repositorio NixOS:
 
 ```bash
 sudo nixos-rebuild switch --flake .#atlas
+
 sudo systemctl start github-runner-fctv.service
+sudo systemctl start github-runner-kigo.service
+sudo systemctl start github-runner-nixos.service
 ```
 
-Comprueba el estado y el registro:
+Consulta cada servicio:
 
 ```bash
-systemctl status github-runner-fctv.service
-journalctl -u github-runner-fctv.service -f
+systemctl status github-runner-fctv
+systemctl status github-runner-kigo
+systemctl status github-runner-nixos
 ```
 
-En GitHub, abre **FCTV → Settings → Actions → Runners**. Debe aparecer `atlas-fctv` como `Idle` cuando esté conectado.
+Para ver registros:
 
-## 4. Usarlo desde un workflow
+```bash
+journalctl -u github-runner-fctv -u github-runner-kigo -u github-runner-nixos -f
+```
 
-Una vez que GitHub muestre el runner como disponible, los trabajos compatibles pueden seleccionar sus etiquetas:
+En cada repositorio, abre **Settings → Actions → Runners**. El registro correspondiente debe aparecer como `Idle` cuando esté conectado.
+
+## 4. Seleccionar un runner desde cada workflow
+
+Los runners conservan las etiquetas predeterminadas `self-hosted`, `linux` y `x64`, además de las etiquetas comunes y específicas:
+
+FCTV:
 
 ```yaml
 runs-on: [self-hosted, linux, x64, atlas, fctv]
 ```
 
-Empieza por trabajos que no necesiten Docker ni servicios de contenedor (por ejemplo, validación web o contratos). Los trabajos que usan `services: postgres`, `docker build` o Android SDK **no se deben mover todavía**: este runner no recibe acceso al daemon Docker de producción ni instala un Android SDK.
+Kigo:
 
-## Seguridad
+```yaml
+runs-on: [self-hosted, linux, x64, atlas, kigo]
+```
 
-Los runners propios ejecutan código del repositorio en Atlas. Úsalos únicamente con workflows y cambios de confianza; no ejecutes en ellos código de forks o contribuciones externas sin revisión. La modalidad efímera limpia el estado entre trabajos, pero no convierte el host en una VM desechable ni elimina el riesgo de que código no confiable intente acceder a la red del homelab.
+NixOS:
+
+```yaml
+runs-on: [self-hosted, linux, x64, atlas, nixos-config]
+```
+
+Esta PR instala los runners, pero **no modifica los workflows de los proyectos**. Conviene migrar los trabajos gradualmente después de comprobar los tres registros.
+
+## 5. Precaución especial con NixOS
+
+El repositorio `juanqp07/nixos` es público. No ejecutes código de pull requests no confiables en el runner de Atlas: un workflow modificado por una contribución podría intentar acceder a la red privada del homelab.
+
+Mantén las validaciones de `pull_request` en runners alojados por GitHub. Reserva `atlas-nixos` para workflows disparados por `push` a `main` después de revisión, o por `workflow_dispatch` iniciado por un mantenedor de confianza. No uses el runner de Atlas para `pull_request` ni `pull_request_target` con código de contribuciones.
+
+## 6. Límites actuales
+
+El runner no tiene acceso al Docker del host. Por tanto, los jobs que requieran `services: postgres`, `docker build` o Docker Compose deben permanecer en runners alojados por GitHub hasta diseñar un entorno de contenedores aislado.
+
+Tampoco se instala Android SDK. Los trabajos Android permanecen en runners alojados por GitHub hasta preparar un SDK reproducible y validar el consumo de RAM.
+
+La modalidad efímera limpia el estado del runner después de un trabajo, pero no convierte el host en una máquina virtual desechable ni elimina el riesgo de ejecutar código no confiable.
