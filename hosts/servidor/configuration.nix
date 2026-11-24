@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/atlas-docker.nix
+    ../../modules/atlas-github-runner.nix
   ];
 
   # --- KERNEL, CGROUPS Y RENDIMIENTO ---
