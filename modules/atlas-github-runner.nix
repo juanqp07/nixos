@@ -15,6 +15,7 @@ let
       url,
       tokenFile,
       labels,
+      packages ? [ ],
     }:
     {
       enable = true;
@@ -34,15 +35,16 @@ let
       ]
       ++ labels;
 
-      # GitHub Actions downloads generic glibc binaries (Node/Temurin).
-      # These variables must be explicit: systemd services do not inherit
-      # environment.sessionVariables from an interactive login shell.
+      # Some downloaded Linux tools (for example, Android SDK binaries) use
+      # glibc. Keep the loader available without granting access to nix-daemon.
       extraEnvironment = {
         NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
         NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
       };
 
-      extraPackages = runnerPackages;
+      # Keep common utilities shared, while project toolchains remain isolated
+      # to the runner that needs them.
+      extraPackages = runnerPackages ++ packages;
 
       # Both runners share one resource-controlled systemd slice.
       serviceOverrides = {
@@ -62,6 +64,13 @@ in
       url = "https://github.com/juanqp07/fctv";
       tokenFile = "/var/lib/secrets/github-runner/fctv.token";
       labels = [ "fctv" ];
+      packages = with pkgs; [
+        nodejs_22
+        postgresql_17
+        gcc
+        jdk17
+        gitleaks
+      ];
     };
 
     kigo = mkRunner {
