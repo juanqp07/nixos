@@ -9,7 +9,6 @@ Se habilita `programs.nix-ld` en la configuración de Atlas y se pasa `NIX_LD` y
 
 El runner también incorpora `python3` en su `PATH` para el workflow canary y `gawk` (comando `awk`) para el instalador del SDK Android. No se añade ninguno de los runners al grupo `docker` ni se comparte el socket Docker de producción.
 
-
 Atlas aloja dos registros independientes de GitHub Actions para los repositorios privados:
 
 | Runner | Repositorio | Visibilidad | Etiqueta adicional |
@@ -20,6 +19,12 @@ Atlas aloja dos registros independientes de GitHub Actions para los repositorios
 Cada runner tiene su propia credencial, estado, workspace y servicio efímero. Comparten el host Atlas y una slice de systemd limitada conjuntamente a 3 CPU equivalentes y 10 GiB de RAM (8 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales del servidor.
 
 Los servicios usan usuarios dinámicos gestionados por systemd. No se añaden al grupo `docker` ni reciben acceso al socket Docker de producción.
+
+### Recuperación de registros existentes
+
+Ambos runners usan `ephemeral = true`: GitHub los desregistra después de procesar un trabajo y systemd vuelve a iniciar el servicio para registrar una nueva instancia. Sin embargo, si Atlas se detiene o reinicia mientras un runner está inactivo, el registro remoto anterior puede seguir apareciendo en GitHub aunque el estado local se haya limpiado.
+
+Por eso el constructor común configura también `replace = true`. Al arrancar, NixOS pide a GitHub que sustituya cualquier registro existente con el mismo nombre (`atlas-fctv` o `atlas-kigo`) en el repositorio correspondiente, en lugar de fallar con el error `A runner exists with the same name`. Cada servicio conserva su propio PAT y la sustitución se limita al nombre de ese runner.
 
 ### ¿Por qué NixOS no usa Atlas?
 
@@ -51,7 +56,7 @@ sudo install -d -m 0700 -o root -g root /var/lib/secrets/github-runner
 
 for repo in fctv kigo; do
   read -rsp "Fine-grained PAT for $repo: " TOKEN
-  printf '\n'
+  printf '\\n'
   printf '%s' "$TOKEN" | sudo tee "/var/lib/secrets/github-runner/$repo.token" >/dev/null
   unset TOKEN
   sudo chown root:root "/var/lib/secrets/github-runner/$repo.token"
@@ -101,7 +106,7 @@ Kigo:
 runs-on: [self-hosted, linux, x64, atlas, kigo]
 ```
 
-Esta PR instala los runners, pero **no modifica todavía los workflows**. Migra los trabajos después de comprobar que ambos registros están conectados.
+Esta configuración instala los runners, pero no modifica los workflows de los repositorios FCTV y Kigo.
 
 ## 5. Límites actuales
 
