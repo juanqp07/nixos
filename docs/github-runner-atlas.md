@@ -2,14 +2,15 @@
 
 ## Diseño
 
-Atlas aloja dos registros independientes de GitHub Actions para los repositorios privados:
+Atlas aloja tres registros independientes de GitHub Actions para los repositorios privados:
 
 | Runner | Repositorio | Etiqueta adicional |
 |---|---|---|
 | `atlas-fctv` | `juanqp07/fctv` | `fctv` |
+| `atlas-fctv-2` | `juanqp07/fctv` | `fctv` |
 | `atlas-kigo` | `juanqp07/kigo` | `kigo` |
 
-Cada runner tiene su propia credencial, estado, workspace y servicio efímero. Comparten el host Atlas y una slice de systemd limitada conjuntamente a 3 CPU equivalentes y 10 GiB de RAM (8 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales del servidor.
+Cada registro tiene su propio nombre, estado, workspace y servicio efímero. Los dos runners de FCTV comparten el PAT limitado al repositorio `fctv`, pero no comparten workspace ni usuario de servicio. Cada runner procesa un trabajo a la vez: Atlas puede ejecutar hasta dos trabajos de FCTV y uno de Kigo simultáneamente. Los tres comparten una slice de systemd limitada conjuntamente a 3 CPU equivalentes y 10 GiB de RAM (8 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales del servidor.
 
 Los servicios usan usuarios dinámicos gestionados por systemd. No se añaden al grupo `docker` ni reciben acceso al socket Docker de producción.
 
@@ -65,7 +66,7 @@ No reutilices un PAT entre repositorios ni concedas acceso a otros repositorios.
 
 ## 2. Instalar los tokens en Atlas
 
-En Atlas, guarda cada PAT en su archivo correspondiente. El contenido debe ser una sola línea, sin salto de línea. No añadas estos archivos a Git, Nix Store, `flake.nix` ni a `configuration.nix`.
+En Atlas, guarda cada PAT en su archivo correspondiente. El contenido debe ser una sola línea, sin salto de línea. El PAT de FCTV se reutiliza únicamente para registrar los dos runners del mismo repositorio; el PAT de Kigo sigue siendo independiente. No añadas estos archivos a Git, Nix Store, `flake.nix` ni a `configuration.nix`.
 
 ```bash
 sudo install -d -m 0700 -o root -g root /var/lib/secrets/github-runner
@@ -90,6 +91,7 @@ Desde el checkout local actualizado del repositorio NixOS:
 sudo nixos-rebuild switch --flake .#atlas
 
 sudo systemctl restart github-runner-fctv.service
+sudo systemctl restart github-runner-fctv2.service
 sudo systemctl restart github-runner-kigo.service
 ```
 
@@ -97,16 +99,17 @@ Consulta el estado:
 
 ```bash
 systemctl status github-runner-fctv
+systemctl status github-runner-fctv2
 systemctl status github-runner-kigo
 ```
 
 Para ver registros:
 
 ```bash
-journalctl -u github-runner-fctv -u github-runner-kigo -f
+journalctl -u github-runner-fctv -u github-runner-fctv2 -u github-runner-kigo -f
 ```
 
-En cada repositorio, abre **Settings → Actions → Runners**. El runner correspondiente debe aparecer como `Idle` cuando esté conectado.
+En `juanqp07/fctv`, abre **Settings → Actions → Runners** y comprueba que aparecen `atlas-fctv` y `atlas-fctv-2`. En `juanqp07/kigo`, comprueba `atlas-kigo`. Los registros deben aparecer como `Idle` cuando estén conectados.
 
 ## 4. Seleccionar un runner desde cada workflow
 
