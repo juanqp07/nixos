@@ -13,7 +13,7 @@ in
     name = "atlas-fctv";
 
     # PAT fine-grained guardado fuera del repositorio y del Nix Store.
-    tokenFile = tokenFile;
+    inherit tokenFile;
     tokenType = "access";
 
     # Registra un runner nuevo por trabajo y limpia su estado al terminar.
