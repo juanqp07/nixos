@@ -4,6 +4,8 @@ let
   runnerPackages = with pkgs; [
     curl
     jq
+    python3
+    gawk
     unzip
   ];
 
@@ -25,7 +27,16 @@ let
 
       extraLabels = [
         "atlas"
-      ] ++ labels;
+      ]
+      ++ labels;
+
+      # GitHub Actions downloads generic glibc binaries (Node/Temurin).
+      # These variables must be explicit: systemd services do not inherit
+      # environment.sessionVariables from an interactive login shell.
+      extraEnvironment = {
+        NIX_LD = "/run/current-system/sw/share/nix-ld/lib/ld.so";
+        NIX_LD_LIBRARY_PATH = "/run/current-system/sw/share/nix-ld/lib";
+      };
 
       extraPackages = runnerPackages;
 

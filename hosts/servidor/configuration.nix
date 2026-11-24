@@ -7,6 +7,18 @@
     ../../modules/atlas-github-runner.nix
   ];
 
+  # GitHub Actions utiliza Node y JDK descargados como binarios glibc genéricos.
+  # nix-ld aporta el loader y las bibliotecas necesarias en NixOS.
+  # Los runners reciben NIX_LD explícitamente mediante extraEnvironment.
+  programs.nix-ld = {
+    enable = true;
+    libraries = with pkgs; [
+      libxcrypt
+      fontconfig
+      freetype
+    ];
+  };
+
   # --- KERNEL, CGROUPS Y RENDIMIENTO ---
   # cgroupv1 eliminado en kernel 6.x: no se fuerzan flags obsoletos.
   # Servidor: intel_pstate/HWP con governor powersave; irqbalance distribuye

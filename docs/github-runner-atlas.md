@@ -1,6 +1,14 @@
 # GitHub Actions runners de Atlas
 
 ## Diseño
+## Compatibilidad de herramientas Linux
+
+Algunas acciones descargan binarios precompilados para distribuciones Linux con glibc. En Atlas, Node.js descargado por `actions/setup-node` y Temurin descargado por `actions/setup-java` necesitan el loader de compatibilidad.
+
+Se habilita `programs.nix-ld` en la configuración de Atlas y se pasa `NIX_LD` y `NIX_LD_LIBRARY_PATH` explícitamente a ambos servicios mediante `extraEnvironment`. Es necesario hacerlo así porque los runners se ejecutan como usuarios dinámicos de systemd y no heredan las variables de una sesión interactiva.
+
+El runner también incorpora `python3` en su `PATH` para el workflow canary y `gawk` (comando `awk`) para el instalador del SDK Android. No se añade ninguno de los runners al grupo `docker` ni se comparte el socket Docker de producción.
+
 
 Atlas aloja dos registros independientes de GitHub Actions para los repositorios privados:
 
@@ -97,7 +105,7 @@ Esta PR instala los runners, pero **no modifica todavía los workflows**. Migra 
 
 ## 5. Límites actuales
 
-El runner no recibe acceso al Docker del host. Los jobs que necesiten `services: postgres`, `docker build` o Docker Compose deben permanecer en GitHub-hosted hasta preparar un entorno de contenedores aislado.
+El runner no recibe acceso al Docker del host. Los jobs que necesiten `services: postgres`, `docker build` o Docker Compose deben permanecer en GitHub-hosted. No se concede acceso al socket Docker de Atlas: ese acceso equivale prácticamente a root sobre el host. Para mover esos jobs a Atlas habrá que preparar antes un daemon rootless o una VM/runner aislado.
 
 Tampoco se instala Android SDK. Los trabajos Android permanecen en GitHub-hosted hasta preparar un SDK reproducible y validar el consumo de RAM.
 
