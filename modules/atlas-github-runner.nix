@@ -111,7 +111,7 @@ in
       StateDirectoryMode = "0700";
       RuntimeDirectory = "github-buildkit";
       RuntimeDirectoryMode = "0770";
-      ExecStart = "${pkgs.buildkit}/bin/buildkitd --rootless --addr unix:///run/github-buildkit/buildkitd.sock --root /var/lib/github-buildkit";
+      ExecStart = "${pkgs.rootlesskit}/bin/rootlesskit --net=slirp4netns --copy-up=/etc --disable-host-loopback ${pkgs.buildkit}/bin/buildkitd --rootless --addr unix:///run/github-buildkit/buildkitd.sock --root /var/lib/github-buildkit";
       Restart = "on-failure";
       RestartSec = "5s";
       Delegate = true;
