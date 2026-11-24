@@ -189,4 +189,3 @@ steps:
 ```
 
 El builder remoto es compartido por los runners: no almacenes secretos dentro de capas, argumentos o contexto de build. Usa BuildKit secrets cuando una compilación necesite credenciales. Los runners deben seguir limitados a repositorios privados de confianza; un workflow puede ejecutar código arbitrario con los permisos del runner.
-
