@@ -23,7 +23,7 @@ Configura:
 3. Repository permissions: **Administration: Read and write**.
 4. Usa una expiración razonable y guarda el token generado, que empieza por `github_pat_`.
 
-GitHub exige permiso de escritura de Administration para el endpoint de creación del token de registro de runners a nivel de repositorio. No concedas acceso a otros repositorios.
+GitHub exige permiso de escritura de Administration para el endpoint de creación del token de registro de runners a nivel de repositorio ([permisos de los fine-grained PAT](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)). No concedas acceso a otros repositorios.
 
 ## 2. Instalar el secreto en Atlas
 
