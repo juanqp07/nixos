@@ -1,35 +1,38 @@
-# Runners de GitHub Actions en Atlas
+# GitHub Actions runners de Atlas
 
 ## Diseño
 
-Atlas aloja tres registros independientes de GitHub Actions, uno por repositorio:
+Atlas aloja dos registros independientes de GitHub Actions para los repositorios privados:
 
 | Runner | Repositorio | Visibilidad | Etiqueta adicional |
 |---|---|---|---|
 | `atlas-fctv` | `juanqp07/fctv` | Privado | `fctv` |
 | `atlas-kigo` | `juanqp07/kigo` | Privado | `kigo` |
-| `atlas-nixos` | `juanqp07/nixos` | Público | `nixos-config` |
 
-Son tres servicios efímeros independientes en el mismo host. Cada uno tiene su propia credencial, identidad de runner y estado; no se comparte un registro ni un token entre repositorios.
+Cada runner tiene su propia credencial, estado, workspace y servicio efímero. Comparten el host Atlas y una slice de systemd limitada conjuntamente a 3 CPU equivalentes y 10 GiB de RAM (8 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales del servidor.
 
-Los tres servicios utilizan el módulo oficial `services.github-runners` de la revisión estable fijada en `flake.lock`. Systemd los coloca en `github-runners.slice`, que limita el conjunto a un máximo de 3 CPU equivalentes y 12 GiB de RAM (10 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales de Atlas.
+Los servicios usan usuarios dinámicos gestionados por systemd. No se añaden al grupo `docker` ni reciben acceso al socket Docker de producción.
 
-Los runners usan usuarios dinámicos gestionados por systemd. No se añaden al grupo `docker` ni reciben acceso al socket Docker de producción.
+### ¿Por qué NixOS no usa Atlas?
 
-## 1. Crear tres Fine-grained PATs
+El repositorio `juanqp07/nixos` es público. GitHub recomienda evitar runners propios en repositorios públicos: cualquier persona puede abrir una PR y tratar de ejecutar código malicioso en el servidor. Además, los runners estándar alojados por GitHub son gratuitos e ilimitados para repositorios públicos.
+
+Por tanto, NixOS debe mantener `ubuntu-latest` en sus workflows de PR y de push. No necesita consumir recursos de Atlas ni la cuota privada de Actions. Referencias: [seguridad de self-hosted runners](https://docs.github.com/en/actions/reference/security/secure-use) y [facturación de Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+
+## 1. Crear dos Fine-grained PATs
 
 Crea **un token diferente para cada repositorio** desde GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
 
-En cada token configura:
+Para cada token:
 
 1. Resource owner: `juanqp07`.
-2. Repository access: **Only select repositories** y selecciona únicamente el repositorio correspondiente (`fctv`, `kigo` o `nixos`).
+2. Repository access: **Only select repositories** y selecciona únicamente `fctv` o `kigo`.
 3. Repository permissions: **Administration: Read and write**.
-4. Establece una expiración razonable y guarda el token generado (prefijo `github_pat_`).
+4. Configura una expiración razonable y guarda el token (prefijo `github_pat_`).
 
-El endpoint de GitHub para crear el token de registro del runner de un repositorio exige permiso de escritura `Administration`. Consulta [la documentación de GitHub](https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository).
+El endpoint que crea el token de registro de un runner de repositorio exige permiso de escritura `Administration`. Consulta [la documentación de GitHub](https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository).
 
-No reutilices un PAT entre repositorios ni concedas acceso a repositorios adicionales.
+No reutilices un PAT entre repositorios ni concedas acceso a otros repositorios.
 
 ## 2. Instalar los tokens en Atlas
 
@@ -38,7 +41,7 @@ En Atlas, guarda cada PAT en su archivo correspondiente. El contenido debe ser u
 ```bash
 sudo install -d -m 0700 -o root -g root /var/lib/secrets/github-runner
 
-for repo in fctv kigo nixos; do
+for repo in fctv kigo; do
   read -rsp "Fine-grained PAT for $repo: " TOKEN
   printf '\n'
   printf '%s' "$TOKEN" | sudo tee "/var/lib/secrets/github-runner/$repo.token" >/dev/null
@@ -48,7 +51,7 @@ for repo in fctv kigo nixos; do
 done
 ```
 
-Puedes provisionar los tokens en momentos distintos. El servicio correspondiente no arranca hasta que exista su archivo.
+Puedes provisionar los tokens por separado. El servicio correspondiente no arranca hasta que exista su archivo.
 
 ## 3. Aplicar NixOS y comprobar los servicios
 
@@ -59,28 +62,24 @@ sudo nixos-rebuild switch --flake .#atlas
 
 sudo systemctl start github-runner-fctv.service
 sudo systemctl start github-runner-kigo.service
-sudo systemctl start github-runner-nixos.service
 ```
 
-Consulta cada servicio:
+Consulta el estado:
 
 ```bash
 systemctl status github-runner-fctv
 systemctl status github-runner-kigo
-systemctl status github-runner-nixos
 ```
 
 Para ver registros:
 
 ```bash
-journalctl -u github-runner-fctv -u github-runner-kigo -u github-runner-nixos -f
+journalctl -u github-runner-fctv -u github-runner-kigo -f
 ```
 
-En cada repositorio, abre **Settings → Actions → Runners**. El registro correspondiente debe aparecer como `Idle` cuando esté conectado.
+En cada repositorio, abre **Settings → Actions → Runners**. El runner correspondiente debe aparecer como `Idle` cuando esté conectado.
 
 ## 4. Seleccionar un runner desde cada workflow
-
-Los runners conservan las etiquetas predeterminadas `self-hosted`, `linux` y `x64`, además de las etiquetas comunes y específicas:
 
 FCTV:
 
@@ -94,24 +93,12 @@ Kigo:
 runs-on: [self-hosted, linux, x64, atlas, kigo]
 ```
 
-NixOS:
+Esta PR instala los runners, pero **no modifica todavía los workflows**. Migra los trabajos después de comprobar que ambos registros están conectados.
 
-```yaml
-runs-on: [self-hosted, linux, x64, atlas, nixos-config]
-```
+## 5. Límites actuales
 
-Esta PR instala los runners, pero **no modifica los workflows de los proyectos**. Conviene migrar los trabajos gradualmente después de comprobar los tres registros.
+El runner no recibe acceso al Docker del host. Los jobs que necesiten `services: postgres`, `docker build` o Docker Compose deben permanecer en GitHub-hosted hasta preparar un entorno de contenedores aislado.
 
-## 5. Precaución especial con NixOS
+Tampoco se instala Android SDK. Los trabajos Android permanecen en GitHub-hosted hasta preparar un SDK reproducible y validar el consumo de RAM.
 
-El repositorio `juanqp07/nixos` es público. No ejecutes código de pull requests no confiables en el runner de Atlas: un workflow modificado por una contribución podría intentar acceder a la red privada del homelab.
-
-Mantén las validaciones de `pull_request` en runners alojados por GitHub. Reserva `atlas-nixos` para workflows disparados por `push` a `main` después de revisión, o por `workflow_dispatch` iniciado por un mantenedor de confianza. No uses el runner de Atlas para `pull_request` ni `pull_request_target` con código de contribuciones.
-
-## 6. Límites actuales
-
-El runner no tiene acceso al Docker del host. Por tanto, los jobs que requieran `services: postgres`, `docker build` o Docker Compose deben permanecer en runners alojados por GitHub hasta diseñar un entorno de contenedores aislado.
-
-Tampoco se instala Android SDK. Los trabajos Android permanecen en runners alojados por GitHub hasta preparar un SDK reproducible y validar el consumo de RAM.
-
-La modalidad efímera limpia el estado del runner después de un trabajo, pero no convierte el host en una máquina virtual desechable ni elimina el riesgo de ejecutar código no confiable.
+La modalidad efímera limpia el estado del runner después de un trabajo, pero no convierte el host en una máquina virtual desechable. Ejecuta en Atlas únicamente workflows y cambios de confianza.
