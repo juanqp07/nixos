@@ -10,8 +10,8 @@
   # BOOT (x86_64 con UEFI; en Pi 4 lo gestiona extlinux + U-Boot)
   # ============================================================
 
-  boot.loader.systemd-boot.enable = lib.mkDefault (pkgs.stdenv.hostPlatform.isx86_64);
-  boot.loader.efi.canTouchEfiVariables = lib.mkDefault (pkgs.stdenv.hostPlatform.isx86_64);
+  boot.loader.systemd-boot.enable = lib.mkDefault pkgs.stdenv.hostPlatform.isx86_64;
+  boot.loader.efi.canTouchEfiVariables = lib.mkDefault pkgs.stdenv.hostPlatform.isx86_64;
 
   # Evita que /boot se llene con generaciones antiguas (los hosts pueden sobrescribirlo).
   boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
