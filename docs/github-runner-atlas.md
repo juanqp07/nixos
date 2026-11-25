@@ -32,6 +32,16 @@ El runner de FCTV recibe además, de forma exclusiva:
 | `gitleaks` | Escaneo de secretos por rangos de commits |
 | `gh` | GitHub CLI (`gh`) para consultar y gestionar recursos de GitHub desde los jobs |
 
+El runner de Kigo recibe además, de forma exclusiva:
+
+| Paquete Nix | Uso |
+|---|---|
+| `gcc` | CGO y detector de carreras de Go |
+| `postgresql_17` | Dos instancias PostgreSQL temporales para tests de integración |
+| `redis` | Redis temporal para pruebas Anti-Raid |
+
+La revisión fijada de `nixpkgs-stable` proporciona Redis **8.8.4**. El CI de Kigo lo usa para integración; el Compose de producción continúa en Redis 7, por lo que la versión de CI debe revisarse al actualizar el lockfile. No se cambia la versión de Redis de producción en este PR.
+
 Go 1.27.4 se instala mediante `actions/setup-go@v6`: el pin estable 26.05 usado por Atlas no incluye `go_1_27`. No se ejecuta código Go ni se descargan toolchains con el daemon Nix.
 
 **Los workflows no deben ejecutar `nix shell`, `nix build`, `nix develop` ni otros comandos que necesiten contactar con `nix-daemon`.** Los runners usan usuarios dinámicos y el daemon está restringido a `@wheel`. Dar acceso a esos usuarios efímeros o añadirlos a `wheel` ampliaría innecesariamente sus privilegios. Las herramientas de CI deben declararse en `extraPackages` y estar en el `PATH` del servicio.
