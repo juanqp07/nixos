@@ -261,7 +261,7 @@ jobs:
             test "$(nix eval --raw "$unit.serviceConfig.Restart")" = "always"
             test "$(nix eval --raw "$unit.serviceConfig.RestartSec")" = "30s"
             test "$(nix eval --raw "$unit.unitConfig.StartLimitIntervalSec")" = "15min"
-            test "$(nix eval --raw "$unit.unitConfig.StartLimitBurst")" = "5"
+            test "$(nix eval --json "$unit.unitConfig.StartLimitBurst")" = "5"
 
             prestart="$(nix eval --json "$unit.serviceConfig.ExecStartPre")"
             grep -Fq -- "github-runner-$runner-state-guard" <<< "$prestart"
@@ -270,7 +270,7 @@ jobs:
           buildkit=".#nixosConfigurations.atlas.config.systemd.services.github-buildkit"
           test "$(nix eval --raw "$buildkit.serviceConfig.RestartSec")" = "30s"
           test "$(nix eval --raw "$buildkit.unitConfig.StartLimitIntervalSec")" = "15min"
-          test "$(nix eval --raw "$buildkit.unitConfig.StartLimitBurst")" = "5"
+          test "$(nix eval --json "$buildkit.unitConfig.StartLimitBurst")" = "5"
           buildkit_exec="$(nix eval --raw "$buildkit.serviceConfig.ExecStart")"
 
           for expected in \
