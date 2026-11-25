@@ -195,6 +195,9 @@ in
         jdk17
         gitleaks
         gh
+        actionlint
+        chromium
+        docker-compose
       ];
     };
 
@@ -211,6 +214,9 @@ in
         jdk17
         gitleaks
         gh
+        actionlint
+        chromium
+        docker-compose
       ];
     };
 
