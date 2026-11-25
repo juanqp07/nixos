@@ -24,6 +24,10 @@
     rustfmt
     clippy
 
+    # JavaScript: `node` debe estar en PATH porque el plugin
+    # @s-berdia/opencode-router lanza su CLI con este runtime.
+    nodejs_24
+
     # Compilación de extensiones y dependencias nativas.
     gcc
     clang
