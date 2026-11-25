@@ -57,7 +57,7 @@ let
       } // lib.optionalAttrs persistentWorkDir {
         # Preserve the module's normal credential path and add a separate,
         # DynamicUser-owned persistent directory for the runner workspace.
-        StateDirectory = [
+        StateDirectory = lib.mkForce [
           "github-runner/${name}"
           "github-runner-work/${name}"
         ];
