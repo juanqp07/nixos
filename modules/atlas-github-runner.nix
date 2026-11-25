@@ -252,7 +252,8 @@ in
         postgresql_17
         redis
         gitleaks
-        python3Packages.virtualenv
+        python312
+        python312Packages.virtualenv
       ];
     };
   };
