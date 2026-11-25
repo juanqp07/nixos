@@ -30,6 +30,7 @@ El runner de FCTV recibe además, de forma exclusiva:
 | `gcc` | CGO y detector de carreras de Go |
 | `jdk17` | Gradle y SDK Android |
 | `gitleaks` | Escaneo de secretos por rangos de commits |
+| `gh` | GitHub CLI (`gh`) para consultar y gestionar recursos de GitHub desde los jobs |
 
 Go 1.27.4 se instala mediante `actions/setup-go@v6`: el pin estable 26.05 usado por Atlas no incluye `go_1_27`. No se ejecuta código Go ni se descargan toolchains con el daemon Nix.
 

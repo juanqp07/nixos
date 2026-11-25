@@ -137,6 +137,7 @@ in
         gcc
         jdk17
         gitleaks
+        gh
       ];
     };
 
@@ -152,6 +153,7 @@ in
         gcc
         jdk17
         gitleaks
+        gh
       ];
     };
 
