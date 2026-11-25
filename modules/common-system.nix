@@ -121,6 +121,18 @@
   };
 
   # ============================================================
+  # EDITOR CLI GLOBAL
+  # ============================================================
+
+  # Micro es el editor predeterminado en terminales locales y sesiones SSH.
+  # EDITOR cubre la mayoría de herramientas; VISUAL cubre las que priorizan
+  # un editor visual de pantalla completa.
+  environment.variables = {
+    EDITOR = "micro";
+    VISUAL = "micro";
+  };
+
+  # ============================================================
   # NIX
   # ============================================================
 
@@ -168,7 +180,7 @@
       mtr
 
       # Terminal y monitorización
-      vim
+      micro
       btop
       tmux
 
