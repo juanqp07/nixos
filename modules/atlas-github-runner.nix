@@ -251,6 +251,8 @@ in
         gcc
         postgresql_17
         redis
+        gitleaks
+        python3Packages.virtualenv
       ];
     };
   };
