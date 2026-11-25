@@ -96,6 +96,8 @@ in
       "/run/wrappers"
       rootlesskit
       slirp4netns
+      util-linux # nsenter, requerido por la configuración de red de RootlessKit.
+      iproute2 # ip tuntap / ip link, requerido para crear y activar tap0.
       fuse-overlayfs
       shadow
     ];
