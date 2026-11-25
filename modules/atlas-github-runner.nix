@@ -19,9 +19,14 @@ let
       tokenFile,
       labels,
       packages ? [ ],
+      persistentWorkDir ? false,
     }:
     {
       enable = true;
+      # Heavy FCTV workspaces, SDK downloads and RUNNER_TEMP belong on disk,
+      # not the small /run tmpfs. Keep a separate directory per runner.
+      workDir =
+        if persistentWorkDir then "/var/lib/github-runner-work/${name}" else null;
 
       inherit name url tokenFile;
       tokenType = "access";
@@ -49,6 +54,14 @@ let
         IOWeight = 20;
         Nice = 10;
         SupplementaryGroups = [ "github-buildkit" ];
+      } // lib.optionalAttrs persistentWorkDir {
+        # Preserve the module's normal credential path and add a separate,
+        # DynamicUser-owned persistent directory for the runner workspace.
+        StateDirectory = [
+          "github-runner/${name}"
+          "github-runner-work/${name}"
+        ];
+        StateDirectoryMode = "0700";
       };
 
       # Some downloaded Linux tools (for example, Android SDK binaries) use
@@ -73,6 +86,9 @@ let
         set -euo pipefail
 
         state_dir="''${STATE_DIRECTORY:-}"
+        # systemd joins multiple StateDirectory entries with ':'. The first
+        # path is the runner's registration state directory.
+        state_dir="''${state_dir%%:*}"
         if [[ -z "$state_dir" ]]; then
           echo "GitHub runner state guard: STATE_DIRECTORY is not set." >&2
           exit 1
@@ -188,6 +204,7 @@ in
       url = "https://github.com/juanqp07/fctv";
       tokenFile = "/var/lib/secrets/github-runner/fctv.token";
       labels = [ "fctv" ];
+      persistentWorkDir = true;
       packages = with pkgs; [
         nodejs_22
         postgresql_17
@@ -209,6 +226,7 @@ in
       # The same repo-scoped PAT can register multiple runners for this repo.
       tokenFile = "/var/lib/secrets/github-runner/fctv.token";
       labels = [ "fctv" ];
+      persistentWorkDir = true;
       packages = with pkgs; [
         nodejs_22
         postgresql_17
