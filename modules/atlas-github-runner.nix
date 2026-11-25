@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   runnerPackages = with pkgs; [
@@ -26,11 +26,13 @@ let
       inherit name url tokenFile;
       tokenType = "access";
 
-      # Ephemeral runners are re-registered after completing a job.
-      ephemeral = true;
+      # Atlas is a fixed-capacity host, not an autoscaled runner pool. Keep the
+      # registration and listener session across jobs instead of re-registering
+      # the same remote name while GitHub is still closing the previous session.
+      ephemeral = false;
 
-      # Replace a stale GitHub registration with this runner's same name.
-      # This can happen when Atlas stops/reboots while the runner is idle.
+      # This is used only when a fresh registration is required. Healthy state
+      # is reused on service restarts and between jobs.
       replace = true;
 
       extraLabels = [
@@ -59,6 +61,49 @@ let
       # Keep common utilities shared, while project toolchains remain isolated
       # to the runner that needs them.
       extraPackages = runnerPackages ++ packages;
+    };
+
+  runnerRecovery =
+    {
+      serviceName,
+      tokenFile,
+    }:
+    let
+      stateGuard = pkgs.writeShellScript "github-runner-${serviceName}-state-guard" ''
+        set -euo pipefail
+
+        state_dir="''${STATE_DIRECTORY:-}"
+        if [[ -z "$state_dir" ]]; then
+          echo "GitHub runner state guard: STATE_DIRECTORY is not set." >&2
+          exit 1
+        fi
+
+        config_marker="$state_dir/.nixos-current-config.json"
+        if [[ -e "$config_marker" ]] &&
+          { [[ ! -s "$state_dir/.runner" ]] || [[ ! -s "$state_dir/.credentials" ]]; }; then
+          echo "GitHub runner ${serviceName}: registration state is incomplete; requesting a clean registration."
+          rm -f -- "$config_marker" "$state_dir/.current-token" "$state_dir/.new-token"
+        fi
+      '';
+    in
+    {
+      unitConfig = {
+        ConditionPathExists = tokenFile;
+        StartLimitIntervalSec = "15min";
+        StartLimitBurst = 5;
+      };
+
+      serviceConfig = {
+        # A persistent listener should not exit after a successful job. Restart
+        # unexpected exits, but rate-limit repeated failures instead of flapping.
+        Restart = lib.mkForce "always";
+        RestartSec = "30s";
+
+        # Run with the runner's DynamicUser before the upstream configure hooks.
+        # If GitHub deletes a registration, the listener removes .runner and
+        # .credentials; invalidating these markers lets NixOS provision it again.
+        ExecStartPre = lib.mkBefore [ "${stateGuard}" ];
+      };
     };
 in
 {
@@ -91,13 +136,14 @@ in
     after = [ "network.target" ];
 
     path = with pkgs; [
-      # NixOS 26.11 provides capability-enabled newuidmap/newgidmap here.
-      # Keep this before pkgs.shadow so RootlessKit picks the privileged wrappers.
+      # NixOS provides capability-enabled newuidmap/newgidmap wrappers here.
+      # Keep this before pkgs.shadow so RootlessKit picks those wrappers first.
       "/run/wrappers"
       rootlesskit
       slirp4netns
-      util-linux # nsenter, requerido por la configuración de red de RootlessKit.
-      iproute2 # ip tuntap / ip link, requerido para crear y activar tap0.
+      util-linux
+      iproute2
+      runc
       fuse-overlayfs
       shadow
     ];
@@ -105,6 +151,12 @@ in
     environment = {
       HOME = "/var/lib/github-buildkit";
       XDG_RUNTIME_DIR = "/run/github-buildkit";
+    };
+
+    unitConfig = {
+      # Prevent a broken worker from producing an unbounded restart loop.
+      StartLimitIntervalSec = "15min";
+      StartLimitBurst = 5;
     };
 
     serviceConfig = {
@@ -116,9 +168,9 @@ in
       StateDirectoryMode = "0700";
       RuntimeDirectory = "github-buildkit";
       RuntimeDirectoryMode = "0770";
-      ExecStart = "${pkgs.rootlesskit}/bin/rootlesskit --net=slirp4netns --copy-up=/etc --disable-host-loopback ${pkgs.buildkit}/bin/buildkitd --rootless --addr unix:///run/github-buildkit/buildkitd.sock --root /var/lib/github-buildkit";
+      ExecStart = "${pkgs.rootlesskit}/bin/rootlesskit --net=slirp4netns --copy-up=/etc --disable-host-loopback ${pkgs.buildkit}/bin/buildkitd --rootless --oci-worker=true --oci-worker-binary=${pkgs.runc}/bin/runc --oci-worker-snapshotter=fuse-overlayfs --containerd-worker=false --addr unix:///run/github-buildkit/buildkitd.sock --root /var/lib/github-buildkit";
       Restart = "on-failure";
-      RestartSec = "5s";
+      RestartSec = "30s";
       Delegate = true;
       LimitNOFILE = 1048576;
       Slice = "github-runners.slice";
@@ -128,8 +180,8 @@ in
     };
   };
 
-  # Three isolated registrations serve two private repositories. FCTV has
-  # two workers so its independent workflow jobs can run concurrently.
+  # Three independent persistent registrations serve two private repositories.
+  # FCTV has two workers so its independent workflow jobs can run concurrently.
   services.github-runners = {
     fctv = mkRunner {
       name = "atlas-fctv";
@@ -190,10 +242,22 @@ in
     "d /var/lib/secrets/github-runner 0700 root root -"
   ];
 
-  # Avoid registration attempts until the corresponding PAT exists.
+  # Keep runner lifecycle policy and token prerequisites consistent for all
+  # three registrations.
   systemd.services = {
-    github-runner-fctv.unitConfig.ConditionPathExists = "/var/lib/secrets/github-runner/fctv.token";
-    github-runner-fctv2.unitConfig.ConditionPathExists = "/var/lib/secrets/github-runner/fctv.token";
-    github-runner-kigo.unitConfig.ConditionPathExists = "/var/lib/secrets/github-runner/kigo.token";
+    github-runner-fctv = runnerRecovery {
+      serviceName = "fctv";
+      tokenFile = "/var/lib/secrets/github-runner/fctv.token";
+    };
+
+    github-runner-fctv2 = runnerRecovery {
+      serviceName = "fctv2";
+      tokenFile = "/var/lib/secrets/github-runner/fctv.token";
+    };
+
+    github-runner-kigo = runnerRecovery {
+      serviceName = "kigo";
+      tokenFile = "/var/lib/secrets/github-runner/kigo.token";
+    };
   };
 }

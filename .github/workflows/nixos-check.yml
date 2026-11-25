@@ -249,6 +249,39 @@ jobs:
         run: |
           test "$(nix eval --raw '.#nixosConfigurations.titan.config.nix.daemonCPUSchedPolicy')" = "idle"
 
+      - name: Verify Atlas runner and BuildKit lifecycle
+        if: matrix.host == 'atlas'
+        run: |
+          set -Eeuo pipefail
+
+          for runner in fctv fctv2 kigo; do
+            unit=".#nixosConfigurations.atlas.config.systemd.services.github-runner-$runner"
+
+            test "$(nix eval --json ".#nixosConfigurations.atlas.config.services.github-runners.$runner.ephemeral")" = "false"
+            test "$(nix eval --raw "$unit.serviceConfig.Restart")" = "always"
+            test "$(nix eval --raw "$unit.serviceConfig.RestartSec")" = "30s"
+            test "$(nix eval --raw "$unit.unitConfig.StartLimitIntervalSec")" = "15min"
+            test "$(nix eval --json "$unit.unitConfig.StartLimitBurst")" = "5"
+
+            prestart="$(nix eval --json "$unit.serviceConfig.ExecStartPre")"
+            grep -Fq -- "github-runner-$runner-state-guard" <<< "$prestart"
+          done
+
+          buildkit=".#nixosConfigurations.atlas.config.systemd.services.github-buildkit"
+          test "$(nix eval --raw "$buildkit.serviceConfig.RestartSec")" = "30s"
+          test "$(nix eval --raw "$buildkit.unitConfig.StartLimitIntervalSec")" = "15min"
+          test "$(nix eval --json "$buildkit.unitConfig.StartLimitBurst")" = "5"
+          buildkit_exec="$(nix eval --raw "$buildkit.serviceConfig.ExecStart")"
+
+          for expected in \
+            "--oci-worker=true" \
+            "--oci-worker-binary=" \
+            "/runc" \
+            "--oci-worker-snapshotter=fuse-overlayfs" \
+            "--containerd-worker=false"; do
+            grep -Fq -- "$expected" <<< "$buildkit_exec"
+          done
+
       - name: Build headless server closure
         if: matrix.host == 'atlas' || matrix.host == 'pico'
         run: |

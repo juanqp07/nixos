@@ -10,9 +10,9 @@ Atlas aloja tres registros independientes de GitHub Actions para los repositorio
 | `atlas-fctv-2` | `juanqp07/fctv` | `fctv` |
 | `atlas-kigo` | `juanqp07/kigo` | `kigo` |
 
-Cada registro tiene su propio nombre, estado, workspace y servicio efímero. Los dos runners de FCTV comparten el PAT limitado al repositorio `fctv`, pero no comparten workspace ni usuario de servicio. Cada runner procesa un trabajo a la vez: Atlas puede ejecutar hasta dos trabajos de FCTV y uno de Kigo simultáneamente. Los tres comparten una slice de systemd limitada conjuntamente a 3 CPU equivalentes y 10 GiB de RAM (8 GiB como umbral alto). Cada servicio tiene prioridad reducida frente a los servicios normales del servidor.
+Los tres registros son **persistentes**: un listener permanece conectado y procesa trabajos sucesivos. FCTV dispone de dos workers para ejecutar hasta dos jobs en paralelo; Kigo tiene uno. Cada servicio tiene su propio nombre, estado, workspace y usuario dinámico de systemd. Los tres comparten una slice limitada conjuntamente a 3 CPU equivalentes y 10 GiB de RAM (8 GiB como umbral alto), con prioridad reducida frente a los servicios normales de Atlas.
 
-Los servicios usan usuarios dinámicos gestionados por systemd. No se añaden al grupo `docker` ni reciben acceso al socket Docker de producción.
+Los runners no pertenecen al grupo `docker` y no reciben acceso a `/var/run/docker.sock`. Solo pueden acceder al socket Unix de un BuildKit rootless dedicado.
 
 ## Herramientas disponibles
 
@@ -40,25 +40,36 @@ El runner de Kigo recibe además, de forma exclusiva:
 | `postgresql_17` | Dos instancias PostgreSQL temporales para tests de integración |
 | `redis` | Redis temporal para pruebas Anti-Raid |
 
-La revisión fijada de `nixpkgs-stable` proporciona Redis **8.8.4**. El CI de Kigo lo usa para integración; el Compose de producción continúa en Redis 7, por lo que la versión de CI debe revisarse al actualizar el lockfile. No se cambia la versión de Redis de producción en este PR.
+La revisión fijada de `nixpkgs-stable` proporciona Redis **8.8.4**. El CI de Kigo lo usa para integración; el Compose de producción continúa en Redis 7, por lo que la versión de CI debe revisarse al actualizar el lockfile.
 
-Go 1.27.4 se instala mediante `actions/setup-go@v6`: el pin estable 26.05 usado por Atlas no incluye `go_1_27`. No se ejecuta código Go ni se descargan toolchains con el daemon Nix.
+Go 1.27.4 se instala mediante `actions/setup-go@v6`: el pin estable usado por Atlas no incluye `go_1_27`. No se ejecuta código Go ni se descargan toolchains con el daemon Nix.
 
-**Los workflows no deben ejecutar `nix shell`, `nix build`, `nix develop` ni otros comandos que necesiten contactar con `nix-daemon`.** Los runners usan usuarios dinámicos y el daemon está restringido a `@wheel`. Dar acceso a esos usuarios efímeros o añadirlos a `wheel` ampliaría innecesariamente sus privilegios. Las herramientas de CI deben declararse en `extraPackages` y estar en el `PATH` del servicio.
+**Los workflows no deben ejecutar `nix shell`, `nix build`, `nix develop` ni otros comandos que necesiten contactar con `nix-daemon`.** Los runners usan usuarios dinámicos y el daemon está restringido a `@wheel`. Dar acceso a esos usuarios o añadirlos a `wheel` ampliaría innecesariamente sus privilegios. Las herramientas de CI deben declararse en `extraPackages` y estar en el `PATH` del servicio.
 
-Se conserva `NIX_LD` y `NIX_LD_LIBRARY_PATH` explícitamente en ambos servicios para binarios glibc externos, como algunas herramientas descargadas por Android SDK. Esto no concede acceso al daemon Nix.
+Se conserva `NIX_LD` y `NIX_LD_LIBRARY_PATH` explícitamente en los servicios para binarios glibc externos, como algunas herramientas descargadas por Android SDK. Esto no concede acceso al daemon Nix.
 
-## Recuperación de registros existentes
+## Ciclo de vida y recuperación de los runners
 
-Ambos runners usan `ephemeral = true`: GitHub los desregistra después de procesar un trabajo y systemd vuelve a iniciar el servicio para registrar una nueva instancia. Sin embargo, si Atlas se detiene o reinicia mientras un runner está inactivo, el registro remoto anterior puede seguir apareciendo en GitHub aunque el estado local se haya limpiado.
+Los runners usan `ephemeral = false` porque Atlas es un host fijo, no un pool efímero autoscalado. La sesión y el registro de GitHub se mantienen entre trabajos; el listener no se desregistra ni se vuelve a registrar después de cada job. Así se evita la carrera que se producía al registrar repetidamente el mismo nombre con `--replace` mientras GitHub todavía estaba cerrando la sesión anterior.
 
-Por eso el constructor común configura también `replace = true`. Al arrancar, NixOS pide a GitHub que sustituya cualquier registro existente con el mismo nombre (`atlas-fctv` o `atlas-kigo`) en el repositorio correspondiente, en lugar de fallar con el error `A runner exists with the same name`. Cada servicio conserva su propio PAT y la sustitución se limita al nombre de ese runner.
+El estado de autenticación permanece en `/var/lib/github-runner/<servicio>`; cada workspace está en el `RuntimeDirectory` de systemd bajo `/run/github-runner/<servicio>`. Los directorios de trabajo se limpian al iniciar el servicio, mientras que las credenciales locales necesarias para conservar el registro se mantienen.
+
+La recuperación no depende de borrar los registros a mano:
+
+1. Un guard de systemd se ejecuta con el usuario dinámico del runner y antes de los hooks de configuración del módulo NixOS.
+2. Si el marcador de configuración existe pero GitHub Runner ha eliminado `.runner` o `.credentials`, el guard invalida los marcadores locales.
+3. El hook estándar de NixOS detecta el estado incompleto, limpia el estado anterior y vuelve a registrar el runner usando el PAT protegido.
+4. `replace = true` solo actúa durante esa nueva configuración; no sustituye un registro sano en cada trabajo o reinicio normal.
+
+Los servicios usan `Restart = always` y un intervalo de 30 segundos. Un límite de cinco arranques en quince minutos evita ciclos de reinicio ilimitados si la API de GitHub, el token o el registro vuelven a fallar. Los errores transitorios de conexión los gestiona primero el propio listener.
 
 ## Seguridad y aislamiento
 
-El repositorio `juanqp07/nixos` es público. Los workflows de PR y push de este repositorio deben seguir usando runners alojados por GitHub, nunca Atlas. GitHub recomienda evitar runners propios en repositorios públicos porque cualquier persona puede abrir una PR e intentar ejecutar código no confiable en el servidor. Referencias: [seguridad de self-hosted runners](https://docs.github.com/en/actions/reference/security/secure-use) y [facturación de Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+El repositorio `juanqp07/nixos` es público. Sus workflows de PR y push deben seguir usando runners alojados por GitHub, nunca Atlas. GitHub recomienda evitar runners propios en repositorios públicos porque cualquier persona puede abrir una PR e intentar ejecutar código no confiable en el servidor. Referencias: [seguridad de self-hosted runners](https://docs.github.com/en/actions/reference/security/secure-use) y [facturación de Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 
-No se añade ninguno de los runners al grupo `docker`, no se monta `/var/run/docker.sock` y no se desactiva el aislamiento systemd.
+Los runners de Atlas solo deben ejecutar workflows de los repositorios privados de confianza. En particular, no se deben retirar las condiciones que evitan ejecutar código procedente de forks no confiables. Un workflow puede ejecutar código arbitrario con los permisos del runner.
+
+No se añade ninguno de los runners al grupo `docker`, no se monta el socket Docker de producción y no se desactiva el aislamiento systemd.
 
 ## 1. Crear dos Fine-grained PATs
 
@@ -84,7 +95,7 @@ sudo install -d -m 0700 -o root -g root /var/lib/secrets/github-runner
 
 for repo in fctv kigo; do
   read -rsp "Fine-grained PAT for $repo: " TOKEN
-  printf '\\n'
+  printf '\n'
   printf '%s' "$TOKEN" | sudo tee "/var/lib/secrets/github-runner/$repo.token" >/dev/null
   unset TOKEN
   sudo chown root:root "/var/lib/secrets/github-runner/$repo.token"
@@ -96,31 +107,52 @@ Puedes provisionar los tokens por separado. El servicio correspondiente no arran
 
 ## 3. Aplicar NixOS y comprobar los servicios
 
-Desde el checkout local actualizado del repositorio NixOS:
+Programa la migración cuando no haya jobs en ejecución. Primero construye la nueva generación y después detén los listeners antiguos para que no quede ninguna sesión anterior durante el cambio de modelo:
 
 ```bash
+sudo nixos-rebuild build --flake .#atlas
+
+sudo systemctl stop \
+  github-runner-fctv.service \
+  github-runner-fctv2.service \
+  github-runner-kigo.service \
+  github-buildkit.service
+
 sudo nixos-rebuild switch --flake .#atlas
+sudo systemctl reset-failed \
+  github-runner-fctv.service \
+  github-runner-fctv2.service \
+  github-runner-kigo.service \
+  github-buildkit.service
 
-sudo systemctl restart github-runner-fctv.service
-sudo systemctl restart github-runner-fctv2.service
-sudo systemctl restart github-runner-kigo.service
+sudo systemctl start \
+  github-buildkit.service \
+  github-runner-fctv.service \
+  github-runner-fctv2.service \
+  github-runner-kigo.service
 ```
 
-Consulta el estado:
+Comprueba los cuatro servicios:
 
 ```bash
-systemctl status github-runner-fctv
-systemctl status github-runner-fctv2
-systemctl status github-runner-kigo
+systemctl status \
+  github-runner-fctv \
+  github-runner-fctv2 \
+  github-runner-kigo \
+  github-buildkit --no-pager
 ```
 
-Para ver registros:
+El estado esperado es `active (running)`. Los runners deben aparecer como `Idle` en GitHub cuando no tienen jobs asignados. Para seguir su actividad:
 
 ```bash
 journalctl -u github-runner-fctv -u github-runner-fctv2 -u github-runner-kigo -f
 ```
 
-En `juanqp07/fctv`, abre **Settings → Actions → Runners** y comprueba que aparecen `atlas-fctv` y `atlas-fctv-2`. En `juanqp07/kigo`, comprueba `atlas-kigo`. Los registros deben aparecer como `Idle` cuando estén conectados.
+```bash
+journalctl -u github-buildkit -f
+```
+
+No borres `/var/lib/github-buildkit` durante la recuperación: contiene la caché persistente de compilación. Tampoco elimines manualmente los directorios `/var/lib/github-runner/*`; el guard y el módulo NixOS gestionan el registro.
 
 ## 4. Seleccionar un runner desde cada workflow
 
@@ -138,28 +170,21 @@ runs-on: [self-hosted, linux, x64, atlas, kigo]
 
 FCTV puede utilizar los paquetes Nix expuestos en el `PATH` de su runner. Para PostgreSQL, cada job debe crear una instancia temporal bajo `$RUNNER_TEMP`, escuchando solo en localhost, y limpiarla al salir.
 
-## 5. Límites actuales
-
-Los runners no reciben acceso al Docker del host. Kigo puede construir una imagen **de una sola plataforma (linux/amd64)** mediante Buildx contra el socket remoto de BuildKit rootless; el workflow exporta un artefacto OCI temporal y no carga ni ejecuta la imagen en Atlas. Esto no habilita Docker Compose ni contenedores de servicio. Los trabajos que necesiten ejecutar contenedores o compilar varias arquitecturas siguen necesitando un entorno aislado compatible. No se concede acceso al socket Docker de producción: ese acceso equivale prácticamente a root sobre el host.
-
-El SDK Android se descarga dentro del job, en `$RUNNER_TEMP`; solo se proporciona JDK 17 y las herramientas auxiliares mediante Nix. Debe limitarse el paralelismo de Gradle y comprobarse el consumo de disco y memoria.
-
-La modalidad efímera limpia el estado del runner después de un trabajo, pero no convierte el host en una máquina virtual desechable. Ejecuta en Atlas únicamente workflows y cambios de confianza.
-
-
-## Construcción de imágenes Docker
+## 5. Construcción de imágenes con BuildKit rootless
 
 Los runners disponen de Docker CLI y Buildx, pero **no** del socket `/var/run/docker.sock` del host. Las compilaciones se envían a un daemon BuildKit rootless dedicado:
 
 - Servicio systemd: `github-buildkit.service`.
-- Usuario sin privilegios: `github-buildkit`.
+- Usuario sin privilegios: `github-buildkit`, con rangos subordinados propios en `/etc/subuid` y `/etc/subgid`.
 - Socket Unix: `/run/github-buildkit/buildkitd.sock`.
-- Estado persistente: `/var/lib/github-buildkit`.
-- El `PATH` del servicio prioriza `/run/wrappers/bin` para que RootlessKit use los wrappers `newuidmap`/`newgidmap` con sus capacidades de NixOS 26.11, por delante de los binarios normales de `shadow`.
+- Estado y caché persistentes: `/var/lib/github-buildkit`.
+- RootlessKit proporciona el espacio de nombres de usuario y la red aislada mediante `slirp4netns`.
+- Worker OCI explícito: `runc` con snapshotter `fuse-overlayfs`.
+- Worker containerd deshabilitado: BuildKit no intenta acceder a `/run/containerd/containerd.sock`.
 - Los runners reciben únicamente acceso al grupo `github-buildkit`.
 - BuildKit comparte `github-runners.slice` y sus límites de 3 CPU / 10 GiB con los trabajos de CI.
 
-El daemon rootless no administra contenedores, redes, volúmenes ni imágenes del Docker de producción. No añadas los runners al grupo `docker`, no montes el socket de producción y no cambies `DOCKER_HOST` para apuntar al daemon Docker del host.
+El worker OCI usa `runc`, requerido por BuildKit para crear contenedores de compilación. El snapshotter `fuse-overlayfs` permite almacenamiento copy-on-write en modo rootless. No se habilita `--oci-worker-no-process-sandbox`: no es necesario para este servicio y reduciría el aislamiento de procesos. El daemon rootless no administra contenedores, redes, volúmenes ni imágenes del Docker de producción.
 
 En cada job que construya una imagen, crea un builder remoto de Buildx:
 
