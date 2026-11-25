@@ -195,6 +195,8 @@ in
         jdk17
         gitleaks
         gh
+        # FCTV CI only: workflow linting, Playwright browser, and Compose config parsing.
+        # Docker Compose is CLI-only here; this does not install or enable Docker Engine.
         actionlint
         chromium
         docker-compose
@@ -214,6 +216,8 @@ in
         jdk17
         gitleaks
         gh
+        # FCTV CI only: workflow linting, Playwright browser, and Compose config parsing.
+        # Docker Compose is CLI-only here; this does not install or enable Docker Engine.
         actionlint
         chromium
         docker-compose
