@@ -165,6 +165,11 @@ in
       url = "https://github.com/juanqp07/kigo";
       tokenFile = "/var/lib/secrets/github-runner/kigo.token";
       labels = [ "kigo" ];
+      packages = with pkgs; [
+        gcc
+        postgresql_17
+        redis
+      ];
     };
   };
 

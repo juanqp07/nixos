@@ -32,6 +32,16 @@ El runner de FCTV recibe además, de forma exclusiva:
 | `gitleaks` | Escaneo de secretos por rangos de commits |
 | `gh` | GitHub CLI (`gh`) para consultar y gestionar recursos de GitHub desde los jobs |
 
+El runner de Kigo recibe además, de forma exclusiva:
+
+| Paquete Nix | Uso |
+|---|---|
+| `gcc` | CGO y detector de carreras de Go |
+| `postgresql_17` | Dos instancias PostgreSQL temporales para tests de integración |
+| `redis` | Redis temporal para pruebas Anti-Raid |
+
+La revisión fijada de `nixpkgs-stable` proporciona Redis **8.8.4**. El CI de Kigo lo usa para integración; el Compose de producción continúa en Redis 7, por lo que la versión de CI debe revisarse al actualizar el lockfile. No se cambia la versión de Redis de producción en este PR.
+
 Go 1.27.4 se instala mediante `actions/setup-go@v6`: el pin estable 26.05 usado por Atlas no incluye `go_1_27`. No se ejecuta código Go ni se descargan toolchains con el daemon Nix.
 
 **Los workflows no deben ejecutar `nix shell`, `nix build`, `nix develop` ni otros comandos que necesiten contactar con `nix-daemon`.** Los runners usan usuarios dinámicos y el daemon está restringido a `@wheel`. Dar acceso a esos usuarios efímeros o añadirlos a `wheel` ampliaría innecesariamente sus privilegios. Las herramientas de CI deben declararse en `extraPackages` y estar en el `PATH` del servicio.
@@ -130,7 +140,7 @@ FCTV puede utilizar los paquetes Nix expuestos en el `PATH` de su runner. Para P
 
 ## 5. Límites actuales
 
-El runner no recibe acceso al Docker del host. Los jobs que necesiten `docker build` o Docker Compose deben permanecer en un runner/VM aislado con etiqueta específica. No se concede acceso al socket Docker de Atlas: ese acceso equivale prácticamente a root sobre el host.
+Los runners no reciben acceso al Docker del host. Kigo puede construir una imagen **de una sola plataforma (linux/amd64)** mediante Buildx contra el socket remoto de BuildKit rootless; el workflow exporta un artefacto OCI temporal y no carga ni ejecuta la imagen en Atlas. Esto no habilita Docker Compose ni contenedores de servicio. Los trabajos que necesiten ejecutar contenedores o compilar varias arquitecturas siguen necesitando un entorno aislado compatible. No se concede acceso al socket Docker de producción: ese acceso equivale prácticamente a root sobre el host.
 
 El SDK Android se descarga dentro del job, en `$RUNNER_TEMP`; solo se proporciona JDK 17 y las herramientas auxiliares mediante Nix. Debe limitarse el paralelismo de Gradle y comprobarse el consumo de disco y memoria.
 
