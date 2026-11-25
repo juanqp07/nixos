@@ -91,6 +91,9 @@ in
     after = [ "network.target" ];
 
     path = with pkgs; [
+      # NixOS 26.11 provides capability-enabled newuidmap/newgidmap here.
+      # Keep this before pkgs.shadow so RootlessKit picks the privileged wrappers.
+      "/run/wrappers"
       rootlesskit
       slirp4netns
       fuse-overlayfs

@@ -145,6 +145,7 @@ Los runners disponen de Docker CLI y Buildx, pero **no** del socket `/var/run/do
 - Usuario sin privilegios: `github-buildkit`.
 - Socket Unix: `/run/github-buildkit/buildkitd.sock`.
 - Estado persistente: `/var/lib/github-buildkit`.
+- El `PATH` del servicio prioriza `/run/wrappers/bin` para que RootlessKit use los wrappers `newuidmap`/`newgidmap` con sus capacidades de NixOS 26.11, por delante de los binarios normales de `shadow`.
 - Los runners reciben únicamente acceso al grupo `github-buildkit`.
 - BuildKit comparte `github-runners.slice` y sus límites de 3 CPU / 10 GiB con los trabajos de CI.
 
