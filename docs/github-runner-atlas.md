@@ -140,7 +140,7 @@ FCTV puede utilizar los paquetes Nix expuestos en el `PATH` de su runner. Para P
 
 ## 5. Límites actuales
 
-El runner no recibe acceso al Docker del host. Los jobs que necesiten `docker build` o Docker Compose deben permanecer en un runner/VM aislado con etiqueta específica. No se concede acceso al socket Docker de Atlas: ese acceso equivale prácticamente a root sobre el host.
+Los runners no reciben acceso al Docker del host. Kigo puede construir una imagen **de una sola plataforma (linux/amd64)** mediante Buildx contra el socket remoto de BuildKit rootless; el workflow exporta un artefacto OCI temporal y no carga ni ejecuta la imagen en Atlas. Esto no habilita Docker Compose ni contenedores de servicio. Los trabajos que necesiten ejecutar contenedores o compilar varias arquitecturas siguen necesitando un entorno aislado compatible. No se concede acceso al socket Docker de producción: ese acceso equivale prácticamente a root sobre el host.
 
 El SDK Android se descarga dentro del job, en `$RUNNER_TEMP`; solo se proporciona JDK 17 y las herramientas auxiliares mediante Nix. Debe limitarse el paralelismo de Gradle y comprobarse el consumo de disco y memoria.
 
