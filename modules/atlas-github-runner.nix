@@ -25,8 +25,7 @@ let
       enable = true;
       # Heavy FCTV workspaces, SDK downloads and RUNNER_TEMP belong on disk,
       # not the small /run tmpfs. Keep a separate directory per runner.
-      workDir =
-        if persistentWorkDir then "/var/lib/github-runner-work/${name}" else null;
+      workDir = if persistentWorkDir then "/var/lib/github-runner-work/${name}" else null;
 
       inherit name url tokenFile;
       tokenType = "access";
@@ -54,7 +53,8 @@ let
         IOWeight = 20;
         Nice = 10;
         SupplementaryGroups = [ "github-buildkit" ];
-      } // lib.optionalAttrs persistentWorkDir {
+      }
+      // lib.optionalAttrs persistentWorkDir {
         # Preserve the module's normal credential path and add a separate,
         # DynamicUser-owned persistent directory for the runner workspace.
         StateDirectory = lib.mkForce [
