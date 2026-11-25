@@ -257,7 +257,7 @@ jobs:
           for runner in fctv fctv2 kigo; do
             unit=".#nixosConfigurations.atlas.config.systemd.services.github-runner-$runner"
 
-            test "$(nix eval --raw ".#nixosConfigurations.atlas.config.services.github-runners.$runner.ephemeral")" = "false"
+            test "$(nix eval --json ".#nixosConfigurations.atlas.config.services.github-runners.$runner.ephemeral")" = "false"
             test "$(nix eval --raw "$unit.serviceConfig.Restart")" = "always"
             test "$(nix eval --raw "$unit.serviceConfig.RestartSec")" = "30s"
             test "$(nix eval --raw "$unit.unitConfig.StartLimitIntervalSec")" = "15min"
