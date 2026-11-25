@@ -1,16 +1,17 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # ============================================================
   # BOOT (x86_64 con UEFI; en Pi 4 lo gestiona extlinux + U-Boot)
   # ============================================================
 
-  boot.loader.systemd-boot.enable = lib.mkDefault (
-    pkgs.stdenv.hostPlatform.isx86_64
-  );
-  boot.loader.efi.canTouchEfiVariables = lib.mkDefault (
-    pkgs.stdenv.hostPlatform.isx86_64
-  );
+  boot.loader.systemd-boot.enable = lib.mkDefault (pkgs.stdenv.hostPlatform.isx86_64);
+  boot.loader.efi.canTouchEfiVariables = lib.mkDefault (pkgs.stdenv.hostPlatform.isx86_64);
 
   # Evita que /boot se llene con generaciones antiguas (los hosts pueden sobrescribirlo).
   boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
@@ -34,7 +35,8 @@
     # Todos los hosts usan zram; afinar más exige medir presión de RAM y carga.
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
-  } // lib.optionalAttrs (config.networking.hostName == "palco") {
+  }
+  // lib.optionalAttrs (config.networking.hostName == "palco") {
     # Preservar el valor anterior del host fuera del alcance de esta auditoría.
     "vm.max_map_count" = lib.mkForce 262144;
   };
