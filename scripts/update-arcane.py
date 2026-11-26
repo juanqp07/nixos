@@ -15,9 +15,9 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_FILE = ROOT / "modules" / "atlas-docker.nix"
+MODULE_FILE = ROOT / "modules" / "atlas" / "arcane.nix"
 BACKUP_SCRIPT = ROOT / "scripts" / "backup-arcane.sh"
-MODULE_RELATIVE_PATH = "modules/atlas-docker.nix"
+MODULE_RELATIVE_PATH = "modules/atlas/arcane.nix"
 IMAGE_REPOSITORY = "ghcr.io/getarcaneapp/manager"
 RELEASES_URL = "https://api.github.com/repos/getarcaneapp/arcane/releases?per_page=100"
 USER_AGENT = "juanqp07-nixos-arcane-updater/1.0"
