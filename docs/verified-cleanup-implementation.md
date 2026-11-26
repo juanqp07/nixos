@@ -18,13 +18,13 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
   demás servicios mantienen sus reglas actuales hasta poder definir una política
   por interfaz que preserve el acceso LAN doméstico.
 - Escritorios: los toolchains de Python, Node/Bun, Go y Rust dejan de instalarse
-  globalmente en `desktop-gaming.nix`. Se ofrecen en devShells declarados en
+  globalmente en `modules/desktop/`. Se ofrecen en devShells declarados en
   `flake.nix`; Rust añade rustfmt/clippy y Go dispone de un shell propio.
   Los runtimes que aparecen en `programs.nix-ld.libraries` se conservan: esa
   lista sirve a bibliotecas compartidas de binarios externos, no equivale a
   instalar toolchains en el PATH de todos los proyectos.
 - Elytra: se eliminan de su lista local `btop`, `lm_sensors`, `pciutils` y
-  `usbutils`, ya heredados de `common-system.nix`.
+  `usbutils`, ya heredados de `modules/common/system.nix`.
 - Escritorios: se elimina `services.pipewire.jack.enable`, deprecado en el pin
   de nixpkgs porque inyecta `LD_LIBRARY_PATH` globalmente. Se conserva la
   compatibilidad JACK instalando el output `pipewire.jack`, que aporta
@@ -60,7 +60,7 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
   en Atlas y debe comprobarse en Pico después del despliegue. Si se cambia a
   `network_mode: host`, revisar INPUT porque DOCKER-USER no filtra ese tráfico.
 - Atlas y Pico: se quita la asignación sysctl duplicada de `kernel.panic=10`;
-  el parámetro de arranque `panic=10` permanece en `server-system.nix`.
+  el parámetro de arranque `panic=10` permanece en `modules/server/base.nix`.
 - Pico: se elimina la declaración explícita de `nix.settings.trusted-users`.
   El pin de NixOS ya define `[ "root" ]` como valor predeterminado; antes el
   host añadía `juan`, que habría concedido privilegios equivalentes a root.
@@ -84,7 +84,7 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
   construyen en el job existente) para no forzar builds grandes de IDEs y
   multimedia en cada PR.
 - Atlas y Pico: se eliminan de las listas locales algunos paquetes ya heredados
-  de `common-system.nix`; también se quita `lm_sensors` de `desktop-gaming.nix`
+  de `modules/common/system.nix`; también se quita `lm_sensors` de `modules/desktop/`
   porque los escritorios ya lo reciben del módulo común.
 - El devShell Python incluye `pip` además de uv, Ruff y MkDocs, para conservar
   el flujo de trabajo disponible anteriormente sin instalarlo globalmente.
@@ -160,7 +160,7 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
 - En la limpieza original se fijaron Arcane Manager y el entonces Direct Agent
   a `v2.17.3`, evitando `:latest` y `:next`. Esa referencia describe el estado
   histórico de aquella rama, no el estado actual del flake. La migración posterior
-  a Arcane 3 está reflejada en `modules/atlas-docker.nix` y
+  a Arcane 3 está reflejada en `modules/atlas/arcane.nix` y
   `hosts/zimablade/configuration.nix`: ambos componentes están fijados ahora a
   `v3.0.1` con digest. Las futuras actualizaciones siguen requiriendo copia de
   seguridad, revisión de changelog/migraciones, evaluación y despliegue ordenado
@@ -207,7 +207,7 @@ backend DRM. El relay `hbbs`/`hbbr` de Atlas permanece intacto.
 ## Elytra: selección declarativa de perfiles AC/batería
 
 Elytra mantiene una sola pila de energía: `power-profiles-daemon` con
-`thermald`, ambos declarados en `desktop-gaming.nix`. Home Manager importa
+`thermald`, ambos declarados en `modules/desktop/`. Home Manager importa
 `home/juan/laptop-power.nix` solo desde `hosts/portatil/configuration.nix`,
 y configura `powerdevilrc` con estas asignaciones:
 
