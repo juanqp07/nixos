@@ -62,6 +62,12 @@ let
           "github-runner-work/${name}"
         ];
         StateDirectoryMode = "0700";
+
+        # The upstream github-runner module adds BindPaths = [ cfg.workDir ]
+        # whenever workDir is set. This workspace is already exposed through
+        # StateDirectory above; adding a second bind for the same path makes
+        # systemd fail while constructing the runner's mount namespace.
+        BindPaths = lib.mkForce [ ];
       };
 
       # Some downloaded Linux tools (for example, Android SDK binaries) use
@@ -156,6 +162,8 @@ in
       # Keep this before pkgs.shadow so RootlessKit picks those wrappers first.
       "/run/wrappers"
       rootlesskit
+      # BuildKit's git source resolver executes git from the daemon PATH.
+      git
       slirp4netns
       util-linux
       iproute2
@@ -247,6 +255,7 @@ in
       url = "https://github.com/juanqp07/kigo";
       tokenFile = "/var/lib/secrets/github-runner/kigo.token";
       labels = [ "kigo" ];
+      persistentWorkDir = true;
       packages = with pkgs; [
         gcc
         postgresql_17
