@@ -1,7 +1,7 @@
 # Actualizaciones de Arcane en Atlas y Pico
 
 Arcane se declara en el flake como imágenes OCI fijadas por versión y digest:
-el Manager en `modules/atlas-docker.nix` y el Agent en
+el Manager en `modules/atlas/arcane.nix` y el Agent en
 `hosts/zimablade/configuration.nix`. NixOS controla el ciclo de vida de ambos
 contenedores; no los actualices por separado desde Docker ni habilites el
 actualizador interno de Arcane.
@@ -35,7 +35,7 @@ Al ejecutar `nix-maintain` o `nix-maintain -y` en Atlas:
 2. Obtiene el digest del manifiesto en GHCR.
 3. Ejecuta `sudo bash scripts/backup-arcane.sh` antes de modificar la imagen.
 4. Actualiza únicamente la referencia del Manager en
-   `modules/atlas-docker.nix`.
+   `modules/atlas/arcane.nix`.
 
 ### Pico: Arcane Agent
 
@@ -45,7 +45,7 @@ Al ejecutar `nix-maintain` o `nix-maintain -y` en Pico:
    `hosts/zimablade/configuration.nix`.
 2. Consulta en tiempo real `/api/app/version` de Atlas y usa
    `currentVersion` como versión de referencia. No depende de que el checkout
-   de Pico tenga sincronizado `modules/atlas-docker.nix` ni de publicar cambios
+   de Pico tenga sincronizado `modules/atlas/arcane.nix` ni de publicar cambios
    locales de los servidores en GitHub.
 La versión consultada es la que está ejecutándose en Atlas, no una generación
 que solo esté preparada para el siguiente arranque. Por tanto, actualiza Pico
@@ -90,7 +90,7 @@ La copia se guarda en
 - Volumen Docker `arcane-data`.
 - Directorio de proyectos `/mnt/datos/arcane/projects`.
 - `arcane.env` y `postgres.env`.
-- La declaración `modules/atlas-docker.nix` utilizada.
+- La declaración `modules/atlas/arcane.nix` utilizada.
 
 El script detiene `docker-arcane.service` mientras copia los datos y lo vuelve
 a iniciar mediante systemd al terminar. Esto es importante porque
