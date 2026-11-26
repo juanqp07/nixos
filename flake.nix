@@ -90,7 +90,6 @@
         palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
           nixos-hardware.nixosModules.raspberry-pi-4
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-          ./modules/palco-audio.nix
         ];
       };
 
