@@ -142,7 +142,7 @@
 
   # ============================================================
   # CPU / SCHED-EXT, GAMEMODE, MEMORIA, SYSCTL, BLUETOOTH
-  # Heredados de modules/desktop-gaming.nix (paridad elytra+titan).
+  # Heredados de modules/modules/desktop/ (paridad elytra+titan).
   # ============================================================
 
   # ============================================================
@@ -155,7 +155,7 @@
   # WAYLAND / ELECTRON
   # ============================================================
 
-  # NIXOS_OZONE_WL ya viene de modules/desktop-gaming.nix.
+  # NIXOS_OZONE_WL ya viene de modules/modules/desktop/.
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
   };
@@ -185,7 +185,7 @@
   };
 
   # ============================================================
-  # BLUETOOTH: heredado de modules/desktop-gaming.nix
+  # BLUETOOTH: heredado de modules/modules/desktop/
   # ============================================================
 
   # ============================================================
@@ -203,7 +203,7 @@
 
   services.libinput.enable = true;
 
-  # fstrim está habilitado en desktop-gaming.nix.
+  # fstrim está habilitado en modules/desktop/.
 
   # Dev remoto (VSCode Remote-SSH al portátil).
   # Al ser un portátil que se conecta a Wi-Fi ajenas, SSH y Sunshine no se abren
@@ -294,7 +294,7 @@
   environment.systemPackages =
     with pkgs;
     [
-      # Gaming extra específico portátil (base común en desktop-gaming.nix)
+      # Gaming extra específico portátil (base común en modules/desktop/)
       nvtopPackages.nvidia
       vulkan-tools
 
@@ -304,7 +304,7 @@
       vdpauinfo
 
       # Gaming
-      # mangohud/gamescope/protonup-qt/gamemode en desktop-gaming.nix
+      # mangohud/gamescope/protonup-qt/gamemode en modules/desktop/
 
       # Sistema
       powertop
