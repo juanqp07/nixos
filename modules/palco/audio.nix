@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # PIPEWIRE
@@ -86,8 +91,7 @@
                   type = "lv2";
                   name = "comp";
 
-                  plugin =
-                    "http://lsp-plug.in/plugins/lv2/compressor_stereo";
+                  plugin = "http://lsp-plug.in/plugins/lv2/compressor_stereo";
 
                   control = {
                     # -12 dBFS.
@@ -115,8 +119,7 @@
                   type = "lv2";
                   name = "lim";
 
-                  plugin =
-                    "http://lsp-plug.in/plugins/lv2/limiter_stereo";
+                  plugin = "http://lsp-plug.in/plugins/lv2/limiter_stereo";
 
                   control = {
                     # Techo -1 dBFS.
