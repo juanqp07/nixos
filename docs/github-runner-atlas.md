@@ -14,6 +14,8 @@ Los tres registros son **persistentes**: un listener permanece conectado y proce
 
 Los runners no pertenecen al grupo `docker` y no reciben acceso a `/var/run/docker.sock`. Solo pueden acceder al socket Unix de un BuildKit rootless dedicado.
 
+El servicio `github-buildkit` incluye en su propio `PATH` tanto `fuse-overlayfs` como `fuse3`. El snapshotter FUSE de BuildKit invoca `mount.fuse3` por nombre al montar el rootfs; instalar `fuse3` únicamente en el runner no sirve porque el helper se ejecuta desde el entorno del daemon. Mantén ambos paquetes en `systemd.services.github-buildkit.path`.
+
 ## Herramientas disponibles
 
 Todos los runners reciben herramientas comunes desde `extraPackages`:
