@@ -68,7 +68,7 @@ El script `scripts/update-docker-digests.py` reconoce asignaciones Nix
 literales `image = "registry/repository:tag";` en:
 
 - `hosts/servidor/configuration.nix` (compatibilidad mientras Docker siga en el host)
-- `modules/atlas-docker.nix` (módulo dedicado de Atlas)
+- `modules/atlas/arcane.nix` (módulo dedicado de Atlas)
 - `hosts/zimablade/configuration.nix`
 
 Por ahora soporta Docker Hub y GHCR públicos. Si se añade otro registro,

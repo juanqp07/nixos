@@ -1,8 +1,17 @@
-{ config, pkgs, lib, inputs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 
 {
   imports = [
     ./hardware-configuration.nix
+    ../../modules/palco/bluetooth.nix
+    ../../modules/palco/audio.nix
+    ../../modules/palco/maintenance.nix
   ];
 
   # ============================================================

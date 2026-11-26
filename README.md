@@ -4,34 +4,25 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 
 ## 📂 Estructura del Repositorio
 
-* **flake.nix**: Punto de entrada que define los hosts, las dependencias fijadas y los despliegues remotos de Atlas y Pico.
-* **hosts/**: Configuraciones específicas de hardware.
-    * `portatil/` (elytra): Laptop i5-13450HX (Raptor Lake HX) + NVIDIA RTX 5050 Max-Q / UHD integrada (PRIME offload).
-    * `torre/` (titan): PC Ryzen 5 5600X + RX 6700 XT 12GB + 32GB RAM (AMD nativo).
-    * `servidor/` (**atlas · servidor principal**): Minisforum UN1250 con Intel Core i5-1250P y 32GB RAM; servidor headless para Docker y servicios del homelab.
-    * `zimablade/` (**pico · servidor secundario**): ZimaBlade con Intel Celeron N3450 (Apollo Lake); servidor headless para Docker y Arcane Agent v3, que inicia la conexión hacia el Manager de Atlas sin publicar TCP/3553.
-    * `rpi4-bt/` (palco): Raspberry Pi 4B 8GB headless, receptor Bluetooth A2DP → jack 3.5mm (aarch64).
-**Atlas y Pico son los dos servidores del homelab.** Ambos ejecutan NixOS sin entorno gráfico, usan Docker y tienen NetBird (interfaz `wt0`) y OpenSSH para administración remota. Atlas es el servidor principal (Minisforum UN1250); Pico es el servidor secundario (ZimaBlade).
-
-* **modules/**: Módulos reutilizables y módulos específicos de host.
-    * `common-system.nix`: Configuración base, idioma, herramientas CLI y mantenimiento.
-    * `desktop-gaming.nix`: Entorno Plasma 6, Steam, audio, virtualización y aplicaciones de escritorio.
-    * `development-tools.nix`: Python, Rust y herramientas nativas de compilación para Elytra y Titan.
-    * `server-system.nix`: Ajustes comunes de kernel y memoria para los servidores.
-    * `atlas-docker.nix`: Docker, Arcane, proxy de socket y política DOCKER-USER exclusivos de Atlas.
-* **docs/arcane-updates.md**: actualización fijada de Arcane, copias de seguridad y migraciones mayores.
-* **docs/horizon-native-mods.md**: instalación de Horizon en Elytra y SDK requerido para compilar mods nativos.
-    * `palco-audio.nix`: BlueZ + PipeWire/WirePlumber y DSP para la Raspberry Pi.
-    * `home-manager.nix`: Integración de Home Manager con NixOS.
-* **packages/**: accesos a los paquetes externos preparados para NixOS.
-    * `nori.nix` y `nori-cli.nix`: reutilizan las expresiones candidatas para Nixpkgs, evitando mantener dos recetas distintas.
-* **nixpkgs/pkgs/by-name/no/**: expresiones listas para proponer en Nixpkgs.
-    * `nori/package.nix`: Nori Desktop 0.9.0 desde el AppImage oficial y con WebKitGTK 4.1.
-    * `nori-cli/package.nix`: Nori CLI 0.9.0 desde el tarball oficial y con ALSA/WebKitGTK.
-* **home/juan/**: Configuración personal compartida con Home Manager.
-    * `default.nix`: Versión inicial de estado y módulos comunes del usuario.
-    * `fish.nix`: Fish, saludo y alias personales de mantenimiento.
-    * `desktop.nix`: Fastfetch, comandos de deploy-rs y alternativas de despliegue remoto exclusivas de Elytra y Titan.
+* **flake.nix / flake.lock**: punto de entrada, hosts, dependencias fijadas, devShells y despliegues remotos.
+* **hosts/**: ajustes específicos de cada equipo y su hardware.
+    * `portatil/` (elytra): portátil Intel + NVIDIA RTX 5050.
+    * `torre/` (titan): torre Ryzen + Radeon RX 6700 XT.
+    * `servidor/` (atlas): servidor principal del homelab.
+    * `zimablade/` (pico): servidor secundario del homelab.
+    * `rpi4-bt/` (palco): Raspberry Pi dedicada a audio Bluetooth.
+* **modules/**: configuración compartida agrupada por responsabilidad.
+    * `common/`: base del sistema y herramientas de desarrollo.
+    * `desktop/`: base, Plasma, audio/Bluetooth, virtualización, gaming, aplicaciones y compatibilidad binaria.
+    * `server/`: base común y política SSH/Fail2ban compartida por Atlas y Pico.
+    * `atlas/`: motor Docker, Arcane, firewall de contenedores y runners de GitHub Actions.
+    * `palco/`: Bluetooth, PipeWire/DSP y mantenimiento del appliance.
+    * `home-manager.nix`: integración de Home Manager con NixOS.
+* **home/juan/**: preferencias personales, Fish, alias y configuración de Plasma mediante Home Manager.
+* **packages/** y **nixpkgs/**: paquetes propios y expresiones preparadas para Nixpkgs.
+* **scripts/** y **tests/**: mantenimiento, automatización y pruebas offline.
+* **docs/**: procedimientos de despliegue, seguridad, mantenimiento y decisiones técnicas.
+* **.github/**: CI, actualización de dependencias y reglas de automatización.
 
 ---
 
@@ -77,7 +68,7 @@ cuando el proyecto tenga un archivo `.envrc` con `use flake .#python`,
 
 ## 🤖 OpenCode en los escritorios
 
-**Elytra y Titan instalan tanto OpenCode CLI como OpenCode Desktop** desde el módulo compartido `modules/desktop-gaming.nix`. No hay diferencias por host: puedes trabajar desde Fish/terminal o abrir la interfaz gráfica en cualquiera de los dos equipos.
+**Elytra y Titan instalan tanto OpenCode CLI como OpenCode Desktop** desde el módulo compartido `modules/desktop/`. No hay diferencias por host: puedes trabajar desde Fish/terminal o abrir la interfaz gráfica en cualquiera de los dos equipos.
 
 - `opencode`: CLI para terminal, scripts y sesiones rápidas.
 - `opencode-desktop`: aplicación gráfica para gestionar sesiones, revisar cambios y trabajar con proyectos mediante su interfaz.
@@ -88,7 +79,7 @@ El módulo compartido activa `NIXOS_OZONE_WL` para que Electron utilice Ozone na
 
 ## 🖥️ RustDesk en los escritorios
 
-El cliente estándar `rustdesk-flutter` de Nixpkgs se instala en Elytra y Titan desde `modules/desktop-gaming.nix`. No se configura un servicio de sistema para acceso previo al inicio de sesión, ni la variante unattended/DRM. El relay autoalojado `hbbs`/`hbbr` de Atlas permanece independiente y sin cambios.
+El cliente estándar `rustdesk-flutter` de Nixpkgs se instala en Elytra y Titan desde `modules/desktop/`. No se configura un servicio de sistema para acceso previo al inicio de sesión, ni la variante unattended/DRM. El relay autoalojado `hbbs`/`hbbr` de Atlas permanece independiente y sin cambios.
 
 ## 🏠 Home Manager
 
@@ -249,7 +240,7 @@ Los hosts `atlas` y `pico` tienen `system.autoUpgrade` activado con `operation =
 
 Para liberar espacio sin eliminar todas las generaciones anteriores:
 
-* **Eliminar generaciones antiguas de más de 30 días** (coincide con la política general de `common-system.nix`):
+* **Eliminar generaciones antiguas de más de 30 días** (coincide con la política general de `modules/common/system.nix`):
     `sudo nix-collect-garbage --delete-older-than 30d`
 * **Optimizar el almacenamiento compartido**:
     `sudo nix-store --optimise`

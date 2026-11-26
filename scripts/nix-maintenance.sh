@@ -869,7 +869,7 @@ update_flatpak_apps() {
 
 read_arcane_version() {
   sed -nE 's/.*ghcr\.io\/getarcaneapp\/manager:(v[0-9]+\.[0-9]+\.[0-9]+)@sha256:[0-9a-f]{64}.*/\1/p' \
-    "$FLAKE_DIR/modules/atlas-docker.nix" | sed -n '1p'
+    "$FLAKE_DIR/modules/atlas/arcane.nix" | sed -n '1p'
 }
 
 update_arcane() {
@@ -929,7 +929,7 @@ update_arcane_agent() {
     args+=(--yes)
   fi
 
-  # El Manager fijado en atlas-docker.nix es la fuente de verdad para la versión del agente.
+  # El Manager fijado en atlas/arcane.nix es la fuente de verdad para la versión del agente.
   if ! python3 "$SCRIPT_DIR/update-arcane-agent.py" "${args[@]}"; then
     warning "No se ha actualizado Arcane Agent. El mantenimiento NixOS continuará."
     return 0

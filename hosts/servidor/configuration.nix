@@ -3,8 +3,10 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../modules/atlas-docker.nix
-    ../../modules/atlas-github-runner.nix
+    ../../modules/atlas/docker-engine.nix
+    ../../modules/atlas/arcane.nix
+    ../../modules/atlas/docker-firewall.nix
+    ../../modules/atlas/github-runners.nix
   ];
 
   # GitHub Actions utiliza Node y JDK descargados como binarios glibc genéricos.
@@ -33,7 +35,7 @@
   # Rendimiento bajo demanda sin el ruido/consumo del governor fijo.
   powerManagement.cpuFreqGovernor = "powersave";
   # --- RED ---
-  # NetworkManager ya se habilita en modules/common-system.nix.
+  # NetworkManager ya se habilita en modules/common/system.nix.
   networking.hostName = "atlas";
 
   # Redis/Valkey: permitir reservas virtuales de memoria necesarias para fork()
@@ -50,41 +52,6 @@
     '';
 
     netbird.enable = true;
-
-    fail2ban = {
-      enable = true;
-
-      maxretry = 3;
-      bantime = "24h";
-
-      bantime-increment = {
-        enable = true;
-        rndtime = "15m";
-        overalljails = true;
-        maxtime = "90d";
-        multipliers = "1 2 4 8 16 32 64";
-      };
-
-      jails = {
-        sshd = {
-          enabled = true;
-
-          settings = {
-            # El filtro va en settings: jails.<n>.filter de nixpkgs descarta el
-            # valor de texto y usaría "sshd" sin el modo aggressive.
-            filter = "sshd[mode=aggressive]";
-            maxretry = 3;
-            findtime = "10m";
-          };
-        };
-      };
-    };
-    openssh = {
-      enable = true;
-      settings.PermitRootLogin = "no";
-      # Servidor secundario: login con contraseña permitido (igual que pico).
-      settings.PasswordAuthentication = true;
-    };
 
     thermald.enable = true;
     # SMART: aviso temprano de fallo de disco (complementa a beszel).

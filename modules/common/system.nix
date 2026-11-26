@@ -81,7 +81,7 @@
 
   # Servicios base
   # NOTA: netbird NO va aquí. Cada host lo habilita explícitamente
-  # (desktop-gaming.nix, servidor, zimablade). Palco no lo usa.
+  # (modules/desktop/, servidor, zimablade). Palco no lo usa.
   # fwupd no tiene sentido en Pi 4 (sin UEFI/LVFS útil aquí)
   services.fwupd.enable = pkgs.stdenv.hostPlatform.isx86_64;
 

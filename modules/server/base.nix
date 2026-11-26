@@ -31,7 +31,7 @@
     # hung_task_panic eliminado: un bloqueo temporal de disco o Docker no debe
     # reiniciar el servidor entero (el kernel sigue avisando en el log).
 
-    # La política de zram (swappiness y page-cluster) está en common-system.nix.
+    # La política de zram (swappiness y page-cluster) está en modules/common/system.nix.
 
     # SysRq disponible para recuperación manual.
     "kernel.sysrq" = 1;

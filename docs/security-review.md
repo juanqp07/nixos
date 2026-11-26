@@ -44,7 +44,7 @@ adicional:
 
 Los puertos publicados por Docker no deben confundirse con las excepciones
 INPUT del firewall NixOS. La política de aplicaciones se instala en
-`DOCKER-USER` mediante `modules/atlas-docker.nix`:
+`DOCKER-USER` mediante `modules/atlas/docker-firewall.nix`:
 
 - Permite tráfico entre bridges Docker para la comunicación interna prevista.
 - Mantiene acceso de la LAN IPv4 `192.168.1.0/24` y NetBird `wt0` a los
@@ -160,7 +160,7 @@ personas de plena confianza.
 ## Modularización realizada
 
 El bloque específico de Docker de Atlas se ha extraído de
-`hosts/servidor/configuration.nix` a `modules/atlas-docker.nix`:
+`hosts/servidor/configuration.nix` a `modules/atlas/docker-firewall.nix`:
 
 - Motor Docker y política `DOCKER-USER`.
 - Proxy de socket, Arcane Manager y PostgreSQL.
