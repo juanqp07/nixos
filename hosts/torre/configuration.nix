@@ -53,7 +53,7 @@
 
   # ---------------------------------------------------------
   # 3. SERVICIOS Y PAQUETES
-  # scx/gamemode/zram/inotify/bluetooth heredados de desktop-gaming.nix
+  # scx/gamemode/zram/inotify/bluetooth heredados de modules/desktop/
   # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
   # ---------------------------------------------------------
   # 25 % de capacidad máxima: 8 GiB sobre 32 GiB de RAM, sin reserva física al arranque.
@@ -72,7 +72,7 @@
     openFirewall = true;
   };
 
-  # fstrim está habilitado en desktop-gaming.nix.
+  # fstrim está habilitado en modules/desktop/.
   services.smartd.enable = true;
 
   environment.systemPackages = with pkgs; [
