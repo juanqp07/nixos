@@ -15,6 +15,7 @@ let
   mkRunner =
     {
       name,
+      systemdName,
       url,
       tokenFile,
       labels,
@@ -57,8 +58,12 @@ let
       // lib.optionalAttrs persistentWorkDir {
         # Preserve the module's normal credential path and add a separate,
         # DynamicUser-owned persistent directory for the runner workspace.
+        # The upstream module addresses registration state by the NixOS
+        # service key (fctv/fctv2/kigo), not by the remote runner name
+        # (atlas-fctv/atlas-fctv-2/atlas-kigo). Both paths must be declared:
+        # otherwise its configure/unconfigure scripts cannot access STATE_DIR.
         StateDirectory = lib.mkForce [
-          "github-runner/${name}"
+          "github-runner/${systemdName}"
           "github-runner-work/${name}"
         ];
         StateDirectoryMode = "0700";
@@ -219,6 +224,7 @@ in
   services.github-runners = {
     fctv = mkRunner {
       name = "atlas-fctv";
+      systemdName = "fctv";
       url = "https://github.com/juanqp07/fctv";
       tokenFile = "/var/lib/secrets/github-runner/fctv.token";
       labels = [ "fctv" ];
@@ -240,6 +246,7 @@ in
 
     fctv2 = mkRunner {
       name = "atlas-fctv-2";
+      systemdName = "fctv2";
       url = "https://github.com/juanqp07/fctv";
       # The same repo-scoped PAT can register multiple runners for this repo.
       tokenFile = "/var/lib/secrets/github-runner/fctv.token";
@@ -262,6 +269,7 @@ in
 
     kigo = mkRunner {
       name = "atlas-kigo";
+      systemdName = "kigo";
       url = "https://github.com/juanqp07/kigo";
       tokenFile = "/var/lib/secrets/github-runner/kigo.token";
       labels = [ "kigo" ];
