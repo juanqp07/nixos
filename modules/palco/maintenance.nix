@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   # Empaqueta los comandos de Palco junto con la biblioteca visual compartida.
@@ -119,16 +124,19 @@ in
   # HERRAMIENTAS
   # ------------------------------------------------------------
 
-  environment.systemPackages = with pkgs; [
-    bluez
-    bluez-tools
-    alsa-utils
-    pipewire
-    wireplumber
-    util-linux
-    lsp-plugins
-    lv2
-  ] ++ [ palcoCommand ];
+  environment.systemPackages =
+    with pkgs;
+    [
+      bluez
+      bluez-tools
+      alsa-utils
+      pipewire
+      wireplumber
+      util-linux
+      lsp-plugins
+      lv2
+    ]
+    ++ [ palcoCommand ];
 
   # ------------------------------------------------------------
   # ALIASES
