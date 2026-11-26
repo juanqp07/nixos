@@ -136,7 +136,7 @@ Las líneas en whitelist no representan fallos: la lista excluye las direcciones
 ### Arcane Agent v3
 
 La configuración de esta rama declara Arcane Manager v3.1.1 en Atlas
-(`modules/atlas-docker.nix`) y Arcane Agent v3.0.1 en Pico
+(`modules/atlas/arcane.nix`) y Arcane Agent v3.0.1 en Pico
 (`hosts/zimablade/configuration.nix`). Ambos siguen fijados por tag y digest;
 NixOS controla sus imágenes y evita que las actualice por su cuenta un updater
 interno. El Agent de Pico no se actualiza en este cambio: primero se debe revisar
