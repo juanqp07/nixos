@@ -56,7 +56,7 @@
           };
 
           modules = [
-            ./modules/common-system.nix
+            ./modules/common/system.nix
             homeManagerInput.nixosModules.home-manager
             ./modules/home-manager.nix
             ./hosts/${hostName}/configuration.nix
@@ -67,24 +67,24 @@
     {
       nixosConfigurations = {
         elytra = mkHost nixpkgs home-manager "portatil" "x86_64-linux" [
-          ./modules/desktop-gaming.nix
-          ./modules/development-tools.nix
+          ./modules/desktop/default.nix
+          ./modules/common/development.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
 
         titan = mkHost nixpkgs home-manager "torre" "x86_64-linux" [
-          ./modules/desktop-gaming.nix
-          ./modules/development-tools.nix
+          ./modules/desktop/default.nix
+          ./modules/common/development.nix
           ./modules/titan-interactive.nix
           nix-flatpak.nixosModules.nix-flatpak
         ];
 
         atlas = mkHost nixpkgs-stable home-manager-stable "servidor" "x86_64-linux" [
-          ./modules/server-system.nix
+          ./modules/server/default.nix
         ];
 
         pico = mkHost nixpkgs-stable home-manager-stable "zimablade" "x86_64-linux" [
-          ./modules/server-system.nix
+          ./modules/server/default.nix
         ];
 
         palco = mkHost nixpkgs home-manager "rpi4-bt" "aarch64-linux" [
