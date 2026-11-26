@@ -121,6 +121,16 @@ let
         Restart = lib.mkForce "always";
         RestartSec = "30s";
 
+        # The upstream module hides .current-token from the listener. On a first
+        # start, however, that file is created by ExecStartPre, after systemd has
+        # already prepared the mount namespace. Prefix '-' keeps it inaccessible
+        # when present while allowing the initial namespace setup when absent.
+        # Keep the configured PAT inaccessible as well.
+        InaccessiblePaths = lib.mkForce [
+          "-/var/lib/github-runner/${serviceName}/.current-token"
+          "-${tokenFile}"
+        ];
+
         # Run with the runner's DynamicUser before the upstream configure hooks.
         # If GitHub deletes a registration, the listener removes .runner and
         # .credentials; invalidating these markers lets NixOS provision it again.
