@@ -3,6 +3,9 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ../../modules/palco/bluetooth.nix
+    ../../modules/palco/audio.nix
+    ../../modules/palco/maintenance.nix
   ];
 
   # ============================================================
