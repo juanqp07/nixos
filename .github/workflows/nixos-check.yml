@@ -263,6 +263,14 @@ jobs:
             test "$(nix eval --raw "$unit.unitConfig.StartLimitIntervalSec")" = "15min"
             test "$(nix eval --json "$unit.unitConfig.StartLimitBurst")" = "5"
 
+            # The upstream runner scripts use the NixOS service key for their
+            # registration state path. Keep it aligned with StateDirectory[0].
+            state_dirs="$(nix eval --json "$unit.serviceConfig.StateDirectory")"
+            jq -e --arg expected "github-runner/$runner" '.[0] == $expected' <<< "$state_dirs" >/dev/null
+
+            inaccessible="$(nix eval --json "$unit.serviceConfig.InaccessiblePaths")"
+            jq -e --arg expected "-/var/lib/github-runner/$runner/.current-token" 'index($expected) != null' <<< "$inaccessible" >/dev/null
+
             prestart="$(nix eval --json "$unit.serviceConfig.ExecStartPre")"
             grep -Fq -- "github-runner-$runner-state-guard" <<< "$prestart"
           done
