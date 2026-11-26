@@ -142,7 +142,7 @@
 
   # ============================================================
   # CPU / SCHED-EXT, GAMEMODE, MEMORIA, SYSCTL, BLUETOOTH
-  # Heredados de modules/modules/desktop/ (paridad elytra+titan).
+  # Heredados de modules/desktop/ (paridad elytra+titan).
   # ============================================================
 
   # ============================================================
@@ -155,7 +155,7 @@
   # WAYLAND / ELECTRON
   # ============================================================
 
-  # NIXOS_OZONE_WL ya viene de modules/modules/desktop/.
+  # NIXOS_OZONE_WL ya viene de modules/desktop/.
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "iHD";
   };
@@ -185,7 +185,7 @@
   };
 
   # ============================================================
-  # BLUETOOTH: heredado de modules/modules/desktop/
+  # BLUETOOTH: heredado de modules/desktop/
   # ============================================================
 
   # ============================================================
