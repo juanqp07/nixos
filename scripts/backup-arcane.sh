@@ -24,7 +24,7 @@ ARCANE_ROOT="$DATA_ROOT/AppData/arcane"
 ARCANE_SERVICE="docker-arcane.service"
 PROJECTS_DIR="$DATA_ROOT/arcane/projects"
 BACKUP_ROOT="$ARCANE_ROOT/backups"
-MODULE_FILE="$(cd -- "$(dirname -- "$0")/.." && pwd)/modules/atlas-docker.nix"
+MODULE_FILE="$(cd -- "$(dirname -- "$0")/.." && pwd)/modules/atlas/arcane.nix"
 
 [[ -d "$ARCANE_ROOT" ]] || {
   printf 'Arcane data directory is not mounted: %s\n' "$ARCANE_ROOT" >&2
@@ -141,7 +141,7 @@ tar --numeric-owner --xattrs --acls -czf "$backup_dir/projects.tar.gz" \
 
 cp -a "$ARCANE_ROOT/arcane.env" "$backup_dir/arcane.env"
 cp -a "$ARCANE_ROOT/postgres.env" "$backup_dir/postgres.env"
-cp -- "$MODULE_FILE" "$backup_dir/atlas-docker.nix"
+cp -- "$MODULE_FILE" "$backup_dir/arcane.nix"
 
 tar -tzf "$backup_dir/arcane-data.tar.gz" >/dev/null
 tar -tzf "$backup_dir/projects.tar.gz" >/dev/null
@@ -156,7 +156,7 @@ Contents:
 - arcane-data.tar.gz: arcane-data Docker volume.
 - projects.tar.gz: /mnt/datos/arcane/projects.
 - arcane.env and postgres.env: environment files (secrets; keep private).
-- atlas-docker.nix: NixOS container declaration used at backup time.
+- arcane.nix: NixOS container declaration used at backup time.
 
 The backup directory is private (0700) and its files are private (0600).
 The Manager was stopped and restored through docker-arcane.service. NixOS
