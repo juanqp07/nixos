@@ -73,6 +73,13 @@ let
         # StateDirectory above; adding a second bind for the same path makes
         # systemd fail while constructing the runner's mount namespace.
         BindPaths = lib.mkForce [ ];
+
+        # DynamicUser= uses an id-mapped mount for StateDirectory. systemd
+        # deliberately adds nosuid,nodev,noexec to that mount. GitHub Actions
+        # must execute downloaded toolchains (Go, Android SDK, npm shims, etc.)
+        # from its workspace, so allow execution only in this runner's own
+        # workspace. Keep nosuid/nodev and all other service sandboxing intact.
+        ExecPaths = [ "/var/lib/github-runner-work/${name}" ];
       };
 
       # Some downloaded Linux tools (for example, Android SDK binaries) use
