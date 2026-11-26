@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   # BLUETOOTH / BLUEZ
@@ -71,8 +76,7 @@
     ];
 
     serviceConfig = {
-      ExecStart =
-        "${pkgs.bluez-tools}/bin/bt-agent -c NoInputNoOutput";
+      ExecStart = "${pkgs.bluez-tools}/bin/bt-agent -c NoInputNoOutput";
 
       Restart = "always";
       RestartSec = 3;
