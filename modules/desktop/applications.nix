@@ -80,8 +80,8 @@
     protontricks
 
     # Desarrollo: las herramientas base de Python y Rust se instalan
-    # desde development-tools.nix; Bun, Go y Java siguen en devShells.
-    # Node se instala en development-tools.nix (runtime del plugin
+    # desde modules/common/development.nix; Bun, Go y Java siguen en devShells.
+    # Node se instala en modules/common/development.nix (runtime del plugin
     # opencode-router).
     android-studio
     vscode
