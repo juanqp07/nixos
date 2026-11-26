@@ -301,6 +301,10 @@ jobs:
             grep -Fq -- "$expected" <<< "$buildkit_exec"
           done
 
+          # fuse-overlayfs resolves mount.fuse3 from the BuildKit daemon PATH.
+          # Keep the helper in the daemon's NixOS package path, not only on runners.
+          grep -Fq '      fuse3' modules/atlas/github-runners.nix
+
       - name: Build headless server closure
         if: matrix.host == 'atlas' || matrix.host == 'pico'
         run: |
