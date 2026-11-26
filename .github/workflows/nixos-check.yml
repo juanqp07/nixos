@@ -271,6 +271,17 @@ jobs:
             inaccessible="$(nix eval --json "$unit.serviceConfig.InaccessiblePaths")"
             jq -e --arg expected "-/var/lib/github-runner/$runner/.current-token" 'index($expected) != null' <<< "$inaccessible" >/dev/null
 
+            # systemd marks DynamicUser id-mapped state mounts noexec by default.
+            # Re-enable execution only for the dedicated persistent workspace.
+            case "$runner" in
+              fctv) workspace="atlas-fctv" ;;
+              fctv2) workspace="atlas-fctv-2" ;;
+              kigo) workspace="atlas-kigo" ;;
+              *) echo "::error::Unknown runner: $runner"; exit 1 ;;
+            esac
+            exec_paths="$(nix eval --json "$unit.serviceConfig.ExecPaths")"
+            jq -e --arg expected "/var/lib/github-runner-work/$workspace" 'index($expected) != null' <<< "$exec_paths" >/dev/null
+
             prestart="$(nix eval --json "$unit.serviceConfig.ExecStartPre")"
             grep -Fq -- "github-runner-$runner-state-guard" <<< "$prestart"
           done
