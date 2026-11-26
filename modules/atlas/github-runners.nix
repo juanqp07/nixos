@@ -190,6 +190,9 @@ in
       util-linux
       iproute2
       runc
+      # fuse-overlayfs invokes mount.fuse3 by name inside the BuildKit daemon.
+      # Keep the helper in this service PATH (runner PATH is not inherited).
+      fuse3
       fuse-overlayfs
       shadow
     ];
