@@ -53,7 +53,12 @@
 
   # ---------------------------------------------------------
   # 3. SERVICIOS Y PAQUETES
+  # scx/gamemode/zram/inotify/bluetooth heredados de modules/desktop/
+  # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
   # ---------------------------------------------------------
+  # 25 % de capacidad máxima: 8 GiB sobre 32 GiB de RAM, sin reserva física al arranque.
+  zramSwap.memoryPercent = 25;
+
   # Inferencia local en la RX 6700 XT (RDNA2): ROCm no incluye este modelo
   # en su lista oficial de GPU soportadas; usamos el backend Vulkan de Ollama.
   # El paquete activa OLLAMA_VULKAN=1 y el módulo concede acceso al grupo
@@ -73,12 +78,6 @@
     AmbientCapabilities = [ "CAP_PERFMON" ];
     CapabilityBoundingSet = lib.mkForce [ "CAP_PERFMON" ];
   };
-
-  # scx/gamemode/zram/inotify/bluetooth heredados de modules/desktop/
-  # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
-  # ---------------------------------------------------------
-  # 25 % de capacidad máxima: 8 GiB sobre 32 GiB de RAM, sin reserva física al arranque.
-  zramSwap.memoryPercent = 25;
 
   services.openssh.enable = true;
 
