@@ -69,14 +69,28 @@
     host = "127.0.0.1";
     port = 11434;
     openFirewall = false;
+
+    # Guardar los modelos en el SSD dedicado, no en la partición raíz.
+    modelsDir = "/mnt/juegos/ollama";
+
+    # Usuario persistente para que el directorio externo tenga permisos
+    # estables entre reinicios (no usar UID dinámico para datos persistentes).
+    user = "ollama";
+    group = "ollama";
   };
 
-  # Vulkan necesita CAP_PERFMON para consultar la VRAM disponible y permitir
-  # que Ollama planifique correctamente la carga de modelos. Se concede solo
-  # a este servicio, manteniendo el resto de capacidades bloqueadas.
-  systemd.services.ollama.serviceConfig = {
-    AmbientCapabilities = [ "CAP_PERFMON" ];
-    CapabilityBoundingSet = lib.mkForce [ "CAP_PERFMON" ];
+  # La versión de nixpkgs fijada en flake.lock mantiene DynamicUser=true
+  # aunque se configure un usuario estático. Forzamos el modo estático para
+  # evitar errores de permisos al escribir modelos en /mnt/juegos.
+  # Vulkan necesita CAP_PERFMON para consultar la VRAM y planificar la carga.
+  systemd.services.ollama = {
+    unitConfig.RequiresMountsFor = [ "/mnt/juegos/ollama" ];
+
+    serviceConfig = {
+      DynamicUser = lib.mkForce false;
+      AmbientCapabilities = [ "CAP_PERFMON" ];
+      CapabilityBoundingSet = lib.mkForce [ "CAP_PERFMON" ];
+    };
   };
 
   services.openssh.enable = true;
@@ -157,6 +171,8 @@
     "d /mnt/juegos/Games/Heroic 0775 juan users -"
     "d /mnt/juegos/Downloads 0775 juan users -"
     "d /mnt/juegos/Data 0775 juan users -"
+    # Directorio de modelos de Ollama: solo el servicio dedicado puede escribir.
+    "d /mnt/juegos/ollama 0750 ollama ollama -"
 
     # Corregir también propietario y permisos si los directorios ya existían.
     "z /mnt/juegos 0775 juan users -"
@@ -165,6 +181,7 @@
     "z /mnt/juegos/Games/Heroic 0775 juan users -"
     "z /mnt/juegos/Downloads 0775 juan users -"
     "z /mnt/juegos/Data 0775 juan users -"
+    "z /mnt/juegos/ollama 0750 ollama ollama -"
   ];
 
   # ---------------------------------------------------------
