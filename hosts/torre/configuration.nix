@@ -53,6 +53,27 @@
 
   # ---------------------------------------------------------
   # 3. SERVICIOS Y PAQUETES
+  # ---------------------------------------------------------
+  # Inferencia local en la RX 6700 XT (RDNA2): ROCm no incluye este modelo
+  # en su lista oficial de GPU soportadas; usamos el backend Vulkan de Ollama.
+  # El paquete activa OLLAMA_VULKAN=1 y el módulo concede acceso al grupo
+  # render y a /dev/dri sin ejecutar el servicio como root.
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-vulkan;
+    host = "127.0.0.1";
+    port = 11434;
+    openFirewall = false;
+  };
+
+  # Vulkan necesita CAP_PERFMON para consultar la VRAM disponible y permitir
+  # que Ollama planifique correctamente la carga de modelos. Se concede solo
+  # a este servicio, manteniendo el resto de capacidades bloqueadas.
+  systemd.services.ollama.serviceConfig = {
+    AmbientCapabilities = [ "CAP_PERFMON" ];
+    CapabilityBoundingSet = lib.mkForce [ "CAP_PERFMON" ];
+  };
+
   # scx/gamemode/zram/inotify/bluetooth heredados de modules/desktop/
   # zram al 25%: con 32GB físicos, 50% (16GB) es excesivo y gasta CPU.
   # ---------------------------------------------------------
