@@ -4,7 +4,7 @@ Este repositorio contiene la configuración centralizada de cinco equipos, gesti
 
 ## 📂 Estructura del Repositorio
 
-* **flake.nix / flake.lock**: punto de entrada, hosts, dependencias fijadas, devShells y despliegues remotos.
+* **flake.nix / flake.lock**: punto de entrada, hosts, dependencias fijadas y devShells.
 * **hosts/**: ajustes específicos de cada equipo y su hardware.
     * `portatil/` (elytra): portátil Intel + NVIDIA RTX 5050.
     * `torre/` (titan): torre Ryzen + Radeon RX 6700 XT.
@@ -87,7 +87,7 @@ Home Manager está integrado como módulo de NixOS: los cambios del entorno pers
 
 - `elytra`, `titan` y `palco` utilizan Home Manager `master`, siguiendo `nixpkgs-unstable`.
 - `atlas` y `pico` utilizan `release-26.05`, siguiendo `nixpkgs-stable`.
-- Las preferencias comunes de Fish y los alias personales se mantienen en `home/juan/`; Fastfetch y los alias de despliegue solo se cargan en los equipos de escritorio.
+- Las preferencias comunes de Fish y los alias personales se mantienen en `home/juan/`; Fastfetch y los alias para actualizar Atlas y Pico de forma remota (`nix-up-atlas` y `nix-up-pico`) solo se cargan en los equipos de escritorio.
 - Hardware, servicios, permisos, aplicaciones de sistema y configuración de Plasma continúan en los módulos de NixOS.
 
 Después de incorporar los nuevos inputs por primera vez, ejecuta `nix flake lock` desde la raíz del repositorio y revisa/añade el `flake.lock` resultante antes de desplegar:
@@ -101,50 +101,23 @@ git commit -m "chore: lock Home Manager inputs"
 
 ## 🚀 Despliegue remoto del homelab
 
-Atlas y Pico se pueden desplegar desde Elytra o Titan mediante **deploy-rs
-1.0.0**. La herramienta construye localmente la configuración y transfiere la
-clausura por SSH; los servidores no se utilizan como máquinas de compilación.
+Atlas y Pico se actualizan desde Elytra o Titan mediante `nixos-rebuild --target-host`.
+Los alias de Fish `nix-up-atlas` y `nix-up-pico` construyen la configuración
+localmente y la activan por SSH en el servidor correspondiente.
 
-Tras fusionar la PR y sincronizar el repositorio, activa primero una vez el
-cambio de Home Manager en Elytra o Titan con:
+También puedes ejecutar el comando directamente:
 
 ```bash
-sudo nixos-rebuild switch --flake .#elytra
+# Atlas
+nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --ask-sudo-password
+
+# Pico
+nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password
 ```
 
-Cambia `elytra` por `titan` si corresponde. Los alias de despliegue verifican
-que `~/nixos` sea un repositorio limpio (incluidos archivos sin seguimiento) y
-muestran la rama y el commit exacto antes de ejecutar deploy-rs. No hacen
-`fetch`, `pull`, `checkout` ni `commit` automáticos: comprueba tú que estás en el
-commit que quieres desplegar.
-
-Comandos disponibles en Fish:
-
-- `nix-deploy-atlas`: despliega Atlas por LAN.
-- `nix-deploy-pico`: despliega Pico por LAN.
-- `nix-deploy-servers`: despliega por LAN solo los nodos del grupo `homelab` (Atlas y Pico); otros nodos quedan fuera salvo que se asignen expresamente a ese grupo.
-- `nix-deploy-atlas --netbird`: resuelve la IP del peer conectado Atlas y
-  despliega por NetBird.
-- `nix-deploy-pico --netbird`: resuelve la IP del peer conectado Pico y
-  despliega por NetBird.
-
-El modo NetBird requiere los comandos `netbird` y `jq`, un peer conectado con
-el hostname esperado (`atlas` o `pico`) y una política que permita SSH entrante.
-Exige una única IP conectada y cancela si no puede resolverla; no hace
-fallback automático a LAN. El comando conjunto sigue usando LAN: despliega
-cada servidor por separado para usar NetBird.
-
-Los comandos piden confirmación y sudo para activar el sistema. Se conservan
-`nix-up-atlas` y `nix-up-pico` como alternativas con `nixos-rebuild --target-host`.
-
-El despliegue conjunto no es transaccional: si un servidor falla después de
-que el otro se haya actualizado, no se revierte automáticamente el que tuvo
-éxito. Despliega primero cada servidor por separado.
-
-Los rollbacks automáticos de deploy-rs están desactivados de forma deliberada:
-`system.autoUpgrade` puede crear generaciones con `nixos-rebuild` que no incluyen
-el helper requerido por Magic Rollback. Consulta [`docs/deploy-rs.md`](docs/deploy-rs.md)
-antes de desplegar.
+Los alias están disponibles en Elytra y Titan. No sincronizan Git automáticamente;
+actualiza y revisa `~/nixos` antes de ejecutarlos. Despliega y verifica cada
+servidor de forma independiente.
 
 ## 🚀 Cómo aplicar cambios
 
@@ -251,7 +224,7 @@ Nota: `nix-collect-garbage -d` elimina todas las generaciones antiguas, no solo 
 
 ## ✅ Validación automática
 
-GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. También construye las comprobaciones de esquema y activación de deploy-rs. El mismo workflow ejecuta primero formato, análisis estático, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos; solo si todo pasa inicia las cinco evaluaciones NixOS, limitadas a tres trabajos simultáneos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
+GitHub Actions evalúa el `system.build.toplevel` de los cinco hosts, construye las clausuras completas de Atlas y Pico y ejecuta `nix flake check --no-build --show-trace`. El mismo workflow ejecuta primero formato, análisis estático, tests unitarios del actualizador de Nori, validación de workflows y detección de secretos; solo si todo pasa inicia las cinco evaluaciones NixOS, limitadas a tres trabajos simultáneos. Las recetas Nori se construyen cuando hay una actualización pendiente. Las clausuras completas de los escritorios se evalúan, pero no se construyen en cada PR por su tamaño. Estas comprobaciones no sustituyen las pruebas de hardware, Bluetooth, audio, GPU o contenedores. Consulta [docs/ci-security.md](docs/ci-security.md) para la configuración y protección recomendadas.
 
 La auditoría de decisiones, compromisos y pruebas recomendadas por equipo está en [`docs/performance-stability-audit.md`](docs/performance-stability-audit.md).
 
