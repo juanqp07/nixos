@@ -87,7 +87,7 @@ Home Manager está integrado como módulo de NixOS: los cambios del entorno pers
 
 - `elytra`, `titan` y `palco` utilizan Home Manager `master`, siguiendo `nixpkgs-unstable`.
 - `atlas` y `pico` utilizan `release-26.05`, siguiendo `nixpkgs-stable`.
-- Las preferencias comunes de Fish y los alias personales se mantienen en `home/juan/`; Fastfetch y los alias para actualizar Atlas y Pico de forma remota (`nix-up-atlas` y `nix-up-pico`) solo se cargan en los equipos de escritorio.
+- Las preferencias comunes de Fish y los alias personales se mantienen en `home/juan/`; Fastfetch solo se carga en los equipos de escritorio.
 - Hardware, servicios, permisos, aplicaciones de sistema y configuración de Plasma continúan en los módulos de NixOS.
 
 Después de incorporar los nuevos inputs por primera vez, ejecuta `nix flake lock` desde la raíz del repositorio y revisa/añade el `flake.lock` resultante antes de desplegar:
@@ -102,10 +102,7 @@ git commit -m "chore: lock Home Manager inputs"
 ## 🚀 Despliegue remoto del homelab
 
 Atlas y Pico se actualizan desde Elytra o Titan mediante `nixos-rebuild --target-host`.
-Los alias de Fish `nix-up-atlas` y `nix-up-pico` construyen la configuración
-localmente y la activan por SSH en el servidor correspondiente.
-
-También puedes ejecutar el comando directamente:
+Para hacerlo, ejecuta manualmente estos comandos desde Elytra o Titan:
 
 ```bash
 # Atlas
@@ -115,9 +112,8 @@ nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --a
 nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password
 ```
 
-Los alias están disponibles en Elytra y Titan. No sincronizan Git automáticamente;
-actualiza y revisa `~/nixos` antes de ejecutarlos. Despliega y verifica cada
-servidor de forma independiente.
+Actualiza y revisa `~/nixos` antes de ejecutar el comando. Cada servidor se
+construye localmente y se activa por SSH de forma independiente.
 
 ## 🚀 Cómo aplicar cambios
 
