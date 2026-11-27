@@ -23,12 +23,6 @@
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 
-    # Despliegue remoto de Atlas y Pico; fijado a la versión estable 1.0.0.
-    deploy-rs = {
-      url = "github:serokell/deploy-rs/v1.0.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -39,7 +33,6 @@
       nixpkgs-stable,
       nix-flatpak,
       nixos-hardware,
-      deploy-rs,
       home-manager,
       home-manager-stable,
       ...
@@ -93,56 +86,12 @@
         ];
       };
 
-      # Despliegue remoto: las compilaciones se realizan en el equipo de control,
-      # nunca en los servidores de baja potencia.
-      deploy = {
-        remoteBuild = false;
-        activationTimeout = 600;
-
-        # No activar estos rollbacks mientras system.autoUpgrade pueda crear
-        # generaciones sin deploy-rs-activate. Véase docs/deploy-rs.md.
-        autoRollback = false;
-        magicRollback = false;
-
-        nodes = {
-          atlas = {
-            # Solo los nodos con opt-in homelab entran en el despliegue conjunto.
-            groups = [ "homelab" ];
-            hostname = "192.168.1.143";
-            profiles.system = {
-              user = "root";
-              sshUser = "juan";
-              interactiveSudo = true;
-              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.atlas;
-            };
-          };
-
-          pico = {
-            # Grupo explícito compartido con Atlas.
-            groups = [ "homelab" ];
-            hostname = "192.168.1.147";
-            profiles.system = {
-              user = "root";
-              sshUser = "juan";
-              interactiveSudo = true;
-              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.pico;
-            };
-          };
-        };
-      };
-
-      # Comprueba el esquema de despliegue y que cada perfil incluya sus
-      # scripts de activación antes de permitir un despliegue real.
-      checks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
-
-      # CLI de deploy-rs y paquetes propios del Flake.
-      # Agrupados en un único conjunto para evitar asignaciones anidadas duplicadas.
+      # Paquetes propios del Flake.
       packages.x86_64-linux =
         let
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
         in
         {
-          deploy-rs = deploy-rs.packages.x86_64-linux.deploy-rs;
           nori = pkgs.callPackage ./packages/nori.nix { };
           nori-cli = pkgs.callPackage ./packages/nori-cli.nix { };
         };
