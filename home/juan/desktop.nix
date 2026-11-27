@@ -16,56 +16,6 @@
       fastfetch
     end
 
-    function nix-up-atlas --description "Despliega la configuración en Atlas"
-      if not pushd "$HOME/nixos" >/dev/null
-        __kigo_alias_result 1 "No se pudo acceder a ~/nixos"
-        return 1
-      end
-
-      __kigo_alias_header "Despliegue remoto · Atlas"
-      set_color brblack
-      printf '  Destino: juan@192.168.1.143 · flake .#atlas\n'
-      set_color normal
-      command nixos-rebuild build --flake .#atlas
-      set -l build_result $status
-      if test "$build_result" -ne 0
-        popd >/dev/null
-        __kigo_alias_result "$build_result" "Build local de Atlas fallido; no se ha desplegado"
-        return "$build_result"
-      end
-
-      command nixos-rebuild switch --flake .#atlas --target-host juan@192.168.1.143 --sudo --ask-sudo-password
-      set -l result $status
-      popd >/dev/null
-      __kigo_alias_result "$result" "Despliegue de Atlas finalizado"
-      return $result
-    end
-
-    function nix-up-pico --description "Despliega la configuración en Pico"
-      if not pushd "$HOME/nixos" >/dev/null
-        __kigo_alias_result 1 "No se pudo acceder a ~/nixos"
-        return 1
-      end
-
-      __kigo_alias_header "Despliegue remoto · Pico"
-      set_color brblack
-      printf '  Destino: juan@192.168.1.147 · flake .#pico\n'
-      set_color normal
-      command nixos-rebuild build --flake .#pico
-      set -l build_result $status
-      if test "$build_result" -ne 0
-        popd >/dev/null
-        __kigo_alias_result "$build_result" "Build local de Pico fallido; no se ha desplegado"
-        return "$build_result"
-      end
-
-      command nixos-rebuild switch --flake .#pico --target-host juan@192.168.1.147 --sudo --ask-sudo-password
-      set -l result $status
-      popd >/dev/null
-      __kigo_alias_result "$result" "Despliegue de Pico finalizado"
-      return $result
-    end
-
   '';
 
 }
